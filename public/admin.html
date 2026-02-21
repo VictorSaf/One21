@@ -2,332 +2,898 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>One21 — Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ONE21 — Command Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css">
-<link rel="stylesheet" href="/css/components.css">
 <style>
-  body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; }
 
-  .admin-layout { display: flex; min-height: 100vh; }
+/* ── Layout ── */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
 
-  /* Sidebar */
-  .admin-nav {
-    width: 220px;
-    flex-shrink: 0;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--glass-border);
-    display: flex;
-    flex-direction: column;
-    padding: var(--sp-6) 0;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-  }
+/* ══════════════════════════════════
+   ADMIN SIDEBAR
+   ══════════════════════════════════ */
+.admin-nav {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-mid);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: var(--z-sticky);
+}
 
-  .admin-nav__brand {
-    padding: 0 var(--sp-5) var(--sp-6);
-    border-bottom: 1px solid var(--glass-border);
-    margin-bottom: var(--sp-4);
-  }
-  .admin-nav__brand h1 { font-size: 18px; font-weight: 800; color: var(--text-primary); }
-  .admin-nav__brand h1 span { color: var(--accent); }
-  .admin-nav__brand p { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+/* Brand */
+.admin-nav__brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px var(--sp-4) 12px;
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
 
-  .admin-nav__item {
-    display: flex; align-items: center; gap: var(--sp-3);
-    padding: var(--sp-3) var(--sp-5);
-    font-size: 14px; font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer; border: none; background: none;
-    width: 100%; text-align: left;
-    transition: all var(--transition-fast);
-    border-left: 3px solid transparent;
-  }
-  .admin-nav__item:hover { color: var(--text-primary); background: var(--bg-tertiary); }
-  .admin-nav__item.active { color: var(--accent); background: rgba(16,185,129,0.08); border-left-color: var(--accent); }
-  .admin-nav__icon { font-size: 18px; }
+.brand-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
 
-  .admin-nav__footer {
-    margin-top: auto;
-    padding: var(--sp-4) var(--sp-5);
-    border-top: 1px solid var(--glass-border);
-  }
+.brand-logo__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,230,118,0.5);
+  padding: 2px 7px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  clip-path: polygon(
+    0 4px, 4px 0,
+    calc(100% - 4px) 0, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 0 calc(100% - 4px)
+  );
+}
 
-  /* Main content */
-  .admin-main {
-    margin-left: 220px;
-    flex: 1;
-    padding: var(--sp-8) var(--sp-8);
-    max-width: 1200px;
-  }
+.brand-logo__suffix {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+}
 
-  .admin-page { display: none; }
-  .admin-page.active { display: block; }
+.admin-nav__console-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-dim);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
 
-  .page-title {
-    font-size: 24px; font-weight: 800;
-    color: var(--text-primary); margin-bottom: 4px;
-  }
-  .page-subtitle { font-size: 14px; color: var(--text-tertiary); margin-bottom: var(--sp-8); }
+/* Section label */
+.admin-nav__section {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+}
 
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--sp-4);
-    margin-bottom: var(--sp-8);
-  }
+/* Nav items */
+.admin-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 9px var(--sp-4);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all var(--transition-fast);
+  border-left: 2px solid transparent;
+  position: relative;
+}
 
-  .stat-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-5);
-    transition: transform 0.2s, border-color 0.2s;
-  }
-  .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
+.admin-nav__item:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
 
-  .stat-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); margin-bottom: var(--sp-3); }
-  .stat-card__value { font-size: 36px; font-weight: 800; line-height: 1; color: var(--text-primary); }
-  .stat-card__sub { font-size: 12px; color: var(--text-tertiary); margin-top: var(--sp-1); }
+.admin-nav__item.active {
+  color: var(--accent);
+  background: var(--accent-muted);
+  border-left-color: var(--accent);
+}
 
-  .stat-card--accent .stat-card__value { color: var(--accent); }
-  .stat-card--blue .stat-card__value { color: #60a5fa; }
-  .stat-card--purple .stat-card__value { color: #a78bfa; }
-  .stat-card--orange .stat-card__value { color: #fb923c; }
+/* Shimmer on active nav item */
+@keyframes nav-scan {
+  0%   { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(400%) skewX(-15deg); }
+}
 
-  /* Tables */
-  .admin-table-wrap {
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: var(--sp-6);
-  }
+.admin-nav__item.active::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 25%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,230,118,0.06), transparent);
+  animation: nav-scan 7s ease-in-out infinite;
+  pointer-events: none;
+}
 
-  .admin-table-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: var(--sp-4) var(--sp-5);
-    border-bottom: 1px solid var(--glass-border);
-  }
-  .admin-table-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.admin-nav__item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    background: rgba(255,255,255,0.02);
-    padding: var(--sp-3) var(--sp-4);
-    text-align: left;
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.8px; color: var(--text-tertiary);
-    border-bottom: 1px solid var(--glass-border);
-  }
-  tbody td {
-    padding: var(--sp-3) var(--sp-4);
-    font-size: 14px; color: var(--text-primary);
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    vertical-align: middle;
-  }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: rgba(255,255,255,0.02); }
+.admin-nav__item:hover svg {
+  transform: rotate(90deg);
+}
 
-  .role-badge {
-    display: inline-block; padding: 2px 8px;
-    border-radius: 4px; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.3px;
-  }
-  .role-badge--admin   { background: rgba(167,139,250,0.15); color: #a78bfa; }
-  .role-badge--user    { background: rgba(16,185,129,0.12);  color: #34d399; }
-  .role-badge--agent   { background: rgba(0,204,255,0.12);   color: #00ccff; }
+/* Footer */
+.admin-nav__footer {
+  margin-top: auto;
+  padding: var(--sp-4);
+  border-top: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
 
-  .online-dot {
-    display: inline-block; width: 8px; height: 8px;
-    border-radius: 50%; background: #64748b; margin-right: 6px;
-  }
-  .online-dot.online { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.admin-nav__footer-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 8px var(--sp-3);
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
 
-  .action-btn {
-    padding: 4px 10px; font-size: 12px; border-radius: 6px;
-    border: 1px solid var(--glass-border); background: transparent;
-    color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
-    font-family: inherit;
-  }
-  .action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-  .action-btn--accent { border-color: rgba(16,185,129,0.3); color: var(--accent); }
-  .action-btn--accent:hover { background: rgba(16,185,129,0.1); }
-  .action-btn--danger { border-color: rgba(239,68,68,0.3); color: #f87171; }
-  .action-btn--danger:hover { background: rgba(239,68,68,0.08); }
+.admin-nav__footer-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--transition-fast);
+}
 
-  /* Invite code display */
-  .invite-code {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 15px; font-weight: 700; letter-spacing: 2px;
-    color: var(--accent); cursor: pointer;
-  }
-  .invite-code:hover { text-decoration: underline; }
+.admin-nav__footer-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-bright);
+}
 
-  /* Empty state */
-  .empty-state {
-    text-align: center; padding: var(--sp-12);
-    color: var(--text-tertiary); font-size: 14px;
-  }
+.admin-nav__footer-btn:hover svg { transform: rotate(90deg); }
 
-  /* Toast */
-  .toast {
-    position: fixed; bottom: var(--sp-6); right: var(--sp-6);
-    background: var(--bg-elevated); border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-5);
-    font-size: 14px; color: var(--text-primary);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 999; animation: toastIn 0.3s ease;
-  }
-  @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.admin-nav__footer-btn--danger {
+  border-color: rgba(255,61,61,0.2);
+  color: var(--error);
+}
 
-  /* Inline edit */
-  .inline-select {
-    background: var(--bg-tertiary); border: 1px solid var(--glass-border);
-    border-radius: 6px; padding: 3px 8px; color: var(--text-primary);
-    font-size: 13px; font-family: inherit; cursor: pointer;
-  }
+.admin-nav__footer-btn--danger:hover {
+  background: var(--danger-muted);
+  border-color: rgba(255,61,61,0.4);
+  color: var(--error);
+}
 
-  /* Toolbar */
-  .toolbar { display: flex; gap: var(--sp-3); align-items: center; margin-bottom: var(--sp-5); flex-wrap: wrap; }
-  .toolbar input {
-    background: var(--bg-secondary); border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md); padding: var(--sp-2) var(--sp-3);
-    color: var(--text-primary); font-size: 14px; font-family: inherit;
-    outline: none; min-width: 220px;
-  }
-  .toolbar input:focus { border-color: var(--accent); }
+/* ══════════════════════════════════
+   MAIN CONTENT
+   ══════════════════════════════════ */
+.admin-main {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: var(--sp-8);
+  max-width: 1200px;
+}
+
+.admin-page { display: none; }
+.admin-page.active { display: block; }
+
+/* ── Page header ── */
+.admin-page-header {
+  margin-bottom: var(--sp-8);
+  padding-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.admin-page-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: var(--sp-2);
+}
+
+.admin-page-label::before {
+  content: '▶ ';
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.admin-page-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 36px;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Stats grid ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-8);
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-5);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.stat-card:hover { border-color: var(--border-accent); }
+.stat-card:hover::before { opacity: 0.3; }
+
+.stat-card__icon {
+  width: 16px;
+  height: 16px;
+  margin-bottom: var(--sp-3);
+  stroke: var(--text-tertiary);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stat-card__value {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text-primary);
+  margin-bottom: var(--sp-2);
+}
+
+.stat-card__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-1);
+}
+
+.stat-card__sub {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.stat-card--accent .stat-card__value { color: var(--accent); }
+.stat-card--accent .stat-card__icon  { stroke: var(--accent); }
+.stat-card--blue .stat-card__value   { color: var(--info); }
+.stat-card--blue .stat-card__icon    { stroke: var(--info); }
+.stat-card--warn .stat-card__value   { color: var(--warning); }
+.stat-card--warn .stat-card__icon    { stroke: var(--warning); }
+.stat-card--live .stat-card__value   { color: var(--accent); }
+.stat-card--live .stat-card__icon    { stroke: var(--accent); }
+
+/* ── Section block ── */
+.admin-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--sp-6);
+}
+
+.admin-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-elevated);
+}
+
+.admin-section__title {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.admin-section__title::before {
+  content: '// ';
+  color: var(--text-tertiary);
+}
+
+/* ── Toolbar ── */
+.admin-toolbar {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.admin-toolbar__input {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 7px var(--sp-3);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  letter-spacing: 0.04em;
+  outline: none;
+  min-width: 240px;
+  transition: border-color var(--transition-fast);
+}
+
+.admin-toolbar__input::placeholder {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-size: var(--font-xs);
+  letter-spacing: 0.1em;
+}
+
+.admin-toolbar__input:focus {
+  border-color: var(--border-accent);
+}
+
+.admin-toolbar__count {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.1em;
+}
+
+/* ── Terminal Table ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  padding: var(--sp-2) var(--sp-4);
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-mid);
+  background: var(--bg-elevated);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 10px var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-dim);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-hover); }
+
+.td-primary {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.td-secondary {
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  display: block;
+  margin-top: 2px;
+}
+
+/* ── Badges ── */
+.t-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.t-badge--admin  {
+  color: #a78bfa;
+  border-color: rgba(167,139,250,0.25);
+  background: rgba(167,139,250,0.06);
+}
+.t-badge--user   {
+  color: var(--accent);
+  border-color: rgba(0,230,118,0.25);
+  background: rgba(0,230,118,0.05);
+}
+.t-badge--agent  {
+  color: var(--info);
+  border-color: rgba(0,180,216,0.25);
+  background: rgba(0,180,216,0.05);
+}
+.t-badge--active {
+  color: var(--accent);
+  border-color: rgba(0,230,118,0.25);
+  background: rgba(0,230,118,0.05);
+}
+.t-badge--used   {
+  color: var(--text-secondary);
+  border-color: var(--border-dim);
+  background: transparent;
+}
+.t-badge--type {
+  color: var(--text-secondary);
+  border-color: var(--border-dim);
+  background: transparent;
+}
+.t-badge--archived {
+  color: var(--text-tertiary);
+  border-color: var(--border-dim);
+  background: transparent;
+}
+
+/* ── Status dot ── */
+.t-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.t-status__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 0; /* square dot for terminal feel */
+  background: var(--border-bright);
+  flex-shrink: 0;
+}
+
+.t-status--online .t-status__dot { background: var(--online); box-shadow: 0 0 5px rgba(0,230,118,0.5); }
+.t-status--online { color: var(--text-primary); }
+.t-status--offline { color: var(--text-secondary); }
+
+/* ── Invite code ── */
+.invite-code {
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px solid rgba(0,230,118,0.2);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  transition: all var(--transition-fast);
+}
+
+.invite-code:hover {
+  background: rgba(0,230,118,0.06);
+  border-color: rgba(0,230,118,0.4);
+}
+
+/* ── Action buttons ── */
+.t-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.t-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-active);
+  border-color: var(--border-bright);
+}
+
+.t-btn--accent {
+  border-color: rgba(0,230,118,0.3);
+  color: var(--accent);
+}
+.t-btn--accent:hover {
+  background: rgba(0,230,118,0.07);
+  border-color: rgba(0,230,118,0.6);
+}
+
+.t-btn--danger {
+  border-color: rgba(255,61,61,0.25);
+  color: var(--error);
+}
+.t-btn--danger:hover {
+  background: var(--danger-muted);
+  border-color: rgba(255,61,61,0.5);
+}
+
+.t-btn--lg {
+  padding: 8px 18px;
+  font-size: var(--font-sm);
+}
+
+/* ── Inline select ── */
+.inline-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  color: var(--text-primary);
+  font-size: var(--font-xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.inline-select:focus { border-color: var(--border-accent); }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-12);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.empty-state::before {
+  content: '// ';
+  color: var(--text-tertiary);
+  opacity: 0.4;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-5);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0,230,118,0.05);
+  z-index: var(--z-toast);
+  animation: toastIn 0.2s ease;
+}
+
+.toast::before {
+  content: '> ';
+  opacity: 0.5;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 </style>
 </head>
 <body>
 
 <div class="admin-layout">
 
-  <!-- ── Sidebar Navigation ── -->
+  <!-- ══════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════ -->
   <nav class="admin-nav">
+
     <div class="admin-nav__brand">
-      <h1>ONE<span>21</span></h1>
-      <p>Admin Dashboard</p>
+      <div class="brand-logo">
+        <span class="brand-logo__box">ONE</span>
+        <span class="brand-logo__suffix">_21</span>
+      </div>
+      <span class="admin-nav__console-label">CONSOLE</span>
     </div>
 
+    <div class="admin-nav__section">Command_Modules</div>
+
     <button class="admin-nav__item active" data-page="overview">
-      <span class="admin-nav__icon">📊</span> Overview
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Overview
     </button>
     <button class="admin-nav__item" data-page="users">
-      <span class="admin-nav__icon">👥</span> Utilizatori
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Node_Registry
     </button>
     <button class="admin-nav__item" data-page="invites">
-      <span class="admin-nav__icon">🔑</span> Invitații
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Access_Codes
     </button>
     <button class="admin-nav__item" data-page="rooms">
-      <span class="admin-nav__icon">💬</span> Camere
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Node_Map
     </button>
     <button class="admin-nav__item" data-page="export">
-      <span class="admin-nav__icon">📦</span> Export
+      <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+      Data_Export
     </button>
 
     <div class="admin-nav__footer">
-      <button class="action-btn" onclick="goToChat()" style="width:100%;margin-bottom:8px;">← Înapoi la chat</button>
-      <button class="action-btn action-btn--danger" onclick="Auth.logout()" style="width:100%;">Deconectare</button>
+      <button class="admin-nav__footer-btn" onclick="goToChat()">
+        <svg viewBox="0 0 24 24"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+        Return_To_Chat
+      </button>
+      <button class="admin-nav__footer-btn admin-nav__footer-btn--danger" onclick="Auth.logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Terminate_Session
+      </button>
     </div>
+
   </nav>
 
-  <!-- ── Main Content ── -->
+
+  <!-- ══════════════════════════════════════
+       MAIN CONTENT
+       ══════════════════════════════════════ -->
   <main class="admin-main">
 
-    <!-- OVERVIEW -->
+    <!-- ── OVERVIEW ── -->
     <div class="admin-page active" id="page-overview">
-      <h1 class="page-title">Overview</h1>
-      <p class="page-subtitle">Statistici în timp real ale platformei One21</p>
 
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card"><div class="stat-card__label">Se încarcă...</div></div>
+      <div class="admin-page-header">
+        <div class="admin-page-label">System_Status</div>
+        <div class="admin-page-title">Overview</div>
       </div>
 
-      <div class="admin-table-wrap">
-        <div class="admin-table-header">
-          <span class="admin-table-title">Activitate recentă</span>
-          <button class="action-btn action-btn--accent" onclick="loadOverview()">↺ Refresh</button>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-card__label">Loading...</div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section__header">
+          <span class="admin-section__title">Recent_Activity</span>
+          <button class="t-btn t-btn--accent" onclick="loadOverview()">
+            <svg style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5;" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
         </div>
         <table id="recentTable">
-          <thead><tr><th>Utilizator</th><th>Rol</th><th>Ultima activitate</th><th>Mesaje</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Node_ID</th>
+              <th>Access_Level</th>
+              <th>Last_Transmission</th>
+              <th>Msg_Count</th>
+            </tr>
+          </thead>
           <tbody id="recentBody"></tbody>
         </table>
       </div>
+
     </div>
 
-    <!-- USERS -->
-    <div class="admin-page" id="page-users">
-      <h1 class="page-title">Utilizatori</h1>
-      <p class="page-subtitle">Gestionează conturile și rolurile</p>
 
-      <div class="toolbar">
-        <input type="text" id="userSearch" placeholder="Caută utilizator..." oninput="filterUsers()">
-        <span id="userCount" style="color:var(--text-tertiary);font-size:13px;"></span>
+    <!-- ── USERS ── -->
+    <div class="admin-page" id="page-users">
+
+      <div class="admin-page-header">
+        <div class="admin-page-label">Access_Control</div>
+        <div class="admin-page-title">Node_Registry</div>
       </div>
 
-      <div class="admin-table-wrap">
+      <div class="admin-toolbar">
+        <input class="admin-toolbar__input" type="text" id="userSearch" placeholder="QUERY_NODE..." oninput="filterUsers()">
+        <span class="admin-toolbar__count" id="userCount"></span>
+      </div>
+
+      <div class="admin-section">
         <table id="usersTable">
-          <thead><tr><th>Utilizator</th><th>Rol</th><th>Status</th><th>Mesaje</th><th>Înregistrat</th><th>Acțiuni</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Node_ID</th>
+              <th>Access_Level</th>
+              <th>Status</th>
+              <th>Msg_Count</th>
+              <th>Registered</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
           <tbody id="usersBody"></tbody>
         </table>
       </div>
+
     </div>
 
-    <!-- INVITES -->
-    <div class="admin-page" id="page-invites">
-      <h1 class="page-title">Invitații</h1>
-      <p class="page-subtitle">Generează și gestionează coduri de invitație</p>
 
-      <div class="toolbar">
-        <button class="action-btn action-btn--accent" onclick="generateInvite()" style="padding:8px 20px;font-size:14px;">+ Generează cod nou</button>
+    <!-- ── INVITES ── -->
+    <div class="admin-page" id="page-invites">
+
+      <div class="admin-page-header">
+        <div class="admin-page-label">Access_Management</div>
+        <div class="admin-page-title">Access_Codes</div>
       </div>
 
-      <div class="admin-table-wrap">
+      <div class="admin-toolbar">
+        <button class="t-btn t-btn--accent t-btn--lg" onclick="generateInvite()">
+          <svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Generate_New_Code
+        </button>
+      </div>
+
+      <div class="admin-section">
         <table>
-          <thead><tr><th>Cod</th><th>Creat de</th><th>Folosit de</th><th>Expiră</th><th>Status</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Issued_By</th>
+              <th>Claimed_By</th>
+              <th>Expires</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="invitesBody"></tbody>
         </table>
       </div>
+
     </div>
 
-    <!-- ROOMS -->
-    <div class="admin-page" id="page-rooms">
-      <h1 class="page-title">Camere</h1>
-      <p class="page-subtitle">Toate conversațiile din platformă</p>
 
-      <div class="toolbar">
-        <input type="text" id="roomSearch" placeholder="Caută cameră..." oninput="filterRooms()">
+    <!-- ── ROOMS ── -->
+    <div class="admin-page" id="page-rooms">
+
+      <div class="admin-page-header">
+        <div class="admin-page-label">Topology</div>
+        <div class="admin-page-title">Node_Map</div>
       </div>
 
-      <div class="admin-table-wrap">
+      <div class="admin-toolbar">
+        <input class="admin-toolbar__input" type="text" id="roomSearch" placeholder="QUERY_NODE..." oninput="filterRooms()">
+      </div>
+
+      <div class="admin-section">
         <table id="roomsTable">
-          <thead><tr><th>Cameră</th><th>Tip</th><th>Membri</th><th>Mesaje</th><th>Ultimul mesaj</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Node_Name</th>
+              <th>Type</th>
+              <th>Listeners</th>
+              <th>Msg_Count</th>
+              <th>Last_Transmission</th>
+              <th>Status</th>
+            </tr>
+          </thead>
           <tbody id="roomsBody"></tbody>
         </table>
       </div>
+
     </div>
 
-    <!-- EXPORT -->
-    <div class="admin-page" id="page-export">
-      <h1 class="page-title">Export</h1>
-      <p class="page-subtitle">Descarcă conversații ca fișiere JSON</p>
 
-      <div class="admin-table-wrap">
-        <div class="admin-table-header">
-          <span class="admin-table-title">Selectează camera de exportat</span>
+    <!-- ── EXPORT ── -->
+    <div class="admin-page" id="page-export">
+
+      <div class="admin-page-header">
+        <div class="admin-page-label">Data_Operations</div>
+        <div class="admin-page-title">Data_Export</div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section__header">
+          <span class="admin-section__title">Select_Node_For_Export</span>
         </div>
         <table>
-          <thead><tr><th>Cameră</th><th>Tip</th><th>Mesaje</th><th>Membri</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Node_Name</th>
+              <th>Type</th>
+              <th>Msg_Count</th>
+              <th>Listeners</th>
+              <th>Export</th>
+            </tr>
+          </thead>
           <tbody id="exportBody"></tbody>
         </table>
       </div>
+
     </div>
 
   </main>
 </div>
+
 
 <script src="/js/auth.js"></script>
 <script>
@@ -390,33 +956,40 @@ async function loadOverview() {
   const s = statsData.stats;
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card stat-card--accent">
-      <div class="stat-card__label">Utilizatori</div>
+      <svg class="stat-card__icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       <div class="stat-card__value">${s.users}</div>
-      <div class="stat-card__sub">${s.online_now} online acum</div>
+      <div class="stat-card__label">Active_Nodes</div>
+      <div class="stat-card__sub">${s.online_now} online now</div>
     </div>
     <div class="stat-card stat-card--blue">
-      <div class="stat-card__label">Mesaje totale</div>
+      <svg class="stat-card__icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <div class="stat-card__value">${s.messages.toLocaleString()}</div>
-      <div class="stat-card__sub">${s.msg_today} azi</div>
+      <div class="stat-card__label">Total_Transmissions</div>
+      <div class="stat-card__sub">${s.msg_today} today</div>
     </div>
-    <div class="stat-card stat-card--purple">
-      <div class="stat-card__label">Camere active</div>
+    <div class="stat-card stat-card--warn">
+      <svg class="stat-card__icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <div class="stat-card__value">${s.rooms}</div>
-      <div class="stat-card__sub">${s.agents} agenți AI</div>
+      <div class="stat-card__label">Active_Channels</div>
+      <div class="stat-card__sub">${s.agents} AI agents</div>
     </div>
-    <div class="stat-card stat-card--orange">
-      <div class="stat-card__label">Activi azi</div>
+    <div class="stat-card stat-card--live">
+      <svg class="stat-card__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <div class="stat-card__value">${s.active_today}</div>
-      <div class="stat-card__sub">${s.invites_pending} invitații în așteptare</div>
+      <div class="stat-card__label">Active_Today</div>
+      <div class="stat-card__sub">${s.invites_pending} invites pending</div>
     </div>`;
 
   const tbody = document.getElementById('recentBody');
   tbody.innerHTML = usersData.users.map(u => `
     <tr>
-      <td><strong>${u.display_name}</strong><br><span style="color:var(--text-tertiary);font-size:12px;">@${u.username}</span></td>
-      <td><span class="role-badge role-badge--${u.role}">${u.role}</span></td>
-      <td>${formatTime(u.last_seen)}</td>
-      <td>${u.message_count}</td>
+      <td>
+        <span class="td-primary">${u.display_name}</span>
+        <span class="td-secondary">@${u.username}</span>
+      </td>
+      <td><span class="t-badge t-badge--${u.role}">${u.role}</span></td>
+      <td style="color:var(--text-secondary);font-size:var(--font-xs);">${formatTime(u.last_seen)}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${u.message_count}</td>
     </tr>`).join('');
 }
 
@@ -425,7 +998,7 @@ async function loadUsers() {
   const data = await Auth.api('/api/admin/users');
   if (!data) return;
   allUsers = data.users;
-  document.getElementById('userCount').textContent = `${allUsers.length} utilizatori`;
+  document.getElementById('userCount').textContent = `${allUsers.length} nodes registered`;
   renderUsers(allUsers);
 }
 
@@ -434,25 +1007,30 @@ function renderUsers(users) {
   document.getElementById('usersBody').innerHTML = users.map(u => `
     <tr>
       <td>
-        <strong>${u.display_name}</strong>
-        <br><span style="color:var(--text-tertiary);font-size:12px;">@${u.username}</span>
-        ${u.invited_by_name ? `<br><span style="color:var(--text-tertiary);font-size:11px;">Invitat de @${u.invited_by_name}</span>` : ''}
+        <span class="td-primary">${u.display_name}</span>
+        <span class="td-secondary">@${u.username}</span>
+        ${u.invited_by_name ? `<span class="td-secondary" style="opacity:0.6;">invited by @${u.invited_by_name}</span>` : ''}
       </td>
       <td>
         ${u.id === me.id
-          ? `<span class="role-badge role-badge--${u.role}">${u.role}</span>`
+          ? `<span class="t-badge t-badge--${u.role}">${u.role}</span>`
           : `<select class="inline-select" onchange="changeRole(${u.id}, this.value)">
-              <option value="admin"  ${u.role==='admin'  ? 'selected':''}>Admin</option>
-              <option value="user"   ${u.role==='user'   ? 'selected':''}>User</option>
-              <option value="agent"  ${u.role==='agent'  ? 'selected':''}>Agent</option>
+              <option value="admin"  ${u.role==='admin'  ? 'selected':''}>ADMIN</option>
+              <option value="user"   ${u.role==='user'   ? 'selected':''}>USER</option>
+              <option value="agent"  ${u.role==='agent'  ? 'selected':''}>AGENT</option>
             </select>`
         }
       </td>
-      <td><span class="online-dot ${u.is_online ? 'online':''}"></span>${u.is_online ? 'Online' : 'Offline'}</td>
-      <td>${u.message_count}</td>
-      <td>${formatDate(u.created_at)}</td>
       <td>
-        ${u.id !== me.id ? `<button class="action-btn action-btn--accent" onclick="editDisplayName(${u.id}, '${u.display_name.replace(/'/g, "\\'")}')">✏️ Nume</button>` : '—'}
+        <span class="t-status t-status--${u.is_online ? 'online' : 'offline'}">
+          <span class="t-status__dot"></span>
+          ${u.is_online ? 'Online' : 'Offline'}
+        </span>
+      </td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${u.message_count}</td>
+      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${formatDate(u.created_at)}</td>
+      <td>
+        ${u.id !== me.id ? `<button class="t-btn t-btn--accent" onclick="editDisplayName(${u.id}, '${u.display_name.replace(/'/g, "\\'")}')">Edit_Name</button>` : '—'}
       </td>
     </tr>`).join('');
 }
@@ -464,15 +1042,15 @@ function filterUsers() {
 
 async function changeRole(userId, newRole) {
   const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ role: newRole }) });
-  if (data && !data.error) toast(`Rol actualizat: ${data.user.username} → ${newRole}`);
-  else toast('Eroare la actualizare');
+  if (data && !data.error) toast(`Role updated: ${data.user.username} → ${newRole}`);
+  else toast('Update failed');
 }
 
 async function editDisplayName(userId, currentName) {
-  const newName = prompt('Nume nou:', currentName);
+  const newName = prompt('New display name:', currentName);
   if (!newName || newName.trim() === currentName) return;
   const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ display_name: newName.trim() }) });
-  if (data && !data.error) { toast('Nume actualizat'); loadUsers(); }
+  if (data && !data.error) { toast('Name updated'); loadUsers(); }
 }
 
 // ── Invites ───────────────────────────────────────
@@ -481,37 +1059,39 @@ async function loadInvites() {
   if (!data) return;
 
   document.getElementById('invitesBody').innerHTML = data.invites.length === 0
-    ? '<tr><td colspan="6" class="empty-state">Nicio invitație</td></tr>'
+    ? '<tr><td colspan="6" class="empty-state">No access codes found</td></tr>'
     : data.invites.map(inv => `
     <tr>
       <td><span class="invite-code" onclick="copyCode('${inv.code}')" title="Click to copy">${inv.code}</span></td>
-      <td>${inv.created_by_name || '—'}</td>
-      <td>${inv.used_by_name ? `<strong>${inv.used_by_display}</strong> <span style="color:var(--text-tertiary)">@${inv.used_by_name}</span>` : '—'}</td>
-      <td>${inv.expires_at ? formatDate(inv.expires_at) : 'Fără expirare'}</td>
+      <td style="color:var(--text-secondary);font-size:var(--font-xs);">${inv.created_by_name || '—'}</td>
+      <td>${inv.used_by_name
+        ? `<span class="td-primary">${inv.used_by_display}</span><span class="td-secondary">@${inv.used_by_name}</span>`
+        : '<span style="color:var(--text-tertiary)">—</span>'}</td>
+      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${inv.expires_at ? formatDate(inv.expires_at) : 'No_Expiry'}</td>
       <td>${inv.used_by
-        ? '<span style="color:var(--text-tertiary)">✓ Folosit</span>'
-        : '<span style="color:var(--accent)">● Activ</span>'}</td>
-      <td>${!inv.used_by ? `<button class="action-btn action-btn--danger" onclick="revokeInvite(${inv.id})">Revocă</button>` : ''}</td>
+        ? '<span class="t-badge t-badge--used">✓ Claimed</span>'
+        : '<span class="t-badge t-badge--active">● Active</span>'}</td>
+      <td>${!inv.used_by ? `<button class="t-btn t-btn--danger" onclick="revokeInvite(${inv.id})">Revoke</button>` : ''}</td>
     </tr>`).join('');
 }
 
 async function generateInvite() {
   const data = await Auth.api('/api/admin/invites', { method: 'POST', body: JSON.stringify({}) });
   if (data && data.code) {
-    toast(`Cod generat: ${data.code} (copiat)`);
+    toast(`Code generated: ${data.code} (copied)`);
     navigator.clipboard.writeText(data.code).catch(() => {});
     loadInvites();
   }
 }
 
 async function revokeInvite(id) {
-  if (!confirm('Revoci acest cod?')) return;
+  if (!confirm('Revoke this access code?')) return;
   const data = await Auth.api(`/api/admin/invites/${id}`, { method: 'DELETE' });
-  if (data && data.ok) { toast('Cod revocat'); loadInvites(); }
+  if (data && data.ok) { toast('Code revoked'); loadInvites(); }
 }
 
 function copyCode(code) {
-  navigator.clipboard.writeText(code).then(() => toast(`Copiat: ${code}`));
+  navigator.clipboard.writeText(code).then(() => toast(`Copied: ${code}`));
 }
 
 // ── Rooms ─────────────────────────────────────────
@@ -523,22 +1103,22 @@ async function loadRooms() {
 }
 
 function renderRooms(rooms) {
-  const typeLabel = { direct: 'Direct', group: 'Grup', channel: 'Canal' };
+  const typeLabel = { direct: 'Direct', group: 'Group', channel: 'Channel' };
   document.getElementById('roomsBody').innerHTML = rooms.length === 0
-    ? '<tr><td colspan="6" class="empty-state">Nicio cameră</td></tr>'
+    ? '<tr><td colspan="6" class="empty-state">No nodes found</td></tr>'
     : rooms.map(r => `
     <tr>
       <td>
-        <strong>${r.name}</strong>
-        ${r.description ? `<br><span style="color:var(--text-tertiary);font-size:12px;">${r.description}</span>` : ''}
+        <span class="td-primary">${r.name}</span>
+        ${r.description ? `<span class="td-secondary">${r.description}</span>` : ''}
       </td>
-      <td><span class="role-badge" style="background:rgba(255,255,255,0.05);color:var(--text-secondary)">${typeLabel[r.type]||r.type}</span></td>
-      <td>${r.member_count}</td>
-      <td>${r.message_count}</td>
-      <td style="font-size:12px;color:var(--text-tertiary)">${r.last_message ? formatTime(r.last_message_at) : '—'}</td>
+      <td><span class="t-badge t-badge--type">${typeLabel[r.type]||r.type}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.member_count}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.message_count}</td>
+      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${r.last_message ? formatTime(r.last_message_at) : '—'}</td>
       <td>${r.is_archived
-        ? '<span style="color:var(--text-tertiary)">📦 Arhivată</span>'
-        : '<span style="color:var(--accent)">● Activă</span>'}</td>
+        ? '<span class="t-badge t-badge--archived">Archived</span>'
+        : '<span class="t-badge t-badge--active">● Active</span>'}</td>
     </tr>`).join('');
 }
 
@@ -554,14 +1134,14 @@ async function loadExport() {
 
   document.getElementById('exportBody').innerHTML = data.rooms.map(r => `
     <tr>
-      <td><strong>${r.name}</strong></td>
-      <td>${r.type}</td>
-      <td>${r.message_count}</td>
-      <td>${r.member_count}</td>
+      <td><span class="td-primary">${r.name}</span></td>
+      <td><span class="t-badge t-badge--type">${r.type}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.message_count}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.member_count}</td>
       <td>
         <a href="/api/admin/export/${r.id}" download
            onclick="addAuthHeader(event, ${r.id})"
-           class="action-btn action-btn--accent">⬇ Export JSON</a>
+           class="t-btn t-btn--accent">⬇ Export_JSON</a>
       </td>
     </tr>`).join('');
 }
@@ -576,7 +1156,7 @@ async function addAuthHeader(e, roomId) {
   const a = document.createElement('a');
   a.href = url; a.download = fname; a.click();
   URL.revokeObjectURL(url);
-  toast(`Descărcat: ${fname}`);
+  toast(`Downloaded: ${fname}`);
 }
 
 // ── Init ──────────────────────────────────────────
