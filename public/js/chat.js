@@ -101,11 +101,8 @@
   }
 
   function renderSidebar() {
-    const recent   = rooms.filter(r => r.type !== 'channel');
-    const channels = rooms.filter(r => r.type === 'channel');
-    let html = '';
-    if (recent.length)   { html += '<span class="sidebar__section-label">Recente</span>';   html += recent.map(roomItemHtml).join(''); }
-    if (channels.length) { html += '<span class="sidebar__section-label">Canale</span>'; html += channels.map(roomItemHtml).join(''); }
+    // All rooms in one flat list — section labels are in the HTML, not dynamically injected
+    const html = rooms.map(roomItemHtml).join('');
     sidebarList.innerHTML = html;
     sidebarList.querySelectorAll('.chat-item').forEach(el => {
       el.addEventListener('click', () => selectRoom(parseInt(el.dataset.roomId)));
@@ -117,13 +114,15 @@
     const isActive = room.id === currentRoomId;
     const preview = room.last_message
       ? `${room.last_message_sender ? room.last_message_sender + ': ' : ''}${truncate(room.last_message, 35)}`
-      : 'Niciun mesaj';
+      : '> no_transmissions';
     const unread = (room.unread_count > 0 && !isActive)
       ? `<span class="badge badge--accent">${room.unread_count > 99 ? '99+' : room.unread_count}</span>`
       : '';
+    // Type prefix: # for group/channel, @ for direct
+    const prefix = room.type === 'direct' ? '@' : '#';
     return `
       <div class="chat-item ${isActive ? 'chat-item--active' : ''}" data-room-id="${room.id}">
-        <div class="avatar avatar--md">${room.name.charAt(0).toUpperCase()}</div>
+        <span class="chat-item__prefix">${prefix}</span>
         <div class="chat-item__body">
           <div class="chat-item__header">
             <span class="chat-item__name">${esc(room.name)}</span>
@@ -141,6 +140,8 @@
     currentRoomId = roomId;
     editingMsgId = null;
     cancelEdit();
+    // Show chat, hide home dashboard
+    if (window.showHomeScreen) window.showHomeScreen(false);
     // Reset unread badge for selected room
     const selectedRoom = rooms.find(r => r.id === roomId);
     if (selectedRoom) selectedRoom.unread_count = 0;
@@ -307,7 +308,7 @@
 
   function markMessageRead(messageId) {
     const check = messagesArea.querySelector(`[data-check="${messageId}"]`);
-    if (check) { check.textContent = '✓✓'; check.style.color = '#10b981'; }
+    if (check) { check.textContent = '✓✓'; check.classList.add('msg__check--read'); }
   }
 
   function scrollToBottom(smooth = true) {
@@ -570,7 +571,7 @@
   function updateRoomPreview(msg) {
     const room = rooms.find(r => r.id === msg.room_id);
     if (room) {
-      room.last_message = msg.text || (msg.file_name ? `📎 ${msg.file_name}` : '');
+      room.last_message = msg.text || (msg.file_name ? `[FILE] ${msg.file_name}` : '');
       room.last_message_at = msg.created_at;
       room.last_message_sender = msg.sender_name || msg.sender_username;
       if (msg.room_id !== currentRoomId && msg.sender_id !== user.id) {
@@ -579,6 +580,14 @@
       }
       rooms.sort((a, b) => (!a.last_message_at ? 1 : !b.last_message_at ? -1 : b.last_message_at.localeCompare(a.last_message_at)));
       renderSidebar();
+      // Flash activity animation on the sidebar item
+      if (msg.room_id !== currentRoomId) {
+        const itemEl = sidebarList.querySelector(`[data-room-id="${msg.room_id}"]`);
+        if (itemEl) {
+          itemEl.classList.add('chat-item--new-msg');
+          setTimeout(() => itemEl.classList.remove('chat-item--new-msg'), 1000);
+        }
+      }
     }
   }
 

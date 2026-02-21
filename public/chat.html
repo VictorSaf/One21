@@ -3,187 +3,234 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>One21 — by ONE AI/gency</title>
+<title>ONE21 — Neural Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css">
 <link rel="stylesheet" href="/css/components.css">
 <style>
-  /* Brand color from ONE AI/gency */
-  .nav__brand {
-    background: transparent;
-    flex-direction: column;
-    gap: 0;
-    line-height: 1;
-    text-align: center;
-  }
-  .nav__brand-one { color: var(--brand); font-weight: var(--weight-bold); font-size: 11px; }
-  .nav__brand-21 { color: var(--text-primary); font-weight: var(--weight-light); font-size: 16px; display: block; line-height: 1; }
+  /* Page-specific overrides */
+  .nav__logout { display: none; } /* hidden; logout is in sidebar footer */
 
-  /* SVG icon base — shared across all inline SVGs */
-  .icon-svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex-shrink: 0;
+  /* Overlay for info-panel on mobile */
+  .info-panel-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: calc(var(--z-overlay) - 1);
   }
-  .icon-svg--sm { width: 14px; height: 14px; }
-  .icon-svg--lg { width: 22px; height: 22px; }
-
-  /* Member row — reusable in info panel */
-  .member-row {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) 0;
-  }
-  .member-row__name {
-    font-size: var(--font-md);
-    color: var(--text-primary);
-    font-weight: var(--weight-regular);
-  }
-  .member-row__role {
-    font-size: var(--font-xs);
-    color: var(--text-tertiary);
-    margin-left: auto;
-    font-weight: var(--weight-medium);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  /* Room info header in info-panel */
-  .room-info {
-    text-align: center;
-    padding: var(--sp-6) var(--sp-5);
-  }
-  .room-info .avatar {
-    margin: 0 auto var(--sp-3);
-  }
-  .room-info__name {
-    font-size: var(--font-lg);
-    font-weight: var(--weight-light);
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  .room-info__desc {
-    font-size: var(--font-sm);
-    color: var(--text-secondary);
-    margin-top: var(--sp-1);
-  }
-
-  /* Stack utility */
-  .stack { display: flex; flex-direction: column; gap: var(--sp-2); }
-
-  /* Logout button */
-  .nav__logout {
-    color: var(--text-tertiary);
-    transition: color var(--transition-fast);
-  }
-  .nav__logout:hover {
-    color: var(--danger);
-  }
+  .info-panel-backdrop.visible { display: block; }
 </style>
 </head>
 <body>
 
 <div class="app">
 
-  <!-- NAV -->
-  <nav class="nav">
-    <div class="nav__brand"><span class="nav__brand-one">ONE</span><span class="nav__brand-21">21</span></div>
-
-    <button class="nav__item nav__item--active" title="Mesaje">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </button>
-    <button class="nav__item" title="Contacte">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    </button>
-    <button class="nav__item" title="Apeluri">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    </button>
-    <button class="nav__item" title="Fisiere">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-    </button>
-
-    <div class="nav__spacer"></div>
-
-    <div class="nav__agency">
-      <span style="color: var(--brand); font-size: 9px; font-weight: 700; letter-spacing: 0.05em;">ONE</span>
-      <span style="color: var(--text-secondary); font-size: 8px; font-weight: 300;">AI/gency</span>
-    </div>
-
-    <button class="nav__item" title="Admin" onclick="window.location='/admin.html'" id="adminNavBtn" style="display:none;">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    </button>
-    <button class="nav__item nav__logout" title="Deconectare" onclick="Auth.logout()">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    </button>
-  </nav>
-
-  <!-- SIDEBAR -->
+  <!-- ══════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════ -->
   <aside class="sidebar">
-    <div class="sidebar__header">
-      <h2 class="sidebar__title">Mesaje</h2>
-      <button class="btn btn--icon btn--ghost" id="newRoomBtn" title="Conversatie noua">
-        <svg class="icon-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+
+    <!-- Brand / Logo -->
+    <div class="sidebar__brand">
+      <div class="brand-logo">
+        <span class="brand-logo__box">ONE</span>
+        <span class="brand-logo__suffix">_21</span>
+      </div>
+      <button class="sidebar__icon-btn" title="Setări" onclick="window.location='/admin.html'" id="adminNavBtn" style="display:none;">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
 
+    <!-- Search -->
     <div class="sidebar__search">
       <div class="input-group">
         <svg class="input-group__icon icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="input" type="text" placeholder="Cauta conversatii...">
+        <input class="input" type="text" placeholder="SYSTEM_QUERY...">
       </div>
     </div>
 
-    <div class="sidebar__list" id="sidebarList">
-      <!-- Dynamically populated by chat.js -->
-    </div>
-  </aside>
+    <!-- Scrollable list -->
+    <div class="sidebar__list">
 
-  <!-- MAIN CHAT -->
+      <!-- LIVE_NODES section label -->
+      <div class="sidebar__section-label">
+        <span>Live_Nodes</span>
+        <button id="newRoomBtn" title="Conversatie noua">+</button>
+      </div>
+
+      <!-- Rooms list (populated by chat.js) -->
+      <div id="sidebarList"></div>
+
+      <!-- INFRASTRUCTURE section -->
+      <div class="sidebar__section-label" style="margin-top: var(--sp-2);">
+        <span>Infrastructure</span>
+      </div>
+
+      <div class="sidebar__infra-item" id="infraConsoleBtn" onclick="window.location='/admin.html'" style="cursor:pointer; display:none;">
+        <svg class="icon-svg icon-svg--settings" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span>Console</span>
+      </div>
+
+      <div class="sidebar__infra-item" onclick="toggleInfoPanel()">
+        <svg class="icon-svg icon-svg--settings" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Network</span>
+      </div>
+
+    </div><!-- /.sidebar__list -->
+
+    <!-- Footer: current user -->
+    <div class="sidebar__footer">
+      <div class="avatar avatar--sm" id="sidebarUserAvatar"></div>
+      <div class="sidebar__footer-info">
+        <span class="sidebar__footer-name" id="sidebarUserName">OPERATOR</span>
+        <span class="sidebar__footer-status">
+          <span class="status-dot status-dot--online"></span>
+          &nbsp;127.0.0.1_LINK
+        </span>
+      </div>
+      <div class="sidebar__footer-actions">
+        <button class="sidebar__icon-btn" title="Deconectare" onclick="Auth.logout()">
+          <svg class="icon-svg icon-svg--danger" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </aside><!-- /.sidebar -->
+
+
+  <!-- ══════════════════════════════════════
+       MAIN CONTENT AREA
+       ══════════════════════════════════════ -->
   <main class="main">
-    <header class="panel-header">
+
+    <!-- ── Panel Header ── -->
+    <header class="panel-header" id="panelHeaderEl">
       <div class="avatar avatar--md" id="panelAvatar"></div>
       <div class="panel-header__info">
-        <h3 class="panel-header__title" id="panelTitle">Selecteaza o conversatie</h3>
-        <span class="panel-header__subtitle" id="panelSubtitle"></span>
+        <h3 class="panel-header__title" id="panelTitle">SELECT_NODE</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="panel-header__subtitle" id="panelSubtitle"></span>
+          <span class="badge badge--outline" id="panelEncryptBadge" style="display:none;">ENCRYPTED_LINK</span>
+        </div>
       </div>
       <div class="panel-header__actions">
-        <button class="btn btn--icon btn--ghost" title="Cauta">
+        <button class="btn btn--icon btn--ghost" title="Cauta in conversatie" id="searchToggleBtn">
           <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
-        <button class="btn btn--icon btn--ghost" title="Apel">
-          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <button class="btn btn--icon btn--ghost" title="Info canal" onclick="toggleInfoPanel()">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </button>
-        <button class="btn btn--icon btn--ghost" title="Mai multe">
+        <button class="btn btn--icon btn--ghost" title="Mai multe" id="headerMoreBtn">
           <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         </button>
       </div>
     </header>
 
-    <div class="messages-area" id="messagesArea">
-      <!-- Dynamically populated by chat.js -->
+    <!-- ── Search overlay ── -->
+    <div class="search-overlay hidden" id="searchOverlay">
+      <div class="search-box">
+        <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="SEARCH_TRANSMISSIONS...">
+        <button class="btn btn--ghost btn--sm" id="searchCloseBtn">✕</button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
     </div>
 
-    <div class="compose">
-      <button class="btn btn--icon btn--ghost" title="Atasament">
-        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-      </button>
-      <input class="compose__input" id="composeInput" type="text" placeholder="Scrie un mesaj...">
-      <button class="compose__send" id="sendBtn" title="Trimite">
-        <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </main>
+    <!-- ── Home Dashboard (shown when no room selected) ── -->
+    <div class="home-screen" id="homeScreen">
+      <span class="home-screen__label">SYSTEM_HUB // ONE_21</span>
+      <h1 class="home-screen__title">
+        <span class="home-screen__title-line1">NEURAL CONTROL</span>
+        <span class="home-screen__title-line2">INFRASTRUCTURE</span>
+      </h1>
+      <p class="home-screen__desc">
+        Secure AI orchestration platform. All transmissions subject to strict
+        Level-7 encryption protocols. Unauthorized access is logged.
+      </p>
 
-  <!-- INFO PANEL -->
-  <aside class="info-panel">
+      <div class="home-screen__stats">
+        <div class="stat-card">
+          <svg class="icon-svg stat-card__icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="stat-card__value" id="statActiveNodes">—</span>
+          <span class="stat-card__label">Active_Nodes</span>
+        </div>
+        <div class="stat-card">
+          <svg class="icon-svg stat-card__icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="stat-card__value" id="statMessages">—</span>
+          <span class="stat-card__label">Messages_Today</span>
+        </div>
+        <div class="stat-card">
+          <svg class="icon-svg stat-card__icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="stat-card__value">EAL7</span>
+          <span class="stat-card__label">Sec_Level</span>
+        </div>
+        <div class="stat-card">
+          <svg class="icon-svg stat-card__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="stat-card__value" style="color:var(--accent);">LIVE</span>
+          <span class="stat-card__label">Status</span>
+        </div>
+      </div>
+
+      <div class="home-screen__feed-title">Live_Infrastructure_Feed</div>
+      <div class="feed-log" id="homeFeedLog">
+        <div class="feed-log__entry">
+          <span class="feed-log__time">[--:--:--]</span>
+          <span class="feed-log__tag feed-log__tag--info">INFO</span>
+          <span class="feed-log__text">Waiting for system initialization...</span>
+        </div>
+      </div>
+    </div><!-- /.home-screen -->
+
+    <!-- ── Messages Area ── -->
+    <div class="messages-area hidden" id="messagesArea">
+      <!-- Populated by chat.js -->
+    </div>
+
+    <!-- Edit bar (shown when editing a message) -->
+    <div class="edit-bar hidden" id="editBar">
+      <span>EDITING_TRANSMISSION</span>
+      <button id="cancelEditBtn">CANCEL</button>
+    </div>
+
+    <!-- ── Compose Bar ── -->
+    <div class="compose" id="composeArea" style="display:none;">
+      <div class="compose__row">
+        <button class="btn btn--icon btn--ghost" title="Atasament" id="attachBtn">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input class="compose__input" id="composeInput" type="text" placeholder="INPUT_TRANSMISSION...">
+        <button class="compose__send" id="sendBtn" title="Transmite">
+          <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div class="compose__statusbar">
+        <div class="compose__statusbar-left">
+          <span class="compose__stat">
+            <span class="status-dot status-dot--online"></span>
+            &nbsp;SIGNAL:100%
+          </span>
+          <span class="compose__stat">LATENCY:0.2MS</span>
+          <span class="compose__stat">PORT:443</span>
+        </div>
+        <span class="compose__statusbar-right">NEURAL_LINK_V2.0</span>
+      </div>
+    </div>
+
+    <!-- file input injected dynamically by chat.js -->
+
+  </main><!-- /.main -->
+
+
+  <!-- ══════════════════════════════════════
+       INFO PANEL (slide-in from right)
+       ══════════════════════════════════════ -->
+  <div class="info-panel-backdrop" id="infoPanelBackdrop" onclick="toggleInfoPanel()"></div>
+
+  <aside class="info-panel" id="infoPanelEl">
+
     <div class="info-panel__section room-info">
       <div class="avatar avatar--lg" id="infoPanelAvatar"></div>
       <h3 class="room-info__name" id="infoPanelName"></h3>
@@ -191,104 +238,207 @@
     </div>
 
     <div class="info-panel__section">
-      <div class="info-panel__section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <h4 class="info-panel__section-title">Membri</h4>
-        <button class="btn btn--icon btn--ghost" id="addMemberBtn" title="Adaugă membru" style="font-size:16px;">+</button>
+      <div class="info-panel__section-header">
+        <h4 class="info-panel__section-title">Active_Listeners</h4>
+        <button class="btn btn--icon btn--ghost btn--sm" id="addMemberBtn" title="Adaugă nod">
+          <svg class="icon-svg icon-svg--sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
       <div class="stack" id="infoPanelMembers"></div>
     </div>
 
-    <div class="info-panel__section" style="padding-top:0;">
-      <button class="btn btn--secondary" id="editRoomBtn" style="width:100%;margin-bottom:8px;">✏️ Editează camera</button>
-      <button class="btn btn--danger" id="archiveRoomBtn" style="width:100%;">📦 Arhivează</button>
+    <div class="info-panel__section">
+      <button class="btn btn--secondary btn--sm" id="editRoomBtn" style="width:100%;margin-bottom:6px;">✏ EDIT_NODE</button>
+      <button class="btn btn--danger btn--sm" id="archiveRoomBtn" style="width:100%;">⊗ ARCHIVE_NODE</button>
     </div>
+
+    <div class="info-panel__section" style="border-top:none;padding-top:0;">
+      <button class="btn btn--ghost btn--sm" onclick="toggleInfoPanel()" style="width:100%;">✕ CLOSE</button>
+    </div>
+
   </aside>
 
-  <!-- ── Modal: Create Room ── -->
+
+  <!-- ════════════════════════════════════════
+       MODALS
+       ════════════════════════════════════════ -->
+
+  <!-- Create Room -->
   <div id="modalCreateRoom" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal__header">
-        <h3 class="modal__title">Conversație nouă</h3>
-        <button class="btn btn--icon modal__close" id="closeCreateRoom">✕</button>
+        <h3 class="modal__title">Init_Node</h3>
+        <button class="btn btn--icon btn--ghost modal__close" id="closeCreateRoom">✕</button>
       </div>
       <div class="modal__body">
         <div class="modal__field">
-          <label class="modal__label">Tip</label>
+          <label class="modal__label">Node_Type</label>
           <select id="newRoomType" class="modal__select">
-            <option value="group">Grup</option>
-            <option value="channel">Canal</option>
-            <option value="direct">Direct (1:1)</option>
+            <option value="group">Group_Channel</option>
+            <option value="channel">Broadcast_Channel</option>
+            <option value="direct">Direct_Link (1:1)</option>
           </select>
         </div>
         <div class="modal__field" id="roomNameField">
-          <label class="modal__label">Nume</label>
-          <input type="text" id="newRoomName" class="modal__input" placeholder="ex: Proiect Alpha" maxlength="80"/>
+          <label class="modal__label">Node_ID</label>
+          <input type="text" id="newRoomName" class="modal__input" placeholder="ex: ALPHA_PROTOCOL" maxlength="80"/>
         </div>
         <div class="modal__field" id="roomDescField">
-          <label class="modal__label">Descriere (opțional)</label>
-          <input type="text" id="newRoomDesc" class="modal__input" placeholder="Despre ce e această cameră..." maxlength="200"/>
+          <label class="modal__label">Description</label>
+          <input type="text" id="newRoomDesc" class="modal__input" placeholder="Node purpose..." maxlength="200"/>
         </div>
         <div class="modal__field">
-          <label class="modal__label">Membri</label>
+          <label class="modal__label">Assign_Nodes</label>
           <div id="userPickerList" class="user-picker"></div>
         </div>
         <p id="createRoomError" class="modal__error hidden"></p>
       </div>
       <div class="modal__footer">
-        <button class="btn btn--secondary" id="cancelCreateRoom">Anulează</button>
-        <button class="btn btn--primary" id="submitCreateRoom">Creează</button>
+        <button class="btn btn--secondary" id="cancelCreateRoom">ABORT</button>
+        <button class="btn btn--primary" id="submitCreateRoom">INITIALIZE</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Modal: Add Member ── -->
+  <!-- Add Member -->
   <div id="modalAddMember" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal__header">
-        <h3 class="modal__title">Adaugă membru</h3>
-        <button class="btn btn--icon modal__close" id="closeAddMember">✕</button>
+        <h3 class="modal__title">Link_Node</h3>
+        <button class="btn btn--icon btn--ghost modal__close" id="closeAddMember">✕</button>
       </div>
       <div class="modal__body">
         <div id="addMemberList" class="user-picker"></div>
         <p id="addMemberError" class="modal__error hidden"></p>
       </div>
       <div class="modal__footer">
-        <button class="btn btn--secondary" id="cancelAddMember">Anulează</button>
-        <button class="btn btn--primary" id="submitAddMember">Adaugă</button>
+        <button class="btn btn--secondary" id="cancelAddMember">ABORT</button>
+        <button class="btn btn--primary" id="submitAddMember">LINK</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Modal: Edit Room ── -->
+  <!-- Edit Room -->
   <div id="modalEditRoom" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal__header">
-        <h3 class="modal__title">Editează camera</h3>
-        <button class="btn btn--icon modal__close" id="closeEditRoom">✕</button>
+        <h3 class="modal__title">Edit_Node</h3>
+        <button class="btn btn--icon btn--ghost modal__close" id="closeEditRoom">✕</button>
       </div>
       <div class="modal__body">
         <div class="modal__field">
-          <label class="modal__label">Nume</label>
+          <label class="modal__label">Node_ID</label>
           <input type="text" id="editRoomName" class="modal__input" maxlength="80"/>
         </div>
         <div class="modal__field">
-          <label class="modal__label">Descriere</label>
+          <label class="modal__label">Description</label>
           <input type="text" id="editRoomDesc" class="modal__input" maxlength="200"/>
         </div>
         <p id="editRoomError" class="modal__error hidden"></p>
       </div>
       <div class="modal__footer">
-        <button class="btn btn--secondary" id="cancelEditRoom">Anulează</button>
-        <button class="btn btn--primary" id="submitEditRoom">Salvează</button>
+        <button class="btn btn--secondary" id="cancelEditRoom">ABORT</button>
+        <button class="btn btn--primary" id="submitEditRoom">SAVE</button>
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- /.app -->
+
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/rooms.js"></script>
+<script>
+// ─── Info panel toggle ───
+function toggleInfoPanel() {
+  const panel   = document.getElementById('infoPanelEl');
+  const backdrop = document.getElementById('infoPanelBackdrop');
+  const isOpen  = panel.classList.contains('info-panel--open');
+  panel.classList.toggle('info-panel--open', !isOpen);
+  backdrop.classList.toggle('visible', !isOpen);
+}
+
+// ─── Populate sidebar footer with current user ───
+(function initSidebarUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem('one21_user') || '{}');
+    if (user.username) {
+      const nameEl = document.getElementById('sidebarUserName');
+      const avatarEl = document.getElementById('sidebarUserAvatar');
+      if (nameEl) nameEl.textContent = (user.display_name || user.username).toUpperCase();
+      if (avatarEl) avatarEl.textContent = (user.display_name || user.username).substring(0, 2).toUpperCase();
+      // Show admin buttons for admins
+      if (user.role === 'admin') {
+        const adminBtn = document.getElementById('adminNavBtn');
+        const consoleBtn = document.getElementById('infraConsoleBtn');
+        if (adminBtn)  adminBtn.style.display = 'flex';
+        if (consoleBtn) consoleBtn.style.display = 'flex';
+      }
+    }
+  } catch(e) {}
+})();
+
+// ─── Show/hide home screen vs chat ───
+// Called by chat.js when a room is selected / deselected
+window.showHomeScreen = function(show) {
+  const home    = document.getElementById('homeScreen');
+  const msgs    = document.getElementById('messagesArea');
+  const compose = document.getElementById('composeArea');
+  const badge   = document.getElementById('panelEncryptBadge');
+  if (show) {
+    home.classList.remove('hidden');
+    msgs.classList.add('hidden');
+    if (compose) compose.style.display = 'none';
+    if (badge)   badge.style.display = 'none';
+  } else {
+    home.classList.add('hidden');
+    msgs.classList.remove('hidden');
+    if (compose) compose.style.display = '';
+    if (badge)   badge.style.display = '';
+  }
+};
+
+// Start with home screen
+window.showHomeScreen(true);
+
+// ─── Home feed: populate with a few startup log entries ───
+(function initHomeFeed() {
+  const log   = document.getElementById('homeFeedLog');
+  const token = localStorage.getItem('one21_token');
+  if (!token || !log) return;
+
+  const now = new Date();
+  const ts  = t => t.toTimeString().slice(0,8);
+
+  const entries = [
+    { tag: 'ok',   text: 'Neural bridge established. Encryption Level: 7.' },
+    { tag: 'info', text: 'ONE21 kernel initialized. Platform ready.' },
+    { tag: 'auth', text: 'Operator session authenticated via JWT.' },
+    { tag: 'sync', text: 'Syncing live node registry...' },
+  ];
+
+  log.innerHTML = entries.map((e, i) => {
+    const t = new Date(now - (entries.length - i) * 3000);
+    return `<div class="feed-log__entry">
+      <span class="feed-log__time">[${ts(t)}]</span>
+      <span class="feed-log__tag feed-log__tag--${e.tag}">${e.tag.toUpperCase()}</span>
+      <span class="feed-log__text">${e.text}</span>
+    </div>`;
+  }).join('');
+
+  // Fetch stats from health endpoint
+  fetch('/health')
+    .then(r => r.json())
+    .then(d => {
+      const nodesEl = document.getElementById('statActiveNodes');
+      const msgsEl  = document.getElementById('statMessages');
+      if (nodesEl && d.stats) nodesEl.textContent = d.stats.users;
+      if (msgsEl  && d.stats) msgsEl.textContent  = d.stats.messages;
+    })
+    .catch(() => {});
+})();
+</script>
 </body>
 </html>

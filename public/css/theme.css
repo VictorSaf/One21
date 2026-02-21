@@ -1,56 +1,80 @@
 /* ============================================================
-   ONE21 DESIGN SYSTEM — THEME TOKENS
-   Premium Navy Glassmorphism
+   ONE21 — NEURAL TERMINAL Design System v2.0
+   Aesthetic: dark terminal / cyberpunk / geometric
    ============================================================
-   This file contains ALL CSS custom properties (design tokens)
-   and base reset styles. No component styles live here.
+   Tokens only. No component styles here.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
 
 :root {
-  /* --- Backgrounds --- */
-  --bg-primary:   #0a0f1f;
-  --bg-secondary: rgba(20, 30, 55, 0.65);
-  --bg-tertiary:  rgba(35, 50, 80, 0.55);
-  --bg-elevated:  rgba(40, 55, 85, 0.5);
+  /* ─── Backgrounds ─── */
+  /* Contrast intentionally stepped: each level is clearly distinct */
+  --bg-base:       #040404;   /* absolute canvas — main bg */
+  --bg-surface:    #0d0d0d;   /* sidebar, panels — visible step up */
+  --bg-elevated:   #141414;   /* cards, active items */
+  --bg-active:     #1a1a1a;   /* hover/selected state */
+  --bg-hover:      rgba(255,255,255,0.04);
 
-  /* --- Glass Effect --- */
-  --glass-bg:     rgba(20, 30, 55, 0.65);
-  --glass-border: rgba(100, 150, 220, 0.12);
-  --glass-blur:   blur(20px);
-  --glass-glow:   inset 0 1px 1px rgba(100, 150, 220, 0.06);
+  /* ─── Borders ─── */
+  /* More visible than before — helps define panel edges */
+  --border-dim:    #1c1c1c;
+  --border-mid:    #272727;
+  --border-bright: #383838;
+  --border-accent: rgba(0,230,118,0.2);
+  --border-accent-strong: rgba(0,230,118,0.5);
 
-  /* --- Borders --- */
-  --border:       rgba(100, 150, 220, 0.12);
-  --border-light: rgba(100, 150, 220, 0.22);
+  /* ─── Accent — Electric Green ─── */
+  --accent:        #00e676;
+  --accent-dim:    #00b856;
+  --accent-muted:  rgba(0,230,118,0.07);
+  --accent-glow:   rgba(0,230,118,0.15);
 
-  /* --- Text --- */
-  --text-primary:   #d8dfe8;
-  --text-secondary: #8899ad;
-  --text-tertiary:  #475569;
+  /* ─── Text ─── */
+  --text-primary:   #c4c4c4;
+  --text-secondary: #545454;
+  --text-tertiary:  #2c2c2c;
+  --text-accent:    #00e676;
+  --text-inverse:   #070707;
 
-  /* --- Accent (Emerald) --- */
-  --accent:       #10b981;
-  --accent-hover: #34d399;
-  --accent-muted: rgba(16, 185, 129, 0.12);
+  /* ─── Semantic ─── */
+  --online:        #00e676;
+  --offline:       #333333;
+  --busy:          #ff9c00;
+  --error:         #ff3d3d;
+  --warning:       #ffb300;
+  --info:          #00b4d8;
+  --danger:        #ff3d3d;
+  --danger-muted:  rgba(255,61,61,0.08);
+  --warning-muted: rgba(255,179,0,0.08);
 
-  /* --- Semantic --- */
-  --danger:       #ef4444;
-  --danger-muted: rgba(239, 68, 68, 0.12);
-  --warning:       #f59e0b;
-  --warning-muted: rgba(245, 158, 11, 0.12);
-  --info:          #3b82f6;
-  --info-muted:    rgba(59, 130, 246, 0.12);
+  /* ─── Typography ─── */
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+  --font-family:  var(--font-mono);
 
-  /* --- Status --- */
-  --online:  #10b981;
-  --offline: #475569;
+  /* ─── Font sizes ─── */
+  --font-xs:  10px;
+  --font-sm:  11px;
+  --font-md:  13px;
+  --font-lg:  15px;
+  --font-xl:  20px;
+  --font-2xl: 28px;
+  --font-3xl: 42px;
 
-  /* --- Brand (ONE AI/gency) --- */
-  --brand: #00ccff;
+  /* ─── Font weights ─── */
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
 
-  /* --- Spacing (8px base) --- */
+  /* ─── Line heights ─── */
+  --line-height-tight:   1.2;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.65;
+
+  /* ─── Spacing (8px base) ─── */
   --sp-1:  4px;
   --sp-2:  8px;
   --sp-3:  12px;
@@ -64,57 +88,49 @@
   --sp-11: 44px;
   --sp-12: 48px;
 
-  /* --- Border Radius --- */
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   20px;
+  /* ─── Border Radius — minimal, geometric ─── */
+  --radius-sm:   2px;
+  --radius-md:   3px;
+  --radius-lg:   4px;
+  --radius-xl:   6px;
   --radius-full: 50%;
 
-  /* --- Typography --- */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
-                 'Helvetica Neue', Arial, sans-serif;
+  /* ─── Layout ─── */
+  --sidebar-width: 260px;
+  --nav-width:     0px;
+  --panel-width:   280px;
+  --header-h:      52px;
+  --statusbar-h:   28px;
 
-  --font-xs:  10px;
-  --font-sm:  12px;
-  --font-md:  14px;
-  --font-lg:  16px;
-  --font-xl:  20px;
-  --font-2xl: 24px;
-  --font-3xl: 32px;
+  /* ─── Shadows ─── */
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.6);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.7);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.85);
 
-  --weight-light:    300;
-  --weight-regular:  400;
-  --weight-medium:   500;
-  --weight-semibold: 600;
-  --weight-bold:     700;
+  /* ─── Transitions ─── */
+  --transition-fast:   120ms ease;
+  --transition-normal: 220ms ease;
+  --transition-slow:   400ms cubic-bezier(0.16,1,0.3,1);
 
-  --line-height-tight:  1.25;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.65;
-
-  /* --- Shadows --- */
-  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(148, 163, 184, 0.04);
-  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(148, 163, 184, 0.04);
-  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(148, 163, 184, 0.04);
-
-  /* --- Transitions --- */
-  --transition-fast:   150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow:   400ms cubic-bezier(0.16, 1, 0.3, 1);
-
-  /* --- Z-index --- */
-  --z-base:    1;
-  --z-sticky:  100;
+  /* ─── Z-index ─── */
+  --z-base:     1;
+  --z-sticky:   100;
   --z-dropdown: 200;
-  --z-overlay: 300;
-  --z-modal:   400;
-  --z-toast:   500;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-toast:    500;
 
-  /* --- Layout --- */
-  --nav-width:     72px;
-  --sidebar-width: 320px;
-  --panel-width:   300px;
+  /* ─── Legacy compat aliases (used by existing JS / old components) ─── */
+  --bg-primary:   var(--bg-base);
+  --bg-secondary: var(--bg-surface);
+  --bg-tertiary:  var(--bg-elevated);
+  --glass-bg:     var(--bg-surface);
+  --glass-border: var(--border-dim);
+  --glass-blur:   blur(0px);
+  --glass-glow:   none;
+  --border:       var(--border-dim);
+  --border-light: var(--border-mid);
+  --brand:        var(--accent);
 }
 
 
@@ -137,82 +153,65 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+
+/* ─── Dynamic background — very slow imperceptible drift ─── */
+@keyframes bg-drift {
+  0%   { background-position: 0% 50%,   20% 30%,  100% 100%, 0% 0%; }
+  33%  { background-position: 100% 50%,  70% 60%,  0% 0%,    0% 0%; }
+  66%  { background-position: 50% 100%,  90% 10%,  60% 50%,  0% 0%; }
+  100% { background-position: 0% 50%,   20% 30%,  100% 100%, 0% 0%; }
+}
+
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-mono);
   font-size: var(--font-md);
   font-weight: var(--weight-regular);
   line-height: var(--line-height-normal);
   color: var(--text-primary);
-  background: var(--bg-primary);
   min-height: 100vh;
   position: relative;
+  /* Layered radial gradients give a subtle, shifting glow */
+  background:
+    radial-gradient(ellipse 80% 55% at 15% 55%, rgba(0,230,118,0.025) 0%, transparent 68%),
+    radial-gradient(ellipse 60% 40% at 85% 22%, rgba(0,230,118,0.014) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 45% at 55% 95%, rgba(0,180,216,0.009) 0%, transparent 60%),
+    var(--bg-base);
+  background-size: 280% 280%, 240% 240%, 200% 200%, 100% 100%;
+  animation: bg-drift 100s ease infinite;
 }
 
-/* --- Background Aurora Glow --- */
-body::before {
+/* Subtle scanline texture — barely perceptible */
+body::after {
   content: '';
   position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.09) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 100%, rgba(0, 204, 255, 0.03) 0%, transparent 50%);
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.025) 2px,
+    rgba(0,0,0,0.025) 4px
+  );
   pointer-events: none;
-  z-index: 0;
+  z-index: 9999;
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-/* --- Scrollbar --- */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.1);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.2);
-}
-
-/* Firefox scrollbar */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.1) transparent;
-}
-
-a {
+  background: rgba(0,230,118,0.18);
   color: var(--accent);
-  text-decoration: none;
 }
 
-a:hover {
-  color: var(--accent-hover);
-}
+/* Scrollbar */
+::-webkit-scrollbar       { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
 
-img {
-  display: block;
-  max-width: 100%;
-}
-
-button {
-  font-family: var(--font-family);
-  cursor: pointer;
-}
-
+a              { color: var(--accent); text-decoration: none; }
+a:hover        { color: var(--accent-dim); }
+img            { display: block; max-width: 100%; }
+button         { font-family: var(--font-mono); cursor: pointer; }
 input,
-textarea {
-  font-family: var(--font-family);
-}
+textarea,
+select         { font-family: var(--font-mono); }

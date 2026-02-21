@@ -3,255 +3,406 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>One21 — Login</title>
+<title>ONE21 — Access Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css">
 <style>
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-  }
 
-  .login-card {
-    width: 100%;
-    max-width: 400px;
-    background: linear-gradient(180deg, rgba(35, 50, 80, 0.6), rgba(20, 30, 55, 0.65));
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-xl);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: var(--shadow-lg), inset 0 1px 1px rgba(100, 150, 220, 0.06);
-    padding: var(--sp-8) var(--sp-6);
-  }
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
 
-  .login-brand {
-    text-align: center;
-    margin-bottom: var(--sp-8);
-  }
+/* ── Animated corner decorations ── */
+@keyframes corner-glow {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.8; }
+}
 
-  .login-brand__icon {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    margin-bottom: var(--sp-3);
-  }
+.login-corners {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .login-brand__one {
-    color: var(--brand);
-    font-weight: var(--weight-bold);
-    font-size: 14px;
-    letter-spacing: 0.08em;
-  }
+.login-corners::before,
+.login-corners::after {
+  content: '';
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-color: rgba(0,230,118,0.15);
+  border-style: solid;
+  animation: corner-glow 4s ease infinite;
+}
 
-  .login-brand__21 {
-    color: var(--text-primary);
-    font-weight: var(--weight-light);
-    font-size: var(--font-3xl);
-    line-height: 1;
-  }
+.login-corners::before {
+  top: 20px;
+  left: 20px;
+  border-width: 1px 0 0 1px;
+}
 
-  .login-brand__tagline {
-    font-size: var(--font-sm);
-    color: var(--text-secondary);
-    font-weight: var(--weight-light);
-  }
+.login-corners::after {
+  bottom: 20px;
+  right: 20px;
+  border-width: 0 1px 1px 0;
+  animation-delay: 2s;
+}
 
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-4);
-  }
+/* ── Login card ── */
+.login-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  padding: var(--sp-4);
+}
 
-  .login-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
+.login-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 36px 32px;
+  position: relative;
+  /* Geometric clip-path */
+  clip-path: polygon(
+    0 12px, 12px 0,
+    calc(100% - 12px) 0, 100% 12px,
+    100% calc(100% - 12px), calc(100% - 12px) 100%,
+    12px 100%, 0 calc(100% - 12px)
+  );
+}
 
-  .login-field label {
-    font-size: var(--font-sm);
-    color: var(--text-secondary);
-    font-weight: var(--weight-medium);
-  }
+/* Top accent line */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
 
-  .login-field input {
-    display: block;
-    width: 100%;
-    height: 44px;
-    padding: 0 var(--sp-4);
-    background: rgba(20, 30, 55, 0.8);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-    font-size: var(--font-md);
-    font-family: var(--font-family);
-    outline: none;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-  }
+/* ── Brand ── */
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
 
-  .login-field input::placeholder {
-    color: var(--text-tertiary);
-  }
+.login-brand__logo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 12px;
+}
 
-  .login-field input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-muted);
-  }
+.login-brand__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,230,118,0.6);
+  padding: 4px 8px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  clip-path: polygon(
+    0 4px, 4px 0,
+    calc(100% - 4px) 0, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 0 calc(100% - 4px)
+  );
+}
 
-  .login-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 44px;
-    margin-top: var(--sp-2);
-    background: var(--accent);
-    color: var(--bg-primary);
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: var(--font-md);
-    font-weight: var(--weight-semibold);
-    font-family: var(--font-family);
-    cursor: pointer;
-    box-shadow: 0 0 24px rgba(16, 185, 129, 0.2);
-    transition: all var(--transition-fast);
-  }
+.login-brand__suffix {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+}
 
-  .login-btn:hover {
-    background: var(--accent-hover);
-    box-shadow: 0 0 32px rgba(16, 185, 129, 0.3);
-  }
+.login-brand__subtitle {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+}
 
-  .login-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+/* ── Form ── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-  .login-toggle {
-    text-align: center;
-    margin-top: var(--sp-4);
-    font-size: var(--font-sm);
-    color: var(--text-secondary);
-  }
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-  .login-toggle a {
-    color: var(--accent);
-    cursor: pointer;
-    text-decoration: none;
-  }
+.login-field label {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
 
-  .login-toggle a:hover {
-    color: var(--accent-hover);
-  }
+.login-field input {
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--sp-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-md);
+  letter-spacing: 0.04em;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
 
-  .login-error {
-    display: none;
-    padding: var(--sp-3);
-    background: var(--danger-muted);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--radius-md);
-    color: var(--danger);
-    font-size: var(--font-sm);
-    text-align: center;
-  }
+.login-field input::placeholder {
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+}
 
-  .login-error.visible {
-    display: block;
-  }
+.login-field input:focus {
+  border-color: rgba(0,230,118,0.4);
+  box-shadow: 0 0 0 2px rgba(0,230,118,0.06);
+}
 
-  .register-fields {
-    display: none;
-  }
+/* ── Submit button ── */
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  margin-top: 6px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(0,230,118,0.5);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 120ms ease;
+  position: relative;
+  overflow: hidden;
+}
 
-  .register-fields.visible {
-    display: contents;
-  }
+@keyframes btn-sweep {
+  from { transform: translateX(-100%) skewX(-20deg); }
+  to   { transform: translateX(300%) skewX(-20deg); }
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,230,118,0.08), transparent);
+  animation: btn-sweep 3s ease-in-out infinite 1s;
+}
+
+.login-btn:hover {
+  background: rgba(0,230,118,0.06);
+  box-shadow: 0 0 16px rgba(0,230,118,0.12);
+}
+
+.login-btn:active { transform: scale(0.98); }
+
+.login-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Toggle / error ── */
+.login-toggle {
+  text-align: center;
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.login-toggle a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.login-toggle a:hover { color: var(--accent-dim); }
+
+.login-error {
+  display: none;
+  padding: 9px var(--sp-3);
+  background: rgba(255,61,61,0.06);
+  border: 1px solid rgba(255,61,61,0.25);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  text-align: center;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.login-error.visible { display: block; }
+
+.register-fields { display: none; }
+.register-fields.visible { display: contents; }
+
+/* ── Bottom status line ── */
+.login-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-5);
+}
+
+.login-footer__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 </style>
 </head>
 <body>
 
-<div class="login-card">
-  <div class="login-brand">
-    <div class="login-brand__icon">
-      <span class="login-brand__one">ONE</span>
-      <span class="login-brand__21">21</span>
+<div class="login-corners"></div>
+
+<div class="login-wrap">
+  <div class="login-card">
+
+    <!-- Brand -->
+    <div class="login-brand">
+      <div class="login-brand__logo">
+        <span class="login-brand__box">ONE</span>
+        <span class="login-brand__suffix">_21</span>
+      </div>
+      <p class="login-brand__subtitle">Neural Access Terminal</p>
     </div>
-    <p class="login-brand__tagline">by ONE AI/gency</p>
+
+    <!-- Error -->
+    <div id="errorBox" class="login-error"></div>
+
+    <!-- Form -->
+    <form id="loginForm" class="login-form" autocomplete="off">
+
+      <!-- Register-only fields -->
+      <div class="register-fields" id="registerFields">
+        <div class="login-field">
+          <label for="inviteCode">Invite_Code</label>
+          <input type="text" id="inviteCode" placeholder="XXXXXXXX" autocomplete="off">
+        </div>
+        <div class="login-field">
+          <label for="displayName">Display_Name</label>
+          <input type="text" id="displayName" placeholder="Operator callsign">
+        </div>
+      </div>
+
+      <div class="login-field">
+        <label for="username">Node_ID</label>
+        <input type="text" id="username" placeholder="Username" autocomplete="username" required>
+      </div>
+
+      <div class="login-field">
+        <label for="password">Access_Key</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" class="login-btn" id="submitBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+        Authenticate
+      </button>
+    </form>
+
+    <div class="login-toggle">
+      <span id="toggleText">No account?</span>
+      <a id="toggleLink" onclick="toggleMode()">Register</a>
+    </div>
   </div>
 
-  <div id="errorBox" class="login-error"></div>
-
-  <form id="loginForm" class="login-form" autocomplete="off">
-    <div class="register-fields" id="registerFields">
-      <div class="login-field">
-        <label for="inviteCode">Cod de invitatie</label>
-        <input type="text" id="inviteCode" placeholder="e.g. A1B2C3D4" autocomplete="off">
-      </div>
-      <div class="login-field">
-        <label for="displayName">Nume afisat</label>
-        <input type="text" id="displayName" placeholder="Numele tau">
-      </div>
-    </div>
-
-    <div class="login-field">
-      <label for="username">Username</label>
-      <input type="text" id="username" placeholder="Username" autocomplete="username" required>
-    </div>
-
-    <div class="login-field">
-      <label for="password">Parola</label>
-      <input type="password" id="password" placeholder="Parola" autocomplete="current-password" required>
-    </div>
-
-    <button type="submit" class="login-btn" id="submitBtn">Autentificare</button>
-  </form>
-
-  <div class="login-toggle">
-    <span id="toggleText">Nu ai cont?</span>
-    <a id="toggleLink" onclick="toggleMode()">Inregistreaza-te</a>
+  <!-- Status footer -->
+  <div class="login-footer">
+    <span class="login-footer__item">
+      <span style="width:5px;height:5px;background:var(--online);display:inline-block;"></span>
+      LINK:STABLE
+    </span>
+    <span class="login-footer__item">SEC:EAL7</span>
+    <span class="login-footer__item">ONE21_v2.0</span>
   </div>
 </div>
+
 
 <script>
   let isRegister = false;
 
   function toggleMode() {
     isRegister = !isRegister;
-    const fields = document.getElementById('registerFields');
-    const btn = document.getElementById('submitBtn');
-    const toggleText = document.getElementById('toggleText');
-    const toggleLink = document.getElementById('toggleLink');
-    const error = document.getElementById('errorBox');
-
+    const fields      = document.getElementById('registerFields');
+    const btn         = document.getElementById('submitBtn');
+    const toggleText  = document.getElementById('toggleText');
+    const toggleLink  = document.getElementById('toggleLink');
+    const error       = document.getElementById('errorBox');
     error.classList.remove('visible');
 
     if (isRegister) {
       fields.classList.add('visible');
-      btn.textContent = 'Creeaza cont';
-      toggleText.textContent = 'Ai deja cont?';
-      toggleLink.textContent = 'Autentifica-te';
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Init_Account`;
+      toggleText.textContent  = 'Already registered?';
+      toggleLink.textContent  = 'Login';
     } else {
       fields.classList.remove('visible');
-      btn.textContent = 'Autentificare';
-      toggleText.textContent = 'Nu ai cont?';
-      toggleLink.textContent = 'Inregistreaza-te';
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg> Authenticate`;
+      toggleText.textContent  = 'No account?';
+      toggleLink.textContent  = 'Register';
     }
   }
 
   function showError(msg) {
     const box = document.getElementById('errorBox');
-    box.textContent = msg;
+    box.textContent = 'ERR: ' + msg;
     box.classList.add('visible');
   }
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('submitBtn');
+    const btn   = document.getElementById('submitBtn');
     const error = document.getElementById('errorBox');
     error.classList.remove('visible');
     btn.disabled = true;
@@ -262,15 +413,13 @@
     try {
       let res;
       if (isRegister) {
-        const invite_code = document.getElementById('inviteCode').value.trim();
+        const invite_code  = document.getElementById('inviteCode').value.trim();
         const display_name = document.getElementById('displayName').value.trim();
-
         if (!invite_code) {
-          showError('Codul de invitatie este obligatoriu');
+          showError('Invite code required');
           btn.disabled = false;
           return;
         }
-
         res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -285,27 +434,20 @@
       }
 
       const data = await res.json();
-
-      if (!res.ok) {
-        showError(data.error || 'Eroare la autentificare');
-        btn.disabled = false;
-        return;
-      }
+      if (!res.ok) { showError(data.error || 'Authentication failed'); btn.disabled = false; return; }
 
       localStorage.setItem('one21_token', data.token);
       localStorage.setItem('one21_user', JSON.stringify(data.user));
       window.location.href = '/chat.html';
     } catch (err) {
-      showError('Eroare de conexiune');
+      showError('Connection error');
       btn.disabled = false;
     }
   });
 
-  // If already logged in, redirect
   if (localStorage.getItem('one21_token')) {
     window.location.href = '/chat.html';
   }
 </script>
-
 </body>
 </html>

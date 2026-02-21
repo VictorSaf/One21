@@ -6,7 +6,7 @@
 |------|---------|
 | **Server** | Mac Mini (macOS, arm64) in LAN |
 | **IP** | 192.168.10.42 |
-| **SSH** | `victorsafta@192.168.10.42` / password: `Assecca111213` |
+| **SSH** | `victorsafta@192.168.10.42` |
 | **Node.js** | v22.15.0 at `~/node/bin/node` (add `~/node/bin` to PATH) |
 | **Project dir** | `~/onechat/` |
 | **Port** | 3737 |
