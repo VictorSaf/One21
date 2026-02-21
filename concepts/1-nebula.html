@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OneChat — Nebula</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#06060f;--surface:rgba(15,15,30,0.7);--glass:rgba(255,255,255,0.04);--accent:#7c5bf5;--accent2:#00d4ff;--text:#e8e6f0;--dim:#6b6889;--msg-ai:rgba(124,91,245,0.12);--msg-user:rgba(0,212,255,0.10);--glow-ai:rgba(124,91,245,0.4);--glow-user:rgba(0,212,255,0.3)}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh;height:100vh}
+/* Top bar */
+.topbar{display:flex;align-items:center;padding:12px 16px;gap:12px;backdrop-filter:blur(30px);background:rgba(6,6,15,0.6);border-bottom:1px solid rgba(124,91,245,0.15)}
+.topbar .room-icon{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 20px var(--glow-ai)}
+.topbar .room-info{flex:1}
+.topbar .room-name{font-size:15px;font-weight:600;letter-spacing:0.3px}
+.topbar .room-status{font-size:11px;color:var(--accent2);opacity:0.8}
+.topbar .menu-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.08);background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:18px;transition:all 0.3s}
+.topbar .menu-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* Messages */
+.messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:rgba(124,91,245,0.3);border-radius:3px}
+.msg{max-width:82%;padding:12px 16px;border-radius:20px;font-size:14.5px;line-height:1.55;animation:msgIn 0.5s cubic-bezier(0.16,1,0.3,1);position:relative;word-wrap:break-word}
+.msg.ai{align-self:flex-start;background:var(--msg-ai);border:1px solid rgba(124,91,245,0.15);border-bottom-left-radius:6px;box-shadow:0 0 25px rgba(124,91,245,0.08)}
+.msg.user{align-self:flex-end;background:var(--msg-user);border:1px solid rgba(0,212,255,0.12);border-bottom-right-radius:6px;box-shadow:0 0 25px rgba(0,212,255,0.06)}
+.msg .sender{font-size:11px;font-weight:600;margin-bottom:4px;letter-spacing:0.5px;text-transform:uppercase}
+.msg.ai .sender{color:var(--accent)}
+.msg.user .sender{color:var(--accent2)}
+.msg .time{font-size:10px;color:var(--dim);margin-top:6px;text-align:right;opacity:0}
+.msg:hover .time{opacity:1}
+.msg .time{transition:opacity 0.3s}
+@keyframes msgIn{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Day separator */
+.day-sep{text-align:center;font-size:11px;color:var(--dim);padding:16px 0 8px;letter-spacing:1px;text-transform:uppercase}
+/* Typing indicator */
+.typing{align-self:flex-start;padding:10px 18px;display:flex;gap:5px;opacity:0.7}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:typePulse 1.4s infinite}
+.typing span:nth-child(2){animation-delay:0.2s}
+.typing span:nth-child(3){animation-delay:0.4s}
+@keyframes typePulse{0%,60%,100%{transform:scale(0.6);opacity:0.3}30%{transform:scale(1);opacity:1}}
+/* Input */
+.input-area{padding:12px 16px 28px;backdrop-filter:blur(30px);background:rgba(6,6,15,0.6);border-top:1px solid rgba(124,91,245,0.1)}
+.input-wrap{display:flex;align-items:flex-end;gap:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.06);border-radius:24px;padding:6px 6px 6px 18px;transition:border-color 0.3s,box-shadow 0.3s}
+.input-wrap:focus-within{border-color:rgba(124,91,245,0.4);box-shadow:0 0 30px rgba(124,91,245,0.1)}
+.input-wrap textarea{flex:1;background:none;border:none;color:var(--text);font-size:15px;resize:none;outline:none;max-height:120px;line-height:1.4;padding:8px 0;font-family:inherit}
+.input-wrap textarea::placeholder{color:var(--dim)}
+.send-btn{width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;flex-shrink:0}
+.send-btn:hover{transform:scale(1.08);box-shadow:0 0 25px var(--glow-ai)}
+.send-btn:active{transform:scale(0.92)}
+/* Room drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:280px;background:rgba(10,10,20,0.95);backdrop-filter:blur(40px);z-index:11;transform:translateX(-100%);transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);padding:60px 20px 20px;border-right:1px solid rgba(124,91,245,0.1)}
+.drawer.open{transform:translateX(0)}
+.drawer h2{font-size:13px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+.drawer .room-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;cursor:pointer;transition:all 0.2s;margin-bottom:4px}
+.drawer .room-item:hover,.drawer .room-item.active{background:rgba(124,91,245,0.12)}
+.drawer .room-item.active{border:1px solid rgba(124,91,245,0.2)}
+.drawer .room-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--glow-ai)}
+.drawer .room-dot.green{background:#00e676;box-shadow:0 0 10px rgba(0,230,118,0.4)}
+.drawer .room-label{font-size:14px}
+.drawer .user-badge{position:absolute;bottom:20px;left:20px;right:20px;padding:14px;border-radius:14px;background:var(--glass);border:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px}
+.drawer .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00e676,var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.drawer .user-name{font-size:13px;font-weight:500}
+.drawer .user-role{font-size:10px;color:var(--dim)}
+/* Encryption badge */
+.encrypt-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:#00e676;padding:4px 10px;border-radius:20px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.15);margin:0 auto 8px;width:fit-content}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="app">
+  <div class="topbar">
+    <div class="menu-btn" onclick="toggleDrawer()">☰</div>
+    <div class="room-icon">🌌</div>
+    <div class="room-info">
+      <div class="room-name">Interviu Business</div>
+      <div class="room-status">● Claude AI Analyst online</div>
+    </div>
+    <div class="menu-btn">⚙</div>
+  </div>
+  <div class="messages" id="msgs">
+    <div class="encrypt-badge">🔒 Encrypted end-to-end</div>
+    <div class="day-sep">— Azi —</div>
+    <div class="msg ai"><div class="sender">Claude</div>Bună dimineața! Am analizat datele financiare pe care mi le-ai trimis ieri. Sunt câteva puncte interesante pe care aș vrea să le discutăm.<div class="time">09:14</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Perfect, te ascult. Care sunt principalele concluzii?<div class="time">09:15</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Marja de profit a crescut cu 12% în Q4 față de Q3, dar costurile operaționale au crescut mai rapid decât veniturile. Recomand o analiză detaliată a cheltuielilor pe departamente.<div class="time">09:16</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Interesant. Poți să-mi faci un breakdown pe categorii de cheltuieli? Și compară cu media din industrie dacă ai date.<div class="time">09:18</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Sigur! Dă-mi 2 minute să compilez datele. Voi include și un grafic comparativ cu benchmark-urile din industrie pentru sectorul tech din România.<div class="time">09:18</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Super, aștept. Între timp, ai reușit să te uiți și la propunerea de investiție de la Nordic Fund?<div class="time">09:20</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Da, am parcurs term sheet-ul lor. Per ansamblu e o ofertă decentă — valuation-ul pre-money de €2.5M e în linie cu piața. Dar clauza de anti-dilution are nevoie de negociere. Vrei detalii?<div class="time">09:21</div></div>
+    <div class="typing"><span></span><span></span><span></span></div>
+  </div>
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea rows="1" placeholder="Scrie un mesaj..." oninput="autoResize(this)"></textarea>
+      <button class="send-btn" onclick="sendPulse(this)">➤</button>
+    </div>
+  </div>
+</div>
+<div class="drawer-overlay" onclick="toggleDrawer()"></div>
+<div class="drawer">
+  <h2>Conversații</h2>
+  <div class="room-item active"><div class="room-dot green"></div><div class="room-label">Interviu Business</div></div>
+  <div class="room-item"><div class="room-dot"></div><div class="room-label">Strategie Q1 2026</div></div>
+  <div class="room-item"><div class="room-dot"></div><div class="room-label">Due Diligence</div></div>
+  <div class="room-item"><div class="room-dot"></div><div class="room-label">Legal & Compliance</div></div>
+  <div class="user-badge">
+    <div class="user-avatar">C</div>
+    <div><div class="user-name">Claudiu</div><div class="user-role">Fondator · Admin</div></div>
+  </div>
+</div>
+<script>
+// Nebula particle background
+const c=document.getElementById('bg'),ctx=c.getContext('2d');
+let W,H,particles=[];
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+resize();addEventListener('resize',resize);
+class P{
+  constructor(){this.reset()}
+  reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.r=Math.random()*1.8+0.3;this.vx=(Math.random()-0.5)*0.3;this.vy=(Math.random()-0.5)*0.3;this.alpha=Math.random()*0.5+0.1;
+    const colors=['124,91,245','0,212,255','180,120,255','0,230,118'];
+    this.color=colors[Math.floor(Math.random()*colors.length)]}
+  update(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W||this.y<0||this.y>H)this.reset()}
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=`rgba(${this.color},${this.alpha})`;ctx.fill();
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r*3,0,Math.PI*2);ctx.fillStyle=`rgba(${this.color},${this.alpha*0.15})`;ctx.fill()}
+}
+for(let i=0;i<80;i++)particles.push(new P());
+let t=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Aurora gradient
+  t+=0.003;
+  const g=ctx.createRadialGradient(W*0.3+Math.sin(t)*100,H*0.4+Math.cos(t*0.7)*80,0,W*0.5,H*0.5,W*0.8);
+  g.addColorStop(0,`rgba(124,91,245,${0.06+Math.sin(t)*0.02})`);
+  g.addColorStop(0.5,`rgba(0,212,255,${0.03+Math.cos(t*1.3)*0.01})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // Second aurora
+  const g2=ctx.createRadialGradient(W*0.7+Math.cos(t*0.8)*120,H*0.6+Math.sin(t*0.5)*100,0,W*0.5,H*0.5,W*0.6);
+  g2.addColorStop(0,`rgba(180,120,255,${0.04+Math.sin(t*1.2)*0.015})`);
+  g2.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+  particles.forEach(p=>{p.update();p.draw()});
+  // Constellation lines
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<100){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(124,91,245,${(1-d/100)*0.08})`;ctx.stroke()}
+    }
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+// UI
+function toggleDrawer(){document.querySelector('.drawer').classList.toggle('open');document.querySelector('.drawer-overlay').classList.toggle('open')}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+function sendPulse(btn){btn.style.transform='scale(0.8)';setTimeout(()=>btn.style.transform='',150)}
+// Scroll to bottom
+document.getElementById('msgs').scrollTop=99999;
+</script>
+</body>
+</html>

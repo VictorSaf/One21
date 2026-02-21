@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OneChat — Aurora Glass</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f1a;--glass:rgba(255,255,255,0.03);--glass2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.08);--prism1:#ff6b9d;--prism2:#c084fc;--prism3:#60a5fa;--prism4:#34d399;--text:#f0eef5;--dim:#6b6890}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+/* Animated aurora mesh */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden}
+.aurora-layer{position:absolute;width:200%;height:200%;animation:auroraMove 30s linear infinite}
+.aurora-layer:nth-child(1){background:radial-gradient(ellipse at 30% 50%,rgba(255,107,157,0.12),transparent 50%),radial-gradient(ellipse at 70% 30%,rgba(96,165,250,0.1),transparent 50%);animation-duration:25s}
+.aurora-layer:nth-child(2){background:radial-gradient(ellipse at 60% 70%,rgba(192,132,252,0.1),transparent 50%),radial-gradient(ellipse at 20% 80%,rgba(52,211,153,0.08),transparent 50%);animation-duration:35s;animation-direction:reverse}
+.aurora-layer:nth-child(3){background:radial-gradient(ellipse at 80% 20%,rgba(255,107,157,0.06),transparent 40%),radial-gradient(ellipse at 40% 60%,rgba(96,165,250,0.06),transparent 40%);animation-duration:40s}
+@keyframes auroraMove{0%{transform:translate(0,0) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh}
+/* Glass top bar */
+.topbar{display:flex;align-items:center;padding:14px 16px;gap:12px;backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);background:rgba(15,15,26,0.4);border-bottom:1px solid var(--border)}
+.topbar .glass-orb{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,rgba(255,107,157,0.15),rgba(96,165,250,0.15));border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.3s}
+.topbar .glass-orb:hover{background:linear-gradient(135deg,rgba(255,107,157,0.25),rgba(96,165,250,0.25));transform:scale(1.05)}
+.room-info{flex:1}
+.room-name{font-size:15px;font-weight:600}
+.room-sub{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.room-sub .online-dot{width:6px;height:6px;border-radius:50%;background:var(--prism4);box-shadow:0 0 8px rgba(52,211,153,0.5)}
+.topbar .prism-btn{width:36px;height:36px;border-radius:12px;border:1px solid var(--border);background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:16px;transition:all 0.3s}
+.topbar .prism-btn:hover{border-color:rgba(192,132,252,0.3);color:var(--prism2)}
+/* Messages */
+.messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:linear-gradient(var(--prism1),var(--prism3));border-radius:3px}
+.msg{max-width:82%;padding:14px 18px;font-size:14.5px;line-height:1.55;animation:glassIn 0.5s cubic-bezier(0.16,1,0.3,1);position:relative}
+.msg.ai{align-self:flex-start;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(192,132,252,0.05);border:1px solid rgba(192,132,252,0.1);border-radius:20px 20px 20px 6px}
+/* Prismatic top edge */
+.msg.ai::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--prism2),var(--prism3),transparent);opacity:0.5}
+.msg.user{align-self:flex-end;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(96,165,250,0.05);border:1px solid rgba(96,165,250,0.1);border-radius:20px 20px 6px 20px}
+.msg.user::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--prism3),var(--prism4),transparent);opacity:0.5}
+.msg .sender{font-size:11px;font-weight:600;margin-bottom:3px;letter-spacing:0.3px}
+.msg.ai .sender{background:linear-gradient(90deg,var(--prism1),var(--prism2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.msg.user .sender{background:linear-gradient(90deg,var(--prism3),var(--prism4));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.msg .time{font-size:10px;color:var(--dim);margin-top:5px;text-align:right;opacity:0;transition:opacity 0.3s}
+.msg:hover .time{opacity:1}
+.msg:hover{background:rgba(255,255,255,0.04)}
+@keyframes glassIn{from{opacity:0;transform:translateY(16px) scale(0.97);backdrop-filter:blur(0)}to{opacity:1;transform:translateY(0) scale(1);backdrop-filter:blur(20px)}}
+.day-sep{text-align:center;padding:14px;font-size:11px;color:var(--dim);letter-spacing:1px}
+/* Typing — prismatic shimmer */
+.typing{align-self:flex-start;padding:10px 20px;display:flex;gap:6px}
+.typing span{width:8px;height:8px;border-radius:50%;animation:prismBounce 1.5s infinite}
+.typing span:nth-child(1){background:var(--prism1);animation-delay:0s}
+.typing span:nth-child(2){background:var(--prism2);animation-delay:0.15s}
+.typing span:nth-child(3){background:var(--prism3);animation-delay:0.3s}
+@keyframes prismBounce{0%,60%,100%{transform:translateY(0) scale(1);opacity:0.4}30%{transform:translateY(-8px) scale(1.2);opacity:1}}
+/* Input */
+.input-area{padding:12px 16px 28px;backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);background:rgba(15,15,26,0.4);border-top:1px solid var(--border)}
+.encrypt{text-align:center;font-size:10px;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.input-wrap{display:flex;align-items:flex-end;gap:10px;backdrop-filter:blur(20px);background:var(--glass2);border:1px solid var(--border);border-radius:24px;padding:6px 6px 6px 18px;transition:all 0.4s;position:relative;overflow:hidden}
+/* Prismatic border on focus */
+.input-wrap::after{content:'';position:absolute;inset:-1px;border-radius:24px;background:linear-gradient(135deg,var(--prism1),var(--prism2),var(--prism3),var(--prism4));opacity:0;transition:opacity 0.4s;z-index:-1;padding:1px}
+.input-wrap:focus-within{border-color:transparent}
+.input-wrap:focus-within::after{opacity:0.3}
+textarea{flex:1;background:none;border:none;color:var(--text);font-size:15px;font-family:inherit;resize:none;outline:none;max-height:100px;line-height:1.4;padding:8px 0}
+textarea::placeholder{color:var(--dim)}
+.send-btn{width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--prism2),var(--prism3));color:white;font-size:17px;cursor:pointer;transition:all 0.3s;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(192,132,252,0.2)}
+.send-btn:hover{transform:scale(1.08);box-shadow:0 4px 30px rgba(192,132,252,0.35)}
+.send-btn:active{transform:scale(0.9)}
+/* Drawer */
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);z-index:10;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.drawer-bg.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:290px;backdrop-filter:blur(40px) saturate(1.5);-webkit-backdrop-filter:blur(40px) saturate(1.5);background:rgba(15,15,26,0.85);z-index:11;transform:translateX(-100%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);padding:50px 20px 20px;border-right:1px solid var(--border)}
+.drawer.open{transform:translateX(0)}
+.drawer h3{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:14px}
+.drawer .room{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;cursor:pointer;transition:all 0.3s;margin-bottom:4px;border:1px solid transparent}
+.drawer .room:hover{background:var(--glass2)}
+.drawer .room.active{background:var(--glass2);border-color:var(--border)}
+.drawer .room.active::before{content:'';width:3px;height:20px;border-radius:2px;background:linear-gradient(var(--prism1),var(--prism3));margin-right:4px}
+.drawer .room .rname{font-size:14px;font-weight:500}
+.drawer .user-glass{position:absolute;bottom:20px;left:20px;right:20px;padding:16px;border-radius:18px;background:var(--glass2);border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.drawer .user-glass .uav{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--prism4),var(--prism3));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white}
+.drawer .user-glass .uname{font-size:14px;font-weight:600}
+.drawer .user-glass .urole{font-size:10px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="aurora">
+  <div class="aurora-layer"></div><div class="aurora-layer"></div><div class="aurora-layer"></div>
+</div>
+<div class="app">
+  <div class="topbar">
+    <div class="glass-orb" onclick="toggleDrawer()">☰</div>
+    <div class="room-info">
+      <div class="room-name">Interviu Business</div>
+      <div class="room-sub"><span class="online-dot"></span> Claude AI Analyst · online</div>
+    </div>
+    <div class="prism-btn">⚙</div>
+  </div>
+  <div class="messages" id="msgs">
+    <div class="day-sep">🔒 Encrypted · Azi</div>
+    <div class="msg ai"><div class="sender">Claude</div>Bună dimineața! Am analizat datele financiare pe care mi le-ai trimis ieri. Sunt câteva puncte interesante pe care aș vrea să le discutăm.<div class="time">09:14</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Perfect, te ascult. Care sunt principalele concluzii?<div class="time">09:15</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Marja de profit a crescut cu 12% în Q4 față de Q3, dar costurile operaționale au crescut mai rapid decât veniturile. Recomand o analiză detaliată a cheltuielilor pe departamente.<div class="time">09:16</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Interesant. Poți să-mi faci un breakdown pe categorii? Și compară cu media din industrie dacă ai date.<div class="time">09:18</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Sigur! Dă-mi 2 minute să compilez datele. Voi include și un grafic comparativ cu benchmark-urile din industrie pentru sectorul tech din România.<div class="time">09:18</div></div>
+    <div class="msg user"><div class="sender">Claudiu</div>Super. Ai văzut și propunerea de la Nordic Fund?<div class="time">09:20</div></div>
+    <div class="msg ai"><div class="sender">Claude</div>Da, am parcurs term sheet-ul lor. Valuation pre-money €2.5M e fair. Clauza anti-dilution are nevoie de negociere. Vrei analiza completă?<div class="time">09:21</div></div>
+    <div class="typing"><span></span><span></span><span></span></div>
+  </div>
+  <div class="input-area">
+    <div class="encrypt">🔒 End-to-end encrypted</div>
+    <div class="input-wrap">
+      <textarea rows="1" placeholder="Scrie un mesaj..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="send-btn">↑</button>
+    </div>
+  </div>
+</div>
+<div class="drawer-bg" onclick="toggleDrawer()"></div>
+<div class="drawer">
+  <h3>Conversații</h3>
+  <div class="room active"><div class="rname">Interviu Business</div></div>
+  <div class="room"><div class="rname">Strategie Q1 2026</div></div>
+  <div class="room"><div class="rname">Due Diligence</div></div>
+  <div class="room"><div class="rname">Legal & Compliance</div></div>
+  <div class="user-glass">
+    <div class="uav">C</div>
+    <div><div class="uname">Claudiu</div><div class="urole">Fondator · Admin</div></div>
+  </div>
+</div>
+<script>
+function toggleDrawer(){document.querySelector('.drawer').classList.toggle('open');document.querySelector('.drawer-bg').classList.toggle('open')}
+document.getElementById('msgs').scrollTop=99999;
+</script>
+</body>
+</html>

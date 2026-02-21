@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OneChat — Neon District</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--neon-pink:#ff2d7b;--neon-blue:#00d4ff;--neon-green:#39ff14;--neon-purple:#b026ff;--text:#e0e0e0;--dim:#444}
+html,body{height:100%;font-family:'Courier New',monospace;background:var(--bg);color:var(--text);overflow:hidden}
+/* Scanlines */
+.scanlines{position:fixed;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px)}
+.grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,45,123,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,123,0.03) 1px,transparent 1px);background-size:40px 40px}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh}
+/* Top */
+.topbar{display:flex;align-items:center;padding:12px 16px;gap:12px;background:rgba(10,10,10,0.9);border-bottom:1px solid rgba(255,45,123,0.2);position:relative;overflow:hidden}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon-pink),var(--neon-blue),transparent);animation:scanline 3s linear infinite}
+@keyframes scanline{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.topbar .hack-btn{font-size:20px;cursor:pointer;color:var(--neon-pink);text-shadow:0 0 10px var(--neon-pink);transition:all 0.2s}
+.topbar .hack-btn:hover{text-shadow:0 0 20px var(--neon-pink),0 0 40px var(--neon-pink)}
+.room-info{flex:1}
+.room-name{font-size:14px;font-weight:700;color:var(--neon-blue);text-shadow:0 0 10px rgba(0,212,255,0.5);letter-spacing:2px;text-transform:uppercase}
+.room-status{font-size:10px;color:var(--neon-green);letter-spacing:1px}
+.room-status::before{content:'> '}
+.lock-icon{font-size:18px;color:var(--neon-green);text-shadow:0 0 10px var(--neon-green);animation:flicker 4s infinite}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.4}97%{opacity:1}98%{opacity:0.3}}
+/* Messages */
+.messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:var(--neon-pink);box-shadow:0 0 6px var(--neon-pink)}
+.msg{max-width:82%;padding:12px 16px;font-size:13.5px;line-height:1.6;animation:glitchIn 0.4s;position:relative;letter-spacing:0.3px}
+.msg.ai{align-self:flex-start;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);border-radius:0 12px 12px 0;border-left:3px solid var(--neon-blue);box-shadow:0 0 15px rgba(0,212,255,0.05),inset 0 0 15px rgba(0,212,255,0.02)}
+.msg.user{align-self:flex-end;background:rgba(255,45,123,0.04);border:1px solid rgba(255,45,123,0.15);border-radius:12px 0 0 12px;border-right:3px solid var(--neon-pink);box-shadow:0 0 15px rgba(255,45,123,0.05),inset 0 0 15px rgba(255,45,123,0.02)}
+.msg .sender{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
+.msg.ai .sender{color:var(--neon-blue);text-shadow:0 0 8px rgba(0,212,255,0.5)}
+.msg.user .sender{color:var(--neon-pink);text-shadow:0 0 8px rgba(255,45,123,0.5)}
+.msg .time{font-size:9px;color:var(--dim);margin-top:6px;font-family:monospace;opacity:0;transition:opacity 0.3s}
+.msg:hover .time{opacity:1}
+.msg:hover.ai{box-shadow:0 0 25px rgba(0,212,255,0.1),inset 0 0 20px rgba(0,212,255,0.03)}
+.msg:hover.user{box-shadow:0 0 25px rgba(255,45,123,0.1),inset 0 0 20px rgba(255,45,123,0.03)}
+@keyframes glitchIn{0%{opacity:0;transform:translateX(-5px);filter:hue-rotate(90deg)}30%{transform:translateX(3px)}60%{transform:translateX(-1px)}100%{opacity:1;transform:translateX(0);filter:hue-rotate(0)}}
+.day-sep{text-align:center;padding:16px 0;font-size:10px;color:var(--dim);letter-spacing:3px;display:flex;align-items:center;gap:12px}
+.day-sep::before,.day-sep::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,123,0.2),transparent)}
+/* Typing */
+.typing{align-self:flex-start;padding:8px 16px;display:flex;gap:3px;align-items:center}
+.typing::before{content:'>';color:var(--neon-blue);margin-right:6px;animation:cursorBlink 1s infinite}
+.typing span{display:inline-block;color:var(--neon-blue);font-size:14px;animation:typeChar 1.5s infinite}
+.typing span:nth-child(2){animation-delay:0.2s}
+.typing span:nth-child(3){animation-delay:0.4s}
+@keyframes typeChar{0%,60%,100%{opacity:0.2}30%{opacity:1}}
+@keyframes cursorBlink{0%,50%{opacity:1}51%,100%{opacity:0}}
+/* Input */
+.input-area{padding:12px 16px 28px;background:rgba(10,10,10,0.9);border-top:1px solid rgba(255,45,123,0.1)}
+.encrypt{text-align:center;font-size:9px;color:var(--neon-green);margin-bottom:8px;letter-spacing:2px;text-shadow:0 0 5px rgba(57,255,20,0.3)}
+.input-wrap{display:flex;align-items:flex-end;gap:10px;border:1px solid rgba(255,45,123,0.15);background:rgba(255,45,123,0.02);padding:4px 4px 4px 16px;transition:all 0.3s}
+.input-wrap:focus-within{border-color:var(--neon-pink);box-shadow:0 0 20px rgba(255,45,123,0.1),0 0 40px rgba(255,45,123,0.05)}
+.input-wrap::before{content:'>';color:var(--neon-pink);align-self:center;font-weight:700;margin-right:4px}
+textarea{flex:1;background:none;border:none;color:var(--text);font-size:14px;font-family:'Courier New',monospace;resize:none;outline:none;max-height:100px;line-height:1.4;padding:10px 0}
+textarea::placeholder{color:var(--dim)}
+.send-btn{width:42px;height:42px;border:1px solid var(--neon-pink);background:rgba(255,45,123,0.05);color:var(--neon-pink);font-size:16px;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-family:monospace;font-weight:700}
+.send-btn:hover{background:var(--neon-pink);color:var(--bg);box-shadow:0 0 20px var(--neon-pink)}
+/* Drawer */
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.drawer-bg.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:280px;background:rgba(10,10,10,0.98);z-index:11;transform:translateX(-100%);transition:transform 0.3s;padding:50px 16px 20px;border-right:1px solid rgba(255,45,123,0.15)}
+.drawer.open{transform:translateX(0)}
+.drawer h3{font-size:10px;letter-spacing:3px;color:var(--neon-pink);text-transform:uppercase;margin-bottom:14px;text-shadow:0 0 10px rgba(255,45,123,0.3)}
+.drawer .ch{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:2px}
+.drawer .ch:hover,.drawer .ch.active{border-color:rgba(255,45,123,0.2);background:rgba(255,45,123,0.03)}
+.drawer .ch::before{content:'//';color:var(--neon-pink);font-weight:700;font-size:12px}
+.drawer .ch.active::before{content:'>>'}
+.drawer .ch span{font-size:13px;letter-spacing:1px}
+.drawer .id-card{position:absolute;bottom:20px;left:16px;right:16px;padding:14px;border:1px solid rgba(57,255,20,0.15);background:rgba(57,255,20,0.02)}
+.drawer .id-card .name{color:var(--neon-green);font-weight:700;font-size:14px;text-shadow:0 0 8px rgba(57,255,20,0.3)}
+.drawer .id-card .role{font-size:10px;color:var(--dim);letter-spacing:2px}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+<div class="app">
+  <div class="topbar">
+    <div class="hack-btn" onclick="toggleDrawer()">≡</div>
+    <div class="room-info">
+      <div class="room-name">INTERVIU_BUSINESS</div>
+      <div class="room-status">CLAUDE.AI CONNECTED · LATENCY 2ms</div>
+    </div>
+    <div class="lock-icon">⬡</div>
+  </div>
+  <div class="messages" id="msgs">
+    <div class="day-sep">21.02.2026</div>
+    <div class="msg ai"><div class="sender">[CLAUDE]</div>Bună dimineața! Am analizat datele financiare pe care mi le-ai trimis ieri. Sunt câteva puncte interesante pe care aș vrea să le discutăm.<div class="time">[09:14:23]</div></div>
+    <div class="msg user"><div class="sender">[CLAUDIU]</div>Perfect, te ascult. Care sunt principalele concluzii?<div class="time">[09:15:07]</div></div>
+    <div class="msg ai"><div class="sender">[CLAUDE]</div>Marja de profit a crescut cu 12% în Q4 față de Q3, dar costurile operaționale au crescut mai rapid decât veniturile. Recomand o analiză detaliată a cheltuielilor pe departamente.<div class="time">[09:16:44]</div></div>
+    <div class="msg user"><div class="sender">[CLAUDIU]</div>Interesant. Poți să-mi faci un breakdown pe categorii de cheltuieli? Și compară cu media din industrie.<div class="time">[09:18:12]</div></div>
+    <div class="msg ai"><div class="sender">[CLAUDE]</div>Sigur! Dă-mi 2 minute să compilez datele. Voi include și un grafic comparativ cu benchmark-urile din industrie pentru sectorul tech din România.<div class="time">[09:18:55]</div></div>
+    <div class="msg user"><div class="sender">[CLAUDIU]</div>Ai reușit să te uiți și la propunerea de investiție de la Nordic Fund?<div class="time">[09:20:01]</div></div>
+    <div class="msg ai"><div class="sender">[CLAUDE]</div>Da. Valuation pre-money €2.5M — în linie cu piața. Clauza anti-dilution needs rework. Vrei detalii?<div class="time">[09:21:33]</div></div>
+    <div class="typing"><span>█</span><span>█</span><span>█</span></div>
+  </div>
+  <div class="input-area">
+    <div class="encrypt">◈ E2E ENCRYPTED · AES-256 ◈</div>
+    <div class="input-wrap">
+      <textarea rows="1" placeholder="input_message..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="send-btn">⏎</button>
+    </div>
+  </div>
+</div>
+<div class="drawer-bg" onclick="toggleDrawer()"></div>
+<div class="drawer">
+  <h3>// Channels</h3>
+  <div class="ch active"><span>INTERVIU_BUSINESS</span></div>
+  <div class="ch"><span>STRATEGIE_Q1</span></div>
+  <div class="ch"><span>DUE_DILIGENCE</span></div>
+  <div class="ch"><span>LEGAL_OPS</span></div>
+  <div class="id-card">
+    <div class="name">CLAUDIU</div>
+    <div class="role">ROOT_ACCESS · FOUNDER</div>
+  </div>
+</div>
+<script>
+function toggleDrawer(){document.querySelector('.drawer').classList.toggle('open');document.querySelector('.drawer-bg').classList.toggle('open')}
+document.getElementById('msgs').scrollTop=99999;
+// Random glitch effect
+setInterval(()=>{
+  if(Math.random()>0.95){
+    document.body.style.filter='hue-rotate(20deg) brightness(1.1)';
+    setTimeout(()=>document.body.style.filter='',80);
+  }
+},2000);
+</script>
+</body>
+</html>

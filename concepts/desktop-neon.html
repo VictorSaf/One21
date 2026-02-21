@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneChat Desktop — Neon District</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--sidebar:#070707;--pink:#ff2d7b;--blue:#00d4ff;--green:#39ff14;--purple:#b026ff;--text:#e0e0e0;--dim:#444;--border:rgba(255,45,123,0.1)}
+html,body{height:100%;font-family:'Courier New','Lucida Console',monospace;background:var(--bg);color:var(--text);overflow:hidden}
+.scanlines{position:fixed;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px)}
+.grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,45,123,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,123,0.02) 1px,transparent 1px);background-size:40px 40px}
+.app{position:relative;z-index:1;display:flex;height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:260px;min-width:260px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-head{padding:18px 16px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.sidebar-head::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--pink),var(--blue),transparent);animation:scanMove 4s linear infinite}
+@keyframes scanMove{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.sidebar-head .brand{font-size:16px;font-weight:700;color:var(--pink);text-shadow:0 0 15px rgba(255,45,123,0.4);letter-spacing:3px}
+.sidebar-head .brand-sub{font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:2px}
+.sidebar-search{padding:10px 12px}
+.sidebar-search input{width:100%;padding:8px 12px;border:1px solid rgba(255,45,123,0.1);background:rgba(255,45,123,0.02);color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:all 0.3s}
+.sidebar-search input:focus{border-color:var(--pink);box-shadow:0 0 15px rgba(255,45,123,0.1)}
+.sidebar-search input::placeholder{color:var(--dim)}
+.section-label{padding:8px 16px;font-size:9px;letter-spacing:3px;color:var(--pink);text-shadow:0 0 5px rgba(255,45,123,0.2)}
+.ch-list{flex:1;overflow-y:auto;padding:0 8px}
+.ch-list::-webkit-scrollbar{width:2px}
+.ch-list::-webkit-scrollbar-thumb{background:var(--pink)}
+.ch-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:all 0.2s;border-left:2px solid transparent;margin-bottom:1px}
+.ch-item:hover{background:rgba(255,45,123,0.03);border-left-color:var(--dim)}
+.ch-item.active{background:rgba(255,45,123,0.05);border-left-color:var(--pink)}
+.ch-item .prefix{color:var(--pink);font-weight:700;font-size:11px;flex-shrink:0}
+.ch-item.active .prefix{text-shadow:0 0 8px rgba(255,45,123,0.5)}
+.ch-item .ch-name{font-size:12px;flex:1;letter-spacing:0.5px}
+.ch-item .ch-badge{font-size:9px;padding:2px 6px;background:var(--pink);color:var(--bg);font-weight:700}
+.ch-item .ch-time{font-size:9px;color:var(--dim)}
+/* Agents section */
+.agent-item{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:11px}
+.agent-item .dot{width:6px;height:6px;border-radius:50%}
+.agent-item .dot.on{background:var(--green);box-shadow:0 0 8px rgba(57,255,20,0.5)}
+.agent-item .dot.off{background:var(--dim)}
+.agent-item .aname{flex:1;letter-spacing:0.5px}
+.agent-item .atag{font-size:9px;color:var(--dim);letter-spacing:1px}
+/* User */
+.sidebar-user{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-user .uname{font-size:12px;color:var(--green);text-shadow:0 0 5px rgba(57,255,20,0.3);flex:1;font-weight:700}
+.sidebar-user .urole{font-size:9px;color:var(--dim);letter-spacing:1px}
+.sidebar-user .uptime{font-size:9px;color:var(--dim)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-head{display:flex;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);gap:14px;background:rgba(7,7,7,0.8)}
+.chat-head .ch-title{flex:1;font-size:13px;color:var(--blue);text-shadow:0 0 10px rgba(0,212,255,0.3);letter-spacing:2px}
+.chat-head .ch-sub{font-size:10px;color:var(--green);letter-spacing:1px}
+.chat-head .ch-sub::before{content:'> '}
+.head-btn{padding:6px 12px;border:1px solid var(--border);background:none;color:var(--dim);font-family:inherit;font-size:10px;cursor:pointer;letter-spacing:1px;transition:all 0.2s}
+.head-btn:hover{border-color:var(--pink);color:var(--pink)}
+.encrypt-bar{padding:6px 20px;font-size:9px;color:var(--green);letter-spacing:2px;background:rgba(57,255,20,0.02);border-bottom:1px solid rgba(57,255,20,0.05);text-shadow:0 0 5px rgba(57,255,20,0.2)}
+/* Messages */
+.messages{flex:1;overflow-y:auto;padding:20px 8%;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.65}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:var(--pink);box-shadow:0 0 4px var(--pink)}
+.msg-line{animation:lineIn 0.3s;word-wrap:break-word;padding:3px 0}
+@keyframes lineIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.msg-line .ts{color:#333;font-size:11px}
+.msg-line .agent{color:var(--blue);text-shadow:0 0 4px rgba(0,212,255,0.2)}
+.msg-line .user{color:var(--pink);text-shadow:0 0 4px rgba(255,45,123,0.2)}
+.msg-line .content{color:#aaa}
+.msg-line.from-user .content{color:var(--text)}
+.separator{color:#222;padding:8px 0;font-size:10px;letter-spacing:2px}
+.typing-line{padding:3px 0}
+.typing-line .agent{color:var(--blue)}
+.cursor-b{display:inline-block;animation:cb 1s infinite}
+@keyframes cb{0%,50%{opacity:1}51%,100%{opacity:0}}
+/* Input */
+.input-area{padding:12px 8% 16px;border-top:1px solid var(--border);background:rgba(7,7,7,0.9)}
+.input-wrap{display:flex;align-items:center;gap:10px;border:1px solid var(--border);padding:8px 14px;transition:all 0.3s}
+.input-wrap:focus-within{border-color:var(--pink);box-shadow:0 0 15px rgba(255,45,123,0.08)}
+.prompt-sym{color:var(--pink);font-weight:700;font-size:14px;flex-shrink:0}
+input.msg-input{flex:1;background:none;border:none;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+input.msg-input::placeholder{color:var(--dim)}
+.send-key{padding:6px 14px;border:1px solid var(--pink);background:none;color:var(--pink);font-family:inherit;font-size:11px;cursor:pointer;letter-spacing:2px;transition:all 0.2s}
+.send-key:hover{background:var(--pink);color:var(--bg);box-shadow:0 0 15px var(--pink)}
+
+/* RIGHT - Stats panel */
+.right-panel{width:240px;min-width:240px;border-left:1px solid var(--border);background:var(--sidebar);display:flex;flex-direction:column;font-size:11px;padding:16px}
+.rp-title{font-size:9px;letter-spacing:3px;color:var(--pink);margin-bottom:12px;text-shadow:0 0 5px rgba(255,45,123,0.2)}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.stat-row .label{color:var(--dim)}
+.stat-row .value{color:var(--text);font-weight:700}
+.stat-row .value.green{color:var(--green);text-shadow:0 0 5px rgba(57,255,20,0.3)}
+.stat-row .value.blue{color:var(--blue)}
+.stat-row .value.pink{color:var(--pink)}
+.rp-section{margin-top:20px}
+.rp-section .rp-title{margin-bottom:8px}
+.log-line{padding:3px 0;color:var(--dim);font-size:10px}
+.log-line .log-time{color:#222}
+.log-line .log-event{color:#555}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">ONECHAT</div>
+      <div class="brand-sub">// PRIVATE MESSAGING PLATFORM</div>
+    </div>
+    <div class="sidebar-search"><input placeholder="[SEARCH]..." type="text"></div>
+    <div class="section-label">// CHANNELS</div>
+    <div class="ch-list">
+      <div class="ch-item active"><span class="prefix">>></span><span class="ch-name">INTERVIU_BUSINESS</span><span class="ch-time">09:21</span></div>
+      <div class="ch-item"><span class="prefix">..</span><span class="ch-name">STRATEGIE_Q1</span><span class="ch-badge">3</span></div>
+      <div class="ch-item"><span class="prefix">..</span><span class="ch-name">DUE_DILIGENCE</span><span class="ch-time">19.02</span></div>
+      <div class="ch-item"><span class="prefix">..</span><span class="ch-name">LEGAL_OPS</span><span class="ch-time">17.02</span></div>
+    </div>
+    <div class="section-label">// AGENTS</div>
+    <div style="padding:0 8px 8px">
+      <div class="agent-item"><span class="dot on"></span><span class="aname">claude</span><span class="atag">AI_ANALYST</span></div>
+      <div class="agent-item"><span class="dot off"></span><span class="aname">openclaw</span><span class="atag">RESEARCH</span></div>
+    </div>
+    <div class="sidebar-user">
+      <div><div class="uname">CLAUDIU</div><div class="urole">ROOT_ACCESS · FOUNDER</div></div>
+      <div class="uptime">14d</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="chat-head">
+      <div>
+        <div class="ch-title">INTERVIU_BUSINESS</div>
+        <div class="ch-sub">CLAUDE.AI CONNECTED · LATENCY 2ms · E2E ON</div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="head-btn">[SEARCH]</button>
+      <button class="head-btn">[FILES]</button>
+      <button class="head-btn">[EXPORT]</button>
+    </div>
+    <div class="encrypt-bar">◈ SESSION ENCRYPTED · AES-256-GCM · VERIFIED ◈</div>
+    <div class="messages" id="msgs">
+      <div class="separator">--- session: 2026-02-21 09:14:00 UTC+2 ---</div>
+      <div class="msg-line"><span class="ts">[09:14:23] </span><span class="agent">&lt;claude&gt;</span> <span class="content">Bună dimineața! Am analizat datele financiare pe care mi le-ai trimis ieri. Sunt câteva puncte interesante pe care aș vrea să le discutăm.</span></div>
+      <div class="msg-line from-user"><span class="ts">[09:15:07] </span><span class="user">&lt;claudiu&gt;</span> <span class="content">Perfect, te ascult. Care sunt principalele concluzii?</span></div>
+      <div class="msg-line"><span class="ts">[09:16:44] </span><span class="agent">&lt;claude&gt;</span> <span class="content">Marja de profit a crescut cu 12% în Q4 față de Q3, dar costurile operaționale au crescut mai rapid decât veniturile. Recomand o analiză detaliată a cheltuielilor pe departamente.</span></div>
+      <div class="msg-line from-user"><span class="ts">[09:18:12] </span><span class="user">&lt;claudiu&gt;</span> <span class="content">Interesant. Poți să-mi faci un breakdown pe categorii de cheltuieli? Și compară cu media din industrie dacă ai date.</span></div>
+      <div class="msg-line"><span class="ts">[09:18:55] </span><span class="agent">&lt;claude&gt;</span> <span class="content">Sigur! Dă-mi 2 minute să compilez datele. Voi include și un grafic comparativ cu benchmark-urile din industrie pentru sectorul tech din România.</span></div>
+      <div class="msg-line from-user"><span class="ts">[09:20:01] </span><span class="user">&lt;claudiu&gt;</span> <span class="content">Ai reușit să te uiți și la propunerea de investiție de la Nordic Fund?</span></div>
+      <div class="msg-line"><span class="ts">[09:21:33] </span><span class="agent">&lt;claude&gt;</span> <span class="content">Da, am parcurs term sheet-ul lor. Per ansamblu e o ofertă decentă — valuation-ul pre-money de €2.5M e în linie cu piața. Dar clauza de anti-dilution are nevoie de negociere. Vrei detalii?</span></div>
+      <div class="typing-line"><span class="ts">[09:21:45] </span><span class="agent">&lt;claude&gt;</span> <span class="content" style="color:var(--dim)">typing</span><span class="cursor-b" style="color:var(--blue)">█</span></div>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <span class="prompt-sym">></span>
+        <input class="msg-input" type="text" placeholder="input_message..." autofocus>
+        <button class="send-key">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="rp-title">// ROOM STATS</div>
+    <div class="stat-row"><span class="label">Status</span><span class="value green">ACTIVE</span></div>
+    <div class="stat-row"><span class="label">Encryption</span><span class="value green">AES-256</span></div>
+    <div class="stat-row"><span class="label">Members</span><span class="value">3</span></div>
+    <div class="stat-row"><span class="label">Messages</span><span class="value blue">1,247</span></div>
+    <div class="stat-row"><span class="label">Files</span><span class="value">14</span></div>
+    <div class="stat-row"><span class="label">Created</span><span class="value">2026-01-08</span></div>
+    <div class="stat-row"><span class="label">Uptime</span><span class="value pink">14d 7h</span></div>
+    <div class="rp-section">
+      <div class="rp-title">// ACTIVITY LOG</div>
+      <div class="log-line"><span class="log-time">[09:21]</span> <span class="log-event">claude sent message</span></div>
+      <div class="log-line"><span class="log-time">[09:20]</span> <span class="log-event">claudiu sent message</span></div>
+      <div class="log-line"><span class="log-time">[09:18]</span> <span class="log-event">claude sent message</span></div>
+      <div class="log-line"><span class="log-time">[09:14]</span> <span class="log-event">session started</span></div>
+      <div class="log-line"><span class="log-time">[09:13]</span> <span class="log-event">claude joined room</span></div>
+      <div class="log-line"><span class="log-time">[09:12]</span> <span class="log-event">e2e handshake ok</span></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">// SHARED FILES</div>
+      <div class="log-line" style="color:var(--blue)">Q4_Report.pdf <span style="color:var(--dim)">2.4MB</span></div>
+      <div class="log-line" style="color:var(--blue)">Term_Sheet.xlsx <span style="color:var(--dim)">890KB</span></div>
+      <div class="log-line" style="color:var(--blue)">Invest_Memo.docx <span style="color:var(--dim)">1.1MB</span></div>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('msgs').scrollTop=99999;
+setInterval(()=>{if(Math.random()>0.96){document.body.style.filter='hue-rotate(15deg) brightness(1.05)';setTimeout(()=>document.body.style.filter='',60)}},2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneChat Desktop — Nebula</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#06060f;--sidebar:#08081a;--surface:rgba(15,15,30,0.7);--glass:rgba(255,255,255,0.03);--border:rgba(124,91,245,0.1);--accent:#7c5bf5;--accent2:#00d4ff;--accent3:#00e676;--text:#e8e6f0;--dim:#6b6889;--msg-ai:rgba(124,91,245,0.08);--msg-user:rgba(0,212,255,0.07)}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+canvas#bg{position:fixed;inset:0;z-index:0}
+.app{position:relative;z-index:1;display:flex;height:100vh}
+
+/* ===== LEFT SIDEBAR ===== */
+.sidebar{width:280px;min-width:280px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;backdrop-filter:blur(20px);z-index:2}
+.sidebar-head{padding:20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.sidebar-head .logo{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;box-shadow:0 0 20px rgba(124,91,245,0.3)}
+.sidebar-head .brand{font-size:16px;font-weight:700;letter-spacing:0.5px}
+.sidebar-head .brand small{display:block;font-size:10px;color:var(--dim);font-weight:400;letter-spacing:1px}
+.sidebar-search{padding:12px 16px}
+.sidebar-search input{width:100%;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.03);color:var(--text);font-size:13px;outline:none;transition:all 0.3s;font-family:inherit}
+.sidebar-search input:focus{border-color:rgba(124,91,245,0.3);box-shadow:0 0 20px rgba(124,91,245,0.08)}
+.sidebar-search input::placeholder{color:var(--dim)}
+.sidebar-section{padding:4px 16px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:600}
+.room-list{flex:1;overflow-y:auto;padding:4px 8px}
+.room-list::-webkit-scrollbar{width:3px}
+.room-list::-webkit-scrollbar-thumb{background:rgba(124,91,245,0.2);border-radius:3px}
+.room-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;cursor:pointer;transition:all 0.2s;margin-bottom:2px;position:relative}
+.room-item:hover{background:rgba(124,91,245,0.06)}
+.room-item.active{background:rgba(124,91,245,0.1);border:1px solid rgba(124,91,245,0.15)}
+.room-item .room-avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.room-item .room-avatar.purple{background:linear-gradient(135deg,rgba(124,91,245,0.2),rgba(124,91,245,0.05))}
+.room-item .room-avatar.blue{background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(0,212,255,0.05))}
+.room-item .room-avatar.green{background:linear-gradient(135deg,rgba(0,230,118,0.15),rgba(0,230,118,0.05))}
+.room-item .room-avatar.orange{background:linear-gradient(135deg,rgba(255,165,0,0.15),rgba(255,165,0,0.05))}
+.room-item .room-meta{flex:1;min-width:0}
+.room-item .room-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-item .room-preview{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.room-item .room-time{font-size:10px;color:var(--dim);position:absolute;top:12px;right:12px}
+.room-item .unread{position:absolute;bottom:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(124,91,245,0.4)}
+/* User card at bottom */
+.sidebar-user{padding:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.sidebar-user .user-av{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent3),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white}
+.sidebar-user .user-info{flex:1}
+.sidebar-user .user-name{font-size:13px;font-weight:600}
+.sidebar-user .user-role{font-size:10px;color:var(--dim)}
+.sidebar-user .status-dot{width:10px;height:10px;border-radius:50%;background:var(--accent3);box-shadow:0 0 8px rgba(0,230,118,0.5)}
+.settings-btn{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:16px;transition:all 0.3s}
+.settings-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ===== MAIN CHAT AREA ===== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-header{padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);backdrop-filter:blur(20px);background:rgba(6,6,15,0.5)}
+.chat-header .ch-avatar{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,rgba(124,91,245,0.2),rgba(124,91,245,0.05));display:flex;align-items:center;justify-content:center;font-size:20px}
+.chat-header .ch-info{flex:1}
+.chat-header .ch-name{font-size:16px;font-weight:600}
+.chat-header .ch-status{font-size:12px;color:var(--accent2);display:flex;align-items:center;gap:6px}
+.chat-header .ch-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px rgba(0,212,255,0.5)}
+.chat-header .ch-actions{display:flex;gap:8px}
+.ch-action{width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:16px;transition:all 0.3s}
+.ch-action:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,91,245,0.05)}
+/* Encrypt badge */
+.encrypt-bar{text-align:center;padding:8px;font-size:10px;color:var(--accent3);letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(0,230,118,0.02);border-bottom:1px solid rgba(0,230,118,0.05)}
+.encrypt-bar::before{content:'🔒'}
+/* Messages */
+.messages{flex:1;overflow-y:auto;padding:24px 10%;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-thumb{background:rgba(124,91,245,0.2);border-radius:4px}
+.day-sep{text-align:center;padding:20px 0 10px;font-size:11px;color:var(--dim);letter-spacing:1px;display:flex;align-items:center;gap:16px}
+.day-sep::before,.day-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.msg{max-width:65%;padding:14px 20px;border-radius:20px;font-size:14.5px;line-height:1.6;animation:msgIn 0.4s cubic-bezier(0.16,1,0.3,1);position:relative;transition:all 0.2s}
+.msg.ai{align-self:flex-start;background:var(--msg-ai);border:1px solid rgba(124,91,245,0.1);border-bottom-left-radius:6px}
+.msg.user{align-self:flex-end;background:var(--msg-user);border:1px solid rgba(0,212,255,0.08);border-bottom-right-radius:6px}
+.msg:hover{transform:translateX(2px)}
+.msg.user:hover{transform:translateX(-2px)}
+.msg .sender{font-size:11px;font-weight:600;margin-bottom:3px;letter-spacing:0.3px;display:flex;align-items:center;gap:8px}
+.msg.ai .sender{color:var(--accent)}
+.msg.user .sender{color:var(--accent2)}
+.msg .sender .tag{font-size:9px;padding:1px 6px;border-radius:6px;font-weight:600;letter-spacing:0.5px}
+.msg.ai .sender .tag{background:rgba(124,91,245,0.15);color:var(--accent)}
+.msg .time{font-size:10px;color:var(--dim);margin-top:5px;text-align:right;opacity:0;transition:opacity 0.3s}
+.msg:hover .time{opacity:1}
+.msg .reactions{display:flex;gap:4px;margin-top:6px}
+.msg .reactions span{font-size:12px;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:all 0.2s}
+.msg .reactions span:hover{background:rgba(124,91,245,0.1);border-color:rgba(124,91,245,0.2)}
+@keyframes msgIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* Typing */
+.typing{align-self:flex-start;padding:10px 20px;display:flex;align-items:center;gap:8px}
+.typing .who{font-size:11px;color:var(--dim)}
+.typing .dots{display:flex;gap:4px}
+.typing .dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:typeDot 1.4s infinite}
+.typing .dots span:nth-child(2){animation-delay:0.2s}
+.typing .dots span:nth-child(3){animation-delay:0.4s}
+@keyframes typeDot{0%,60%,100%{opacity:0.2;transform:scale(0.8)}30%{opacity:1;transform:scale(1.1)}}
+/* Input area */
+.input-area{padding:16px 10% 20px;border-top:1px solid var(--border);background:rgba(6,6,15,0.3);backdrop-filter:blur(20px)}
+.input-wrap{display:flex;align-items:flex-end;gap:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:8px 8px 8px 20px;transition:all 0.3s}
+.input-wrap:focus-within{border-color:rgba(124,91,245,0.3);box-shadow:0 0 30px rgba(124,91,245,0.06)}
+.attach-btn{width:38px;height:38px;border-radius:50%;border:none;background:transparent;color:var(--dim);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0}
+.attach-btn:hover{color:var(--accent)}
+textarea{flex:1;background:none;border:none;color:var(--text);font-size:15px;font-family:inherit;resize:none;outline:none;max-height:150px;line-height:1.5;padding:8px 0}
+textarea::placeholder{color:var(--dim)}
+.send-btn{width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:18px;cursor:pointer;transition:all 0.3s;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(124,91,245,0.25)}
+.send-btn:hover{transform:scale(1.08);box-shadow:0 4px 30px rgba(124,91,245,0.4)}
+.send-btn:active{transform:scale(0.92)}
+
+/* ===== RIGHT PANEL ===== */
+.right-panel{width:280px;min-width:280px;border-left:1px solid var(--border);background:var(--sidebar);display:flex;flex-direction:column;backdrop-filter:blur(20px)}
+.rp-header{padding:20px;border-bottom:1px solid var(--border);text-align:center}
+.rp-header .rp-icon{font-size:36px;margin-bottom:8px}
+.rp-header .rp-title{font-size:15px;font-weight:600}
+.rp-header .rp-desc{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.4}
+.rp-section{padding:16px 20px 8px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:600}
+.rp-members{padding:0 12px}
+.member{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;transition:background 0.2s}
+.member:hover{background:rgba(255,255,255,0.02)}
+.member .m-av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;flex-shrink:0}
+.member .m-av.ai{background:linear-gradient(135deg,var(--accent),#9b7dff)}
+.member .m-av.human{background:linear-gradient(135deg,var(--accent2),var(--accent3))}
+.member .m-av.admin{background:linear-gradient(135deg,#ff6b9d,#ff9a56)}
+.member .m-info{flex:1}
+.member .m-name{font-size:13px;font-weight:500}
+.member .m-role{font-size:10px;color:var(--dim)}
+.member .m-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.member .m-status.online{background:var(--accent3);box-shadow:0 0 8px rgba(0,230,118,0.5)}
+.member .m-status.offline{background:var(--dim)}
+/* Shared files */
+.rp-files{padding:0 12px}
+.file-item{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;transition:background 0.2s}
+.file-item:hover{background:rgba(255,255,255,0.02)}
+.file-item .f-icon{width:34px;height:34px;border-radius:8px;background:rgba(124,91,245,0.1);display:flex;align-items:center;justify-content:center;font-size:16px}
+.file-item .f-name{font-size:12px;font-weight:500}
+.file-item .f-size{font-size:10px;color:var(--dim)}
+.rp-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);text-align:center}
+.rp-footer .encrypt-info{font-size:10px;color:var(--accent3);letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:6px}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="app">
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="logo">O</div>
+      <div class="brand">OneChat<small>Private Messaging</small></div>
+    </div>
+    <div class="sidebar-search"><input type="text" placeholder="Caută conversații..."></div>
+    <div class="sidebar-section">Conversații active</div>
+    <div class="room-list">
+      <div class="room-item active">
+        <div class="room-avatar purple">💼</div>
+        <div class="room-meta"><div class="room-name">Interviu Business</div><div class="room-preview">Claude: Valuation pre-money €2.5M...</div></div>
+        <div class="room-time">09:21</div>
+      </div>
+      <div class="room-item">
+        <div class="room-avatar blue">📊</div>
+        <div class="room-meta"><div class="room-name">Strategie Q1 2026</div><div class="room-preview">Obiectivele principale au fost...</div></div>
+        <div class="room-time">Ieri</div>
+        <div class="unread">3</div>
+      </div>
+      <div class="room-item">
+        <div class="room-avatar green">🔎</div>
+        <div class="room-meta"><div class="room-name">Due Diligence</div><div class="room-preview">Documentele sunt gata de review</div></div>
+        <div class="room-time">19 Feb</div>
+      </div>
+      <div class="room-item">
+        <div class="room-avatar orange">⚖️</div>
+        <div class="room-meta"><div class="room-name">Legal & Compliance</div><div class="room-preview">NDA-ul a fost semnat</div></div>
+        <div class="room-time">17 Feb</div>
+      </div>
+    </div>
+    <div class="sidebar-section">Agenți AI</div>
+    <div class="room-list" style="flex:0;padding-bottom:8px">
+      <div class="room-item">
+        <div class="room-avatar purple">🤖</div>
+        <div class="room-meta"><div class="room-name">Claude Direct</div><div class="room-preview">Întreabă-mă orice</div></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-av">C</div>
+      <div class="user-info"><div class="user-name">Claudiu</div><div class="user-role">Fondator · Admin</div></div>
+      <div class="status-dot"></div>
+      <div class="settings-btn">⚙</div>
+    </div>
+  </div>
+
+  <!-- MAIN CHAT -->
+  <div class="main">
+    <div class="chat-header">
+      <div class="ch-avatar">💼</div>
+      <div class="ch-info">
+        <div class="ch-name">Interviu Business</div>
+        <div class="ch-status">Claude AI Analyst online</div>
+      </div>
+      <div class="ch-actions">
+        <div class="ch-action">🔍</div>
+        <div class="ch-action">📎</div>
+        <div class="ch-action">⋯</div>
+      </div>
+    </div>
+    <div class="encrypt-bar">Encrypted end-to-end · AES-256</div>
+    <div class="messages" id="msgs">
+      <div class="day-sep">Azi, 21 Februarie 2026</div>
+      <div class="msg ai">
+        <div class="sender">Claude <span class="tag">AI Analyst</span></div>
+        Bună dimineața! Am analizat datele financiare pe care mi le-ai trimis ieri. Sunt câteva puncte interesante pe care aș vrea să le discutăm.
+        <div class="time">09:14</div>
+      </div>
+      <div class="msg user">
+        <div class="sender">Claudiu</div>
+        Perfect, te ascult. Care sunt principalele concluzii?
+        <div class="time">09:15</div>
+      </div>
+      <div class="msg ai">
+        <div class="sender">Claude <span class="tag">AI Analyst</span></div>
+        Marja de profit a crescut cu 12% în Q4 față de Q3, dar costurile operaționale au crescut mai rapid decât veniturile. Recomand o analiză detaliată a cheltuielilor pe departamente.
+        <div class="reactions"><span>📊 2</span><span>👍</span></div>
+        <div class="time">09:16</div>
+      </div>
+      <div class="msg user">
+        <div class="sender">Claudiu</div>
+        Interesant. Poți să-mi faci un breakdown pe categorii de cheltuieli? Și compară cu media din industrie dacă ai date.
+        <div class="time">09:18</div>
+      </div>
+      <div class="msg ai">
+        <div class="sender">Claude <span class="tag">AI Analyst</span></div>
+        Sigur! Dă-mi 2 minute să compilez datele. Voi include și un grafic comparativ cu benchmark-urile din industrie pentru sectorul tech din România.
+        <div class="time">09:18</div>
+      </div>
+      <div class="msg user">
+        <div class="sender">Claudiu</div>
+        Super, aștept. Între timp, ai reușit să te uiți și la propunerea de investiție de la Nordic Fund?
+        <div class="time">09:20</div>
+      </div>
+      <div class="msg ai">
+        <div class="sender">Claude <span class="tag">AI Analyst</span></div>
+        Da, am parcurs term sheet-ul lor. Per ansamblu e o ofertă decentă — valuation-ul pre-money de €2.5M e în linie cu piața. Dar clauza de anti-dilution are nevoie de negociere. Vrei detalii?
+        <div class="time">09:21</div>
+      </div>
+      <div class="typing">
+        <div class="who">Claude scrie</div>
+        <div class="dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <button class="attach-btn">+</button>
+        <textarea rows="1" placeholder="Scrie un mesaj..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,150)+'px'"></textarea>
+        <button class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="rp-header">
+      <div class="rp-icon">💼</div>
+      <div class="rp-title">Interviu Business</div>
+      <div class="rp-desc">Discuții despre strategia de business, investiții și analiza financiară</div>
+    </div>
+    <div class="rp-section">Membri (3)</div>
+    <div class="rp-members">
+      <div class="member">
+        <div class="m-av ai">C</div>
+        <div class="m-info"><div class="m-name">Claude AI Analyst</div><div class="m-role">Agent · AI</div></div>
+        <div class="m-status online"></div>
+      </div>
+      <div class="member">
+        <div class="m-av human">C</div>
+        <div class="m-info"><div class="m-name">Claudiu</div><div class="m-role">Fondator · Admin</div></div>
+        <div class="m-status online"></div>
+      </div>
+      <div class="member">
+        <div class="m-av admin">A</div>
+        <div class="m-info"><div class="m-name">Admin</div><div class="m-role">System Admin</div></div>
+        <div class="m-status offline"></div>
+      </div>
+    </div>
+    <div class="rp-section">Fișiere partajate</div>
+    <div class="rp-files">
+      <div class="file-item">
+        <div class="f-icon">📄</div>
+        <div><div class="f-name">Q4_Financial_Report.pdf</div><div class="f-size">2.4 MB · 20 Feb</div></div>
+      </div>
+      <div class="file-item">
+        <div class="f-icon">📊</div>
+        <div><div class="f-name">Nordic_Term_Sheet.xlsx</div><div class="f-size">890 KB · 19 Feb</div></div>
+      </div>
+      <div class="file-item">
+        <div class="f-icon">📋</div>
+        <div><div class="f-name">Investment_Memo.docx</div><div class="f-size">1.1 MB · 18 Feb</div></div>
+      </div>
+    </div>
+    <div class="rp-footer">
+      <div class="encrypt-info">🔒 E2E Encrypted · AES-256-GCM</div>
+    </div>
+  </div>
+</div>
+<script>
+const c=document.getElementById('bg'),ctx=c.getContext('2d');
+let W,H,particles=[];
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+resize();addEventListener('resize',resize);
+class P{
+  constructor(){this.reset()}
+  reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.r=Math.random()*1.5+0.3;this.vx=(Math.random()-0.5)*0.2;this.vy=(Math.random()-0.5)*0.2;this.alpha=Math.random()*0.4+0.1;
+    const c=['124,91,245','0,212,255','180,120,255','0,230,118'];
+    this.color=c[Math.floor(Math.random()*c.length)]}
+  update(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W||this.y<0||this.y>H)this.reset()}
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=`rgba(${this.color},${this.alpha})`;ctx.fill();
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r*3,0,Math.PI*2);ctx.fillStyle=`rgba(${this.color},${this.alpha*0.12})`;ctx.fill()}
+}
+for(let i=0;i<60;i++)particles.push(new P());
+let t=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);t+=0.002;
+  const g=ctx.createRadialGradient(W*0.3+Math.sin(t)*80,H*0.4+Math.cos(t*0.7)*60,0,W*0.5,H*0.5,W*0.7);
+  g.addColorStop(0,`rgba(124,91,245,${0.04+Math.sin(t)*0.015})`);g.addColorStop(0.5,`rgba(0,212,255,${0.02+Math.cos(t*1.3)*0.008})`);g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  particles.forEach(p=>{p.update();p.draw()});
+  for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){
+    const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<120){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(124,91,245,${(1-d/120)*0.06})`;ctx.stroke()}
+  }}
+  requestAnimationFrame(draw);
+}
+draw();
+document.getElementById('msgs').scrollTop=99999;
+</script>
+</body>
+</html>
