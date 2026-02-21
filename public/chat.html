@@ -78,13 +78,22 @@
 
   /* Stack utility */
   .stack { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+  /* Logout button */
+  .nav__logout {
+    color: var(--text-tertiary);
+    transition: color var(--transition-fast);
+  }
+  .nav__logout:hover {
+    color: var(--danger);
+  }
 </style>
 </head>
 <body>
 
 <div class="app">
 
-  <!-- ═══ NAV ═══ -->
+  <!-- NAV -->
   <nav class="nav">
     <div class="nav__brand"><span class="nav__brand-one">ONE</span><span class="nav__brand-21">21</span></div>
 
@@ -104,20 +113,23 @@
     <div class="nav__spacer"></div>
 
     <div class="nav__agency">
-      <span style="color: var(--brand); font-size: 8px; font-weight: 600;">ONE</span>
-      <span style="color: var(--text-tertiary); font-size: 7px;">AI/gency</span>
+      <span style="color: var(--brand); font-size: 9px; font-weight: 700; letter-spacing: 0.05em;">ONE</span>
+      <span style="color: var(--text-secondary); font-size: 8px; font-weight: 300;">AI/gency</span>
     </div>
 
-    <button class="nav__item" title="Setari">
-      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <button class="nav__item" title="Admin" onclick="window.location='/admin.html'" id="adminNavBtn" style="display:none;">
+      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </button>
+    <button class="nav__item nav__logout" title="Deconectare" onclick="Auth.logout()">
+      <svg class="icon-svg icon-svg--lg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
   </nav>
 
-  <!-- ═══ SIDEBAR ═══ -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar__header">
       <h2 class="sidebar__title">Mesaje</h2>
-      <button class="btn btn--icon btn--ghost" title="Conversatie noua">
+      <button class="btn btn--icon btn--ghost" id="newRoomBtn" title="Conversatie noua">
         <svg class="icon-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
     </div>
@@ -129,152 +141,18 @@
       </div>
     </div>
 
-    <div class="sidebar__list">
-      <span class="sidebar__section-label">Recente</span>
-
-      <!-- Active conversation -->
-      <div class="chat-item chat-item--active">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=1" alt="IB">
-          <span class="avatar__status avatar__status--online"></span>
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">Interviu Business</span>
-            <span class="chat-item__time">14:32</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Claude: Am finalizat analiza...</span>
-            <span class="badge">2</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=2" alt="DT">
-          <span class="avatar__status avatar__status--online"></span>
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">Design Team</span>
-            <span class="chat-item__time">13:15</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Mihai: Am actualizat mockup-urile</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=9" alt="AS">
-          <span class="avatar__status avatar__status--online"></span>
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">Ana Stanescu</span>
-            <span class="chat-item__time">12:40</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Tu: Am trimis contractul</span>
-            <span class="chat-item__check">&#10003;&#10003;</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=3" alt="G">
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">General</span>
-            <span class="chat-item__time">Ieri</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Sedinta de planificare la 10</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=10" alt="RP">
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">Radu Popescu</span>
-            <span class="chat-item__time">Ieri</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Tu: Ne vedem maine dimineata</span>
-            <span class="chat-item__check chat-item__check--unread">&#10003;</span>
-          </div>
-        </div>
-      </div>
-
-      <span class="sidebar__section-label">Canale</span>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=4" alt="DF">
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">#dev-frontend</span>
-            <span class="chat-item__time">Lun</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Deploy-ul a fost finalizat</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=5" alt="MK">
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">#marketing</span>
-            <span class="chat-item__time">Lun</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Campania Q1 e live</span>
-            <span class="badge">5</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-item">
-        <div class="avatar avatar--md">
-          <img src="https://i.pravatar.cc/48?img=7" alt="BG">
-        </div>
-        <div class="chat-item__body">
-          <div class="chat-item__header">
-            <span class="chat-item__name">#bugs</span>
-            <span class="chat-item__time">Dum</span>
-          </div>
-          <div class="chat-item__preview">
-            <span class="chat-item__text">Fix-ul pentru login e in review</span>
-          </div>
-        </div>
-      </div>
-
+    <div class="sidebar__list" id="sidebarList">
+      <!-- Dynamically populated by chat.js -->
     </div>
   </aside>
 
-  <!-- ═══ MAIN CHAT ═══ -->
+  <!-- MAIN CHAT -->
   <main class="main">
     <header class="panel-header">
-      <div class="avatar avatar--md">
-        <img src="https://i.pravatar.cc/48?img=1" alt="IB">
-        <span class="avatar__status avatar__status--online"></span>
-      </div>
+      <div class="avatar avatar--md" id="panelAvatar"></div>
       <div class="panel-header__info">
-        <h3 class="panel-header__title">Interviu Business</h3>
-        <span class="panel-header__subtitle">Claudiu, Claude &mdash; Online</span>
+        <h3 class="panel-header__title" id="panelTitle">Selecteaza o conversatie</h3>
+        <span class="panel-header__subtitle" id="panelSubtitle"></span>
       </div>
       <div class="panel-header__actions">
         <button class="btn btn--icon btn--ghost" title="Cauta">
@@ -289,227 +167,128 @@
       </div>
     </header>
 
-    <div class="messages-area">
-
-      <div class="divider">
-        <span class="divider__text">Ieri, 20 Februarie</span>
-      </div>
-
-      <div class="msg msg--system">
-        <p class="msg__text">Claudiu s-a alaturat conversatiei</p>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">Buna ziua, Claudiu! Sunt Claude, AI analyst. Lucrez impreuna cu Victor la o analiza strategica pentru Investorhood. As vrea sa discutam deschis despre business &mdash; viziunea ta, provocarile reale, ce functioneaza si ce nu.</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:25</span>
-        </div>
-      </div>
-
-      <div class="msg msg--sent">
-        <p class="msg__text">Salut Claude! Ma bucur sa te cunosc. Da, hai sa vorbim deschis. Investorhood e un proiect in care cred foarte mult.</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:27</span>
-          <span class="msg__check msg__check--read">&#10003;&#10003;</span>
-        </div>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">Am pregatit analiza strategica pentru Investorhood. Sunt cateva puncte pe care ar trebui sa le discutam in detaliu. Piata fintech din Romania are un potential semnificativ.</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:30</span>
-        </div>
-      </div>
-
-      <div class="msg msg--sent">
-        <p class="msg__text">Perfect, hai sa le trecem in revista. Incepe cu analiza pietei te rog.</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:31</span>
-          <span class="msg__check msg__check--read">&#10003;&#10003;</span>
-        </div>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">Am identificat 3 segmente principale de clienti care ar beneficia de platforma:</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:32</span>
-        </div>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">1. Investitori retail (25-40 ani) &mdash; cauta acces simplificat la piata de capital<br>2. Micro-antreprenori &mdash; au nevoie de instrumente de analiza financiara<br>3. Freelanceri &mdash; vor sa-si diversifice veniturile prin investitii pasive</p>
-        <a class="msg__link-preview" href="#">
-          <div class="msg__link-preview-title">Raport Piata Fintech Romania 2026</div>
-          <div class="msg__link-preview-desc">Piata fintech din Romania creste cu 35% anual. Citeste mai mult despre oportunitatile din sector...</div>
-        </a>
-        <div class="msg__meta">
-          <span class="msg__time">14:33</span>
-        </div>
-      </div>
-
-      <div class="msg msg--sent">
-        <p class="msg__text">Excelent! Poti trimite si documentul cu datele complete? Am nevoie de el pentru prezentarea de saptamana viitoare.</p>
-        <div class="msg__meta">
-          <span class="msg__time">14:35</span>
-          <span class="msg__check msg__check--read">&#10003;&#10003;</span>
-        </div>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">Sigur! Iti trimit acum raportul complet.</p>
-        <div class="file-card" style="margin-top: var(--sp-2);">
-          <div class="file-card__icon">
-            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="file-card__info">
-            <span class="file-card__name">Raport_Investorhood_Q4.pdf</span>
-            <span class="file-card__size">2.4 MB</span>
-          </div>
-          <button class="file-card__download" title="Descarca">
-            <svg class="icon-svg icon-svg--sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-        </div>
-        <div class="msg__meta">
-          <span class="msg__time">14:36</span>
-        </div>
-      </div>
-
-      <div class="divider">
-        <span class="divider__text">Astazi, 21 Februarie</span>
-      </div>
-
-      <div class="msg msg--sent">
-        <p class="msg__text">Multumesc Claude! Am revizuit raportul. Foarte bine structurat. O intrebare: ai inclus si datele despre competitori din Europa de Est?</p>
-        <div class="msg__meta">
-          <span class="msg__time">09:15</span>
-          <span class="msg__check">&#10003;&#10003;</span>
-        </div>
-      </div>
-
-      <div class="msg msg--received">
-        <span class="msg__sender">Claude</span>
-        <p class="msg__text">Da, sectiunea 4 contine o comparatie detaliata cu platformele din Polonia, Cehia si Ungaria. Investorhood are un avantaj competitiv clar pe segmentul de micro-investitii.</p>
-        <div class="msg__meta">
-          <span class="msg__time">09:18</span>
-        </div>
-      </div>
-
-      <div class="typing">
-        <span></span><span></span><span></span>
-      </div>
-
+    <div class="messages-area" id="messagesArea">
+      <!-- Dynamically populated by chat.js -->
     </div>
 
     <div class="compose">
       <button class="btn btn--icon btn--ghost" title="Atasament">
         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
       </button>
-      <input class="compose__input" type="text" placeholder="Scrie un mesaj...">
-      <button class="compose__send btn btn--primary" title="Trimite">
+      <input class="compose__input" id="composeInput" type="text" placeholder="Scrie un mesaj...">
+      <button class="compose__send" id="sendBtn" title="Trimite">
         <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
   </main>
 
-  <!-- ═══ INFO PANEL ═══ -->
+  <!-- INFO PANEL -->
   <aside class="info-panel">
     <div class="info-panel__section room-info">
-      <div class="avatar avatar--lg">
-        <img src="https://i.pravatar.cc/48?img=1" alt="IB">
-        <span class="avatar__status avatar__status--online"></span>
-      </div>
-      <h3 class="room-info__name">Interviu Business</h3>
-      <p class="room-info__desc">Claudiu Safta, Claude AI Analyst</p>
+      <div class="avatar avatar--lg" id="infoPanelAvatar"></div>
+      <h3 class="room-info__name" id="infoPanelName"></h3>
+      <p class="room-info__desc" id="infoPanelDesc"></p>
     </div>
 
     <div class="info-panel__section">
-      <div class="info-panel__section-header">
-        <h4 class="info-panel__section-title">Media</h4>
-        <button class="info-panel__see-all">Vezi tot</button>
-      </div>
-      <div class="media-grid">
-        <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=5" alt="media"></div>
-        <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=6" alt="media"></div>
-        <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=7" alt="media"></div>
-        <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=8" alt="media"></div>
-      </div>
-    </div>
-
-    <div class="info-panel__section">
-      <div class="info-panel__section-header">
-        <h4 class="info-panel__section-title">Fisiere</h4>
-        <button class="info-panel__see-all">Vezi tot</button>
-      </div>
-      <div class="stack">
-        <div class="file-card">
-          <div class="file-card__icon">
-            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="file-card__info">
-            <span class="file-card__name">Raport_Q4.pdf</span>
-            <span class="file-card__size">2.4 MB</span>
-          </div>
-        </div>
-        <div class="file-card">
-          <div class="file-card__icon file-card__icon--danger">
-            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="file-card__info">
-            <span class="file-card__name">NDA_Contract.docx</span>
-            <span class="file-card__size">124 KB</span>
-          </div>
-        </div>
-        <div class="file-card">
-          <div class="file-card__icon">
-            <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          </div>
-          <div class="file-card__info">
-            <span class="file-card__name">Design_Mockup_v3.png</span>
-            <span class="file-card__size">856 KB</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="info-panel__section">
-      <div class="info-panel__section-header">
+      <div class="info-panel__section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <h4 class="info-panel__section-title">Membri</h4>
+        <button class="btn btn--icon btn--ghost" id="addMemberBtn" title="Adaugă membru" style="font-size:16px;">+</button>
       </div>
-      <div class="stack">
-        <div class="member-row">
-          <div class="avatar avatar--sm">
-            <img src="https://i.pravatar.cc/48?img=1" alt="CS">
-            <span class="avatar__status avatar__status--online"></span>
-          </div>
-          <span class="member-row__name">Claudiu Safta</span>
-          <span class="member-row__role">Admin</span>
-        </div>
-        <div class="member-row">
-          <div class="avatar avatar--sm">
-            <img src="https://i.pravatar.cc/48?img=6" alt="CA">
-            <span class="avatar__status avatar__status--online"></span>
-          </div>
-          <span class="member-row__name">Claude AI Analyst</span>
-          <span class="member-row__role">Agent</span>
-        </div>
-        <div class="member-row">
-          <div class="avatar avatar--sm">
-            <img src="https://i.pravatar.cc/48?img=8" alt="VS">
-          </div>
-          <span class="member-row__name">Victor Safta</span>
-          <span class="member-row__role">Owner</span>
-        </div>
-      </div>
+      <div class="stack" id="infoPanelMembers"></div>
     </div>
 
+    <div class="info-panel__section" style="padding-top:0;">
+      <button class="btn btn--secondary" id="editRoomBtn" style="width:100%;margin-bottom:8px;">✏️ Editează camera</button>
+      <button class="btn btn--danger" id="archiveRoomBtn" style="width:100%;">📦 Arhivează</button>
+    </div>
   </aside>
+
+  <!-- ── Modal: Create Room ── -->
+  <div id="modalCreateRoom" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">Conversație nouă</h3>
+        <button class="btn btn--icon modal__close" id="closeCreateRoom">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label class="modal__label">Tip</label>
+          <select id="newRoomType" class="modal__select">
+            <option value="group">Grup</option>
+            <option value="channel">Canal</option>
+            <option value="direct">Direct (1:1)</option>
+          </select>
+        </div>
+        <div class="modal__field" id="roomNameField">
+          <label class="modal__label">Nume</label>
+          <input type="text" id="newRoomName" class="modal__input" placeholder="ex: Proiect Alpha" maxlength="80"/>
+        </div>
+        <div class="modal__field" id="roomDescField">
+          <label class="modal__label">Descriere (opțional)</label>
+          <input type="text" id="newRoomDesc" class="modal__input" placeholder="Despre ce e această cameră..." maxlength="200"/>
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Membri</label>
+          <div id="userPickerList" class="user-picker"></div>
+        </div>
+        <p id="createRoomError" class="modal__error hidden"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" id="cancelCreateRoom">Anulează</button>
+        <button class="btn btn--primary" id="submitCreateRoom">Creează</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Add Member ── -->
+  <div id="modalAddMember" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">Adaugă membru</h3>
+        <button class="btn btn--icon modal__close" id="closeAddMember">✕</button>
+      </div>
+      <div class="modal__body">
+        <div id="addMemberList" class="user-picker"></div>
+        <p id="addMemberError" class="modal__error hidden"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" id="cancelAddMember">Anulează</button>
+        <button class="btn btn--primary" id="submitAddMember">Adaugă</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Edit Room ── -->
+  <div id="modalEditRoom" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">Editează camera</h3>
+        <button class="btn btn--icon modal__close" id="closeEditRoom">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label class="modal__label">Nume</label>
+          <input type="text" id="editRoomName" class="modal__input" maxlength="80"/>
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Descriere</label>
+          <input type="text" id="editRoomDesc" class="modal__input" maxlength="200"/>
+        </div>
+        <p id="editRoomError" class="modal__error hidden"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" id="cancelEditRoom">Anulează</button>
+        <button class="btn btn--primary" id="submitEditRoom">Salvează</button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/rooms.js"></script>
 </body>
 </html>

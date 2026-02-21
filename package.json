@@ -1,17 +1,33 @@
 {
-  "name": "investorhood-chat",
+  "name": "one21",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "prod": "NODE_ENV=production node server.js",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:reload": "pm2 reload one21",
+    "pm2:logs": "pm2 logs one21",
+    "backup": "bash scripts/backup.sh",
+    "health": "curl -s http://localhost:3737/health"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7",
+    "zod": "^4.3.6"
   }
 }

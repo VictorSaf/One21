@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>One21 — Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<style>
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 400px;
+    background: linear-gradient(180deg, rgba(35, 50, 80, 0.6), rgba(20, 30, 55, 0.65));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-lg), inset 0 1px 1px rgba(100, 150, 220, 0.06);
+    padding: var(--sp-8) var(--sp-6);
+  }
+
+  .login-brand {
+    text-align: center;
+    margin-bottom: var(--sp-8);
+  }
+
+  .login-brand__icon {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: var(--sp-3);
+  }
+
+  .login-brand__one {
+    color: var(--brand);
+    font-weight: var(--weight-bold);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  .login-brand__21 {
+    color: var(--text-primary);
+    font-weight: var(--weight-light);
+    font-size: var(--font-3xl);
+    line-height: 1;
+  }
+
+  .login-brand__tagline {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    font-weight: var(--weight-light);
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .login-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .login-field label {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    font-weight: var(--weight-medium);
+  }
+
+  .login-field input {
+    display: block;
+    width: 100%;
+    height: 44px;
+    padding: 0 var(--sp-4);
+    background: rgba(20, 30, 55, 0.8);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-md);
+    font-family: var(--font-family);
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .login-field input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .login-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-muted);
+  }
+
+  .login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 44px;
+    margin-top: var(--sp-2);
+    background: var(--accent);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    font-weight: var(--weight-semibold);
+    font-family: var(--font-family);
+    cursor: pointer;
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.2);
+    transition: all var(--transition-fast);
+  }
+
+  .login-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 32px rgba(16, 185, 129, 0.3);
+  }
+
+  .login-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .login-toggle {
+    text-align: center;
+    margin-top: var(--sp-4);
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+  }
+
+  .login-toggle a {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .login-toggle a:hover {
+    color: var(--accent-hover);
+  }
+
+  .login-error {
+    display: none;
+    padding: var(--sp-3);
+    background: var(--danger-muted);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: var(--danger);
+    font-size: var(--font-sm);
+    text-align: center;
+  }
+
+  .login-error.visible {
+    display: block;
+  }
+
+  .register-fields {
+    display: none;
+  }
+
+  .register-fields.visible {
+    display: contents;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-brand">
+    <div class="login-brand__icon">
+      <span class="login-brand__one">ONE</span>
+      <span class="login-brand__21">21</span>
+    </div>
+    <p class="login-brand__tagline">by ONE AI/gency</p>
+  </div>
+
+  <div id="errorBox" class="login-error"></div>
+
+  <form id="loginForm" class="login-form" autocomplete="off">
+    <div class="register-fields" id="registerFields">
+      <div class="login-field">
+        <label for="inviteCode">Cod de invitatie</label>
+        <input type="text" id="inviteCode" placeholder="e.g. A1B2C3D4" autocomplete="off">
+      </div>
+      <div class="login-field">
+        <label for="displayName">Nume afisat</label>
+        <input type="text" id="displayName" placeholder="Numele tau">
+      </div>
+    </div>
+
+    <div class="login-field">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="Username" autocomplete="username" required>
+    </div>
+
+    <div class="login-field">
+      <label for="password">Parola</label>
+      <input type="password" id="password" placeholder="Parola" autocomplete="current-password" required>
+    </div>
+
+    <button type="submit" class="login-btn" id="submitBtn">Autentificare</button>
+  </form>
+
+  <div class="login-toggle">
+    <span id="toggleText">Nu ai cont?</span>
+    <a id="toggleLink" onclick="toggleMode()">Inregistreaza-te</a>
+  </div>
+</div>
+
+<script>
+  let isRegister = false;
+
+  function toggleMode() {
+    isRegister = !isRegister;
+    const fields = document.getElementById('registerFields');
+    const btn = document.getElementById('submitBtn');
+    const toggleText = document.getElementById('toggleText');
+    const toggleLink = document.getElementById('toggleLink');
+    const error = document.getElementById('errorBox');
+
+    error.classList.remove('visible');
+
+    if (isRegister) {
+      fields.classList.add('visible');
+      btn.textContent = 'Creeaza cont';
+      toggleText.textContent = 'Ai deja cont?';
+      toggleLink.textContent = 'Autentifica-te';
+    } else {
+      fields.classList.remove('visible');
+      btn.textContent = 'Autentificare';
+      toggleText.textContent = 'Nu ai cont?';
+      toggleLink.textContent = 'Inregistreaza-te';
+    }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.classList.add('visible');
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const error = document.getElementById('errorBox');
+    error.classList.remove('visible');
+    btn.disabled = true;
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      let res;
+      if (isRegister) {
+        const invite_code = document.getElementById('inviteCode').value.trim();
+        const display_name = document.getElementById('displayName').value.trim();
+
+        if (!invite_code) {
+          showError('Codul de invitatie este obligatoriu');
+          btn.disabled = false;
+          return;
+        }
+
+        res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, invite_code, display_name })
+        });
+      } else {
+        res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Eroare la autentificare');
+        btn.disabled = false;
+        return;
+      }
+
+      localStorage.setItem('one21_token', data.token);
+      localStorage.setItem('one21_user', JSON.stringify(data.user));
+      window.location.href = '/chat.html';
+    } catch (err) {
+      showError('Eroare de conexiune');
+      btn.disabled = false;
+    }
+  });
+
+  // If already logged in, redirect
+  if (localStorage.getItem('one21_token')) {
+    window.location.href = '/chat.html';
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One21 — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/components.css">
+<style>
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; }
+
+  .admin-layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .admin-nav {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    padding: var(--sp-6) 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+  }
+
+  .admin-nav__brand {
+    padding: 0 var(--sp-5) var(--sp-6);
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: var(--sp-4);
+  }
+  .admin-nav__brand h1 { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+  .admin-nav__brand h1 span { color: var(--accent); }
+  .admin-nav__brand p { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .admin-nav__item {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-5);
+    font-size: 14px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer; border: none; background: none;
+    width: 100%; text-align: left;
+    transition: all var(--transition-fast);
+    border-left: 3px solid transparent;
+  }
+  .admin-nav__item:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .admin-nav__item.active { color: var(--accent); background: rgba(16,185,129,0.08); border-left-color: var(--accent); }
+  .admin-nav__icon { font-size: 18px; }
+
+  .admin-nav__footer {
+    margin-top: auto;
+    padding: var(--sp-4) var(--sp-5);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  /* Main content */
+  .admin-main {
+    margin-left: 220px;
+    flex: 1;
+    padding: var(--sp-8) var(--sp-8);
+    max-width: 1200px;
+  }
+
+  .admin-page { display: none; }
+  .admin-page.active { display: block; }
+
+  .page-title {
+    font-size: 24px; font-weight: 800;
+    color: var(--text-primary); margin-bottom: 4px;
+  }
+  .page-subtitle { font-size: 14px; color: var(--text-tertiary); margin-bottom: var(--sp-8); }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-8);
+  }
+
+  .stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-5);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
+
+  .stat-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); margin-bottom: var(--sp-3); }
+  .stat-card__value { font-size: 36px; font-weight: 800; line-height: 1; color: var(--text-primary); }
+  .stat-card__sub { font-size: 12px; color: var(--text-tertiary); margin-top: var(--sp-1); }
+
+  .stat-card--accent .stat-card__value { color: var(--accent); }
+  .stat-card--blue .stat-card__value { color: #60a5fa; }
+  .stat-card--purple .stat-card__value { color: #a78bfa; }
+  .stat-card--orange .stat-card__value { color: #fb923c; }
+
+  /* Tables */
+  .admin-table-wrap {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-6);
+  }
+
+  .admin-table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-4) var(--sp-5);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .admin-table-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: rgba(255,255,255,0.02);
+    padding: var(--sp-3) var(--sp-4);
+    text-align: left;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-tertiary);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  tbody td {
+    padding: var(--sp-3) var(--sp-4);
+    font-size: 14px; color: var(--text-primary);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  .role-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 4px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .role-badge--admin   { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .role-badge--user    { background: rgba(16,185,129,0.12);  color: #34d399; }
+  .role-badge--agent   { background: rgba(0,204,255,0.12);   color: #00ccff; }
+
+  .online-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; background: #64748b; margin-right: 6px;
+  }
+  .online-dot.online { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+
+  .action-btn {
+    padding: 4px 10px; font-size: 12px; border-radius: 6px;
+    border: 1px solid var(--glass-border); background: transparent;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+    font-family: inherit;
+  }
+  .action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .action-btn--accent { border-color: rgba(16,185,129,0.3); color: var(--accent); }
+  .action-btn--accent:hover { background: rgba(16,185,129,0.1); }
+  .action-btn--danger { border-color: rgba(239,68,68,0.3); color: #f87171; }
+  .action-btn--danger:hover { background: rgba(239,68,68,0.08); }
+
+  /* Invite code display */
+  .invite-code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    color: var(--accent); cursor: pointer;
+  }
+  .invite-code:hover { text-decoration: underline; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: var(--sp-12);
+    color: var(--text-tertiary); font-size: 14px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: var(--sp-6); right: var(--sp-6);
+    background: var(--bg-elevated); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-5);
+    font-size: 14px; color: var(--text-primary);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 999; animation: toastIn 0.3s ease;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Inline edit */
+  .inline-select {
+    background: var(--bg-tertiary); border: 1px solid var(--glass-border);
+    border-radius: 6px; padding: 3px 8px; color: var(--text-primary);
+    font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: var(--sp-3); align-items: center; margin-bottom: var(--sp-5); flex-wrap: wrap; }
+  .toolbar input {
+    background: var(--bg-secondary); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md); padding: var(--sp-2) var(--sp-3);
+    color: var(--text-primary); font-size: 14px; font-family: inherit;
+    outline: none; min-width: 220px;
+  }
+  .toolbar input:focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="admin-layout">
+
+  <!-- ── Sidebar Navigation ── -->
+  <nav class="admin-nav">
+    <div class="admin-nav__brand">
+      <h1>ONE<span>21</span></h1>
+      <p>Admin Dashboard</p>
+    </div>
+
+    <button class="admin-nav__item active" data-page="overview">
+      <span class="admin-nav__icon">📊</span> Overview
+    </button>
+    <button class="admin-nav__item" data-page="users">
+      <span class="admin-nav__icon">👥</span> Utilizatori
+    </button>
+    <button class="admin-nav__item" data-page="invites">
+      <span class="admin-nav__icon">🔑</span> Invitații
+    </button>
+    <button class="admin-nav__item" data-page="rooms">
+      <span class="admin-nav__icon">💬</span> Camere
+    </button>
+    <button class="admin-nav__item" data-page="export">
+      <span class="admin-nav__icon">📦</span> Export
+    </button>
+
+    <div class="admin-nav__footer">
+      <button class="action-btn" onclick="goToChat()" style="width:100%;margin-bottom:8px;">← Înapoi la chat</button>
+      <button class="action-btn action-btn--danger" onclick="Auth.logout()" style="width:100%;">Deconectare</button>
+    </div>
+  </nav>
+
+  <!-- ── Main Content ── -->
+  <main class="admin-main">
+
+    <!-- OVERVIEW -->
+    <div class="admin-page active" id="page-overview">
+      <h1 class="page-title">Overview</h1>
+      <p class="page-subtitle">Statistici în timp real ale platformei One21</p>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-card__label">Se încarcă...</div></div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <div class="admin-table-header">
+          <span class="admin-table-title">Activitate recentă</span>
+          <button class="action-btn action-btn--accent" onclick="loadOverview()">↺ Refresh</button>
+        </div>
+        <table id="recentTable">
+          <thead><tr><th>Utilizator</th><th>Rol</th><th>Ultima activitate</th><th>Mesaje</th></tr></thead>
+          <tbody id="recentBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="admin-page" id="page-users">
+      <h1 class="page-title">Utilizatori</h1>
+      <p class="page-subtitle">Gestionează conturile și rolurile</p>
+
+      <div class="toolbar">
+        <input type="text" id="userSearch" placeholder="Caută utilizator..." oninput="filterUsers()">
+        <span id="userCount" style="color:var(--text-tertiary);font-size:13px;"></span>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table id="usersTable">
+          <thead><tr><th>Utilizator</th><th>Rol</th><th>Status</th><th>Mesaje</th><th>Înregistrat</th><th>Acțiuni</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INVITES -->
+    <div class="admin-page" id="page-invites">
+      <h1 class="page-title">Invitații</h1>
+      <p class="page-subtitle">Generează și gestionează coduri de invitație</p>
+
+      <div class="toolbar">
+        <button class="action-btn action-btn--accent" onclick="generateInvite()" style="padding:8px 20px;font-size:14px;">+ Generează cod nou</button>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table>
+          <thead><tr><th>Cod</th><th>Creat de</th><th>Folosit de</th><th>Expiră</th><th>Status</th><th></th></tr></thead>
+          <tbody id="invitesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROOMS -->
+    <div class="admin-page" id="page-rooms">
+      <h1 class="page-title">Camere</h1>
+      <p class="page-subtitle">Toate conversațiile din platformă</p>
+
+      <div class="toolbar">
+        <input type="text" id="roomSearch" placeholder="Caută cameră..." oninput="filterRooms()">
+      </div>
+
+      <div class="admin-table-wrap">
+        <table id="roomsTable">
+          <thead><tr><th>Cameră</th><th>Tip</th><th>Membri</th><th>Mesaje</th><th>Ultimul mesaj</th><th>Status</th></tr></thead>
+          <tbody id="roomsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="admin-page" id="page-export">
+      <h1 class="page-title">Export</h1>
+      <p class="page-subtitle">Descarcă conversații ca fișiere JSON</p>
+
+      <div class="admin-table-wrap">
+        <div class="admin-table-header">
+          <span class="admin-table-title">Selectează camera de exportat</span>
+        </div>
+        <table>
+          <thead><tr><th>Cameră</th><th>Tip</th><th>Mesaje</th><th>Membri</th><th></th></tr></thead>
+          <tbody id="exportBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+// ── Auth guard ──────────────────────────────────
+if (!Auth.requireAuth()) {
+  const u = Auth.getUser();
+  if (u && u.role !== 'admin') {
+    alert('Acces restricționat — doar administratori.');
+    window.location.href = '/chat.html';
+  }
+}
+
+let allUsers = [];
+let allRooms = [];
+
+// ── Navigation ────────────────────────────────────
+document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.admin-nav__item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
+
+    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport };
+    loaders[btn.dataset.page] && loaders[btn.dataset.page]();
+  });
+});
+
+function goToChat() { window.location.href = '/chat.html'; }
+
+// ── Toast ─────────────────────────────────────────
+function toast(msg, duration = 2500) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ── Helpers ───────────────────────────────────────
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z');
+  return d.toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function formatTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z');
+  return d.toLocaleString('ro-RO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Overview ──────────────────────────────────────
+async function loadOverview() {
+  const [statsData, usersData] = await Promise.all([
+    Auth.api('/api/admin/stats'),
+    Auth.api('/api/admin/users'),
+  ]);
+  if (!statsData || !usersData) return;
+
+  const s = statsData.stats;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card stat-card--accent">
+      <div class="stat-card__label">Utilizatori</div>
+      <div class="stat-card__value">${s.users}</div>
+      <div class="stat-card__sub">${s.online_now} online acum</div>
+    </div>
+    <div class="stat-card stat-card--blue">
+      <div class="stat-card__label">Mesaje totale</div>
+      <div class="stat-card__value">${s.messages.toLocaleString()}</div>
+      <div class="stat-card__sub">${s.msg_today} azi</div>
+    </div>
+    <div class="stat-card stat-card--purple">
+      <div class="stat-card__label">Camere active</div>
+      <div class="stat-card__value">${s.rooms}</div>
+      <div class="stat-card__sub">${s.agents} agenți AI</div>
+    </div>
+    <div class="stat-card stat-card--orange">
+      <div class="stat-card__label">Activi azi</div>
+      <div class="stat-card__value">${s.active_today}</div>
+      <div class="stat-card__sub">${s.invites_pending} invitații în așteptare</div>
+    </div>`;
+
+  const tbody = document.getElementById('recentBody');
+  tbody.innerHTML = usersData.users.map(u => `
+    <tr>
+      <td><strong>${u.display_name}</strong><br><span style="color:var(--text-tertiary);font-size:12px;">@${u.username}</span></td>
+      <td><span class="role-badge role-badge--${u.role}">${u.role}</span></td>
+      <td>${formatTime(u.last_seen)}</td>
+      <td>${u.message_count}</td>
+    </tr>`).join('');
+}
+
+// ── Users ─────────────────────────────────────────
+async function loadUsers() {
+  const data = await Auth.api('/api/admin/users');
+  if (!data) return;
+  allUsers = data.users;
+  document.getElementById('userCount').textContent = `${allUsers.length} utilizatori`;
+  renderUsers(allUsers);
+}
+
+function renderUsers(users) {
+  const me = Auth.getUser();
+  document.getElementById('usersBody').innerHTML = users.map(u => `
+    <tr>
+      <td>
+        <strong>${u.display_name}</strong>
+        <br><span style="color:var(--text-tertiary);font-size:12px;">@${u.username}</span>
+        ${u.invited_by_name ? `<br><span style="color:var(--text-tertiary);font-size:11px;">Invitat de @${u.invited_by_name}</span>` : ''}
+      </td>
+      <td>
+        ${u.id === me.id
+          ? `<span class="role-badge role-badge--${u.role}">${u.role}</span>`
+          : `<select class="inline-select" onchange="changeRole(${u.id}, this.value)">
+              <option value="admin"  ${u.role==='admin'  ? 'selected':''}>Admin</option>
+              <option value="user"   ${u.role==='user'   ? 'selected':''}>User</option>
+              <option value="agent"  ${u.role==='agent'  ? 'selected':''}>Agent</option>
+            </select>`
+        }
+      </td>
+      <td><span class="online-dot ${u.is_online ? 'online':''}"></span>${u.is_online ? 'Online' : 'Offline'}</td>
+      <td>${u.message_count}</td>
+      <td>${formatDate(u.created_at)}</td>
+      <td>
+        ${u.id !== me.id ? `<button class="action-btn action-btn--accent" onclick="editDisplayName(${u.id}, '${u.display_name.replace(/'/g, "\\'")}')">✏️ Nume</button>` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  renderUsers(allUsers.filter(u => u.username.includes(q) || u.display_name.toLowerCase().includes(q)));
+}
+
+async function changeRole(userId, newRole) {
+  const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ role: newRole }) });
+  if (data && !data.error) toast(`Rol actualizat: ${data.user.username} → ${newRole}`);
+  else toast('Eroare la actualizare');
+}
+
+async function editDisplayName(userId, currentName) {
+  const newName = prompt('Nume nou:', currentName);
+  if (!newName || newName.trim() === currentName) return;
+  const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ display_name: newName.trim() }) });
+  if (data && !data.error) { toast('Nume actualizat'); loadUsers(); }
+}
+
+// ── Invites ───────────────────────────────────────
+async function loadInvites() {
+  const data = await Auth.api('/api/admin/invites');
+  if (!data) return;
+
+  document.getElementById('invitesBody').innerHTML = data.invites.length === 0
+    ? '<tr><td colspan="6" class="empty-state">Nicio invitație</td></tr>'
+    : data.invites.map(inv => `
+    <tr>
+      <td><span class="invite-code" onclick="copyCode('${inv.code}')" title="Click to copy">${inv.code}</span></td>
+      <td>${inv.created_by_name || '—'}</td>
+      <td>${inv.used_by_name ? `<strong>${inv.used_by_display}</strong> <span style="color:var(--text-tertiary)">@${inv.used_by_name}</span>` : '—'}</td>
+      <td>${inv.expires_at ? formatDate(inv.expires_at) : 'Fără expirare'}</td>
+      <td>${inv.used_by
+        ? '<span style="color:var(--text-tertiary)">✓ Folosit</span>'
+        : '<span style="color:var(--accent)">● Activ</span>'}</td>
+      <td>${!inv.used_by ? `<button class="action-btn action-btn--danger" onclick="revokeInvite(${inv.id})">Revocă</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+async function generateInvite() {
+  const data = await Auth.api('/api/admin/invites', { method: 'POST', body: JSON.stringify({}) });
+  if (data && data.code) {
+    toast(`Cod generat: ${data.code} (copiat)`);
+    navigator.clipboard.writeText(data.code).catch(() => {});
+    loadInvites();
+  }
+}
+
+async function revokeInvite(id) {
+  if (!confirm('Revoci acest cod?')) return;
+  const data = await Auth.api(`/api/admin/invites/${id}`, { method: 'DELETE' });
+  if (data && data.ok) { toast('Cod revocat'); loadInvites(); }
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => toast(`Copiat: ${code}`));
+}
+
+// ── Rooms ─────────────────────────────────────────
+async function loadRooms() {
+  const data = await Auth.api('/api/admin/conversations');
+  if (!data) return;
+  allRooms = data.rooms;
+  renderRooms(allRooms);
+}
+
+function renderRooms(rooms) {
+  const typeLabel = { direct: 'Direct', group: 'Grup', channel: 'Canal' };
+  document.getElementById('roomsBody').innerHTML = rooms.length === 0
+    ? '<tr><td colspan="6" class="empty-state">Nicio cameră</td></tr>'
+    : rooms.map(r => `
+    <tr>
+      <td>
+        <strong>${r.name}</strong>
+        ${r.description ? `<br><span style="color:var(--text-tertiary);font-size:12px;">${r.description}</span>` : ''}
+      </td>
+      <td><span class="role-badge" style="background:rgba(255,255,255,0.05);color:var(--text-secondary)">${typeLabel[r.type]||r.type}</span></td>
+      <td>${r.member_count}</td>
+      <td>${r.message_count}</td>
+      <td style="font-size:12px;color:var(--text-tertiary)">${r.last_message ? formatTime(r.last_message_at) : '—'}</td>
+      <td>${r.is_archived
+        ? '<span style="color:var(--text-tertiary)">📦 Arhivată</span>'
+        : '<span style="color:var(--accent)">● Activă</span>'}</td>
+    </tr>`).join('');
+}
+
+function filterRooms() {
+  const q = document.getElementById('roomSearch').value.toLowerCase();
+  renderRooms(allRooms.filter(r => r.name.toLowerCase().includes(q)));
+}
+
+// ── Export ────────────────────────────────────────
+async function loadExport() {
+  const data = await Auth.api('/api/admin/conversations');
+  if (!data) return;
+
+  document.getElementById('exportBody').innerHTML = data.rooms.map(r => `
+    <tr>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.type}</td>
+      <td>${r.message_count}</td>
+      <td>${r.member_count}</td>
+      <td>
+        <a href="/api/admin/export/${r.id}" download
+           onclick="addAuthHeader(event, ${r.id})"
+           class="action-btn action-btn--accent">⬇ Export JSON</a>
+      </td>
+    </tr>`).join('');
+}
+
+async function addAuthHeader(e, roomId) {
+  e.preventDefault();
+  const token = Auth.getToken();
+  const res = await fetch(`/api/admin/export/${roomId}`, { headers: { Authorization: `Bearer ${token}` } });
+  const blob = await res.blob();
+  const fname = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `export-${roomId}.json`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname; a.click();
+  URL.revokeObjectURL(url);
+  toast(`Descărcat: ${fname}`);
+}
+
+// ── Init ──────────────────────────────────────────
+loadOverview();
+</script>
+</body>
+</html>

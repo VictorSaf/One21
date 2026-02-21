@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Models — Comparație</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0f1f;
+      color: #d8dfe8;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 20% 20%, rgba(16, 185, 129, 0.08), transparent),
+        radial-gradient(ellipse 500px 350px at 80% 80%, rgba(0, 204, 255, 0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .header h1 span {
+      color: #10b981;
+    }
+
+    .header p {
+      font-size: 15px;
+      color: #8899ad;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: rgba(20, 30, 55, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      margin-bottom: 40px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 18px 16px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #8899ad;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    thead th:first-child {
+      text-align: left;
+      padding-left: 24px;
+    }
+
+    thead th.model-opus {
+      color: #a78bfa;
+      background: rgba(167, 139, 250, 0.08);
+    }
+
+    thead th.model-sonnet {
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    thead th.model-haiku {
+      color: #00ccff;
+      background: rgba(0, 204, 255, 0.08);
+    }
+
+    thead th.model-old {
+      color: #64748b;
+      background: rgba(100, 116, 139, 0.05);
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    tbody td {
+      padding: 16px;
+      text-align: center;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child {
+      text-align: left;
+      padding-left: 24px;
+      font-weight: 500;
+      color: #f1f5f9;
+      font-size: 14px;
+    }
+
+    /* ── Rating Bars ── */
+    .rating {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .rating .bar {
+      width: 18px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      transition: background 0.3s ease;
+    }
+
+    .rating .bar.filled { background: #10b981; }
+    .rating .bar.filled-opus { background: #a78bfa; }
+    .rating .bar.filled-haiku { background: #00ccff; }
+    .rating .bar.filled-old { background: #64748b; }
+
+    /* ── Tags ── */
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .tag--best {
+      background: rgba(167, 139, 250, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(167, 139, 250, 0.25);
+    }
+
+    .tag--great {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .tag--good {
+      background: rgba(0, 204, 255, 0.1);
+      color: #00ccff;
+      border: 1px solid rgba(0, 204, 255, 0.15);
+    }
+
+    .tag--meh {
+      background: rgba(100, 116, 139, 0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(100, 116, 139, 0.15);
+    }
+
+    .tag--cost {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 0;
+      background: none;
+      border: none;
+    }
+
+    .cost-opus { color: #f87171; }
+    .cost-sonnet { color: #fbbf24; }
+    .cost-haiku { color: #34d399; }
+    .cost-old { color: #64748b; }
+
+    /* ── Speed indicator ── */
+    .speed {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .speed-slow { color: #f87171; }
+    .speed-fast { color: #fbbf24; }
+    .speed-vfast { color: #34d399; }
+
+    /* ── Recommendation Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: rgba(20, 30, 55, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .card.card--recommended {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .card h3.opus { color: #a78bfa; }
+    .card h3.sonnet { color: #10b981; }
+    .card h3.haiku { color: #00ccff; }
+
+    .card .subtitle {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 14px;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .card ul li {
+      font-size: 13px;
+      color: #8899ad;
+      padding: 4px 0;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .card ul li::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .card .badge {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    /* ── Strategy Section ── */
+    .strategy {
+      background: rgba(20, 30, 55, 0.55);
+      border: 1px solid rgba(16, 185, 129, 0.15);
+      border-radius: 14px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      text-align: center;
+    }
+
+    .strategy h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    .strategy h2 span { color: #10b981; }
+
+    .strategy p {
+      font-size: 14px;
+      color: #8899ad;
+      margin-bottom: 24px;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .flow-step {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+      min-width: 150px;
+    }
+
+    .flow-step .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .flow-step .model {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .flow-step .model.opus { color: #a78bfa; }
+    .flow-step .model.sonnet { color: #10b981; }
+    .flow-step .model.haiku { color: #00ccff; }
+
+    .flow-step .desc {
+      font-size: 12px;
+      color: #8899ad;
+      margin-top: 4px;
+    }
+
+    .flow-arrow {
+      color: #475569;
+      font-size: 20px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .footer span { color: #00ccff; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="header">
+      <h1>Claude Models — <span>Comparație</span></h1>
+      <p>Cost, viteză, calitate cod, creativitate — tot ce contează pentru One21</p>
+    </div>
+
+    <!-- ── Main Comparison Table ── -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Criteriu</th>
+            <th class="model-opus">Opus 4.6</th>
+            <th class="model-sonnet">Sonnet 4.6</th>
+            <th class="model-haiku">Haiku 4.5</th>
+            <th class="model-old">Sonnet 3.7</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Cost -->
+          <tr>
+            <td>Cost relativ</td>
+            <td><span class="tag tag--cost cost-opus">$$$$$</span></td>
+            <td><span class="tag tag--cost cost-sonnet">$$</span></td>
+            <td><span class="tag tag--cost cost-haiku">$</span></td>
+            <td><span class="tag tag--cost cost-old">$$</span></td>
+          </tr>
+          <!-- Speed -->
+          <tr>
+            <td>Viteză output</td>
+            <td><span class="speed speed-slow">Lent</span></td>
+            <td><span class="speed speed-fast">Rapid</span></td>
+            <td><span class="speed speed-vfast">Foarte rapid</span></td>
+            <td><span class="speed speed-fast">Rapid</span></td>
+          </tr>
+          <!-- Code Quality -->
+          <tr>
+            <td>Calitate cod</td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+          </tr>
+          <!-- Architecture -->
+          <tr>
+            <td>Arhitectura & Planificare</td>
+            <td><span class="tag tag--best">SUPERIOR</span></td>
+            <td><span class="tag tag--great">FOARTE BUN</span></td>
+            <td><span class="tag tag--meh">LIMITAT</span></td>
+            <td><span class="tag tag--meh">DECENT</span></td>
+          </tr>
+          <!-- Debugging -->
+          <tr>
+            <td>Debugging complex</td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+          </tr>
+          <!-- Creativity -->
+          <tr>
+            <td>Creativitate</td>
+            <td><span class="tag tag--best">MAXIM</span></td>
+            <td><span class="tag tag--great">FOARTE BUN</span></td>
+            <td><span class="tag tag--good">PRAGMATIC</span></td>
+            <td><span class="tag tag--meh">DECENT</span></td>
+          </tr>
+          <!-- Context -->
+          <tr>
+            <td>Context lung (fișiere mari)</td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+                <div class="bar filled-opus"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar filled"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar filled-haiku"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+            <td>
+              <div class="rating">
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar filled-old"></div>
+                <div class="bar"></div>
+              </div>
+            </td>
+          </tr>
+          <!-- Simple Tasks -->
+          <tr>
+            <td>Task-uri simple / boilerplate</td>
+            <td><span class="tag tag--meh">OVERKILL</span></td>
+            <td><span class="tag tag--great">OPTIM</span></td>
+            <td><span class="tag tag--great">OPTIM</span></td>
+            <td><span class="tag tag--great">OPTIM</span></td>
+          </tr>
+          <!-- Best For -->
+          <tr>
+            <td>Recomandat pentru</td>
+            <td style="font-size:12px; color:#a78bfa;">Arhitectura, decizii complexe, refactoring major</td>
+            <td style="font-size:12px; color:#34d399;">90% din scrierea de cod, review, bug fixes</td>
+            <td style="font-size:12px; color:#00ccff;">Boilerplate, intrebari rapide, task-uri mici</td>
+            <td style="font-size:12px; color:#64748b;">Generatie veche — nu se recomanda</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Recommendation Cards ── -->
+    <div class="cards">
+      <div class="card">
+        <h3 class="opus">Opus 4.6</h3>
+        <div class="subtitle">Cel mai capabil, cel mai scump</div>
+        <ul>
+          <li>Planificare arhitecturala</li>
+          <li>Debugging dificil</li>
+          <li>Decizii cu trade-offs</li>
+          <li>Refactoring masiv</li>
+        </ul>
+      </div>
+
+      <div class="card card--recommended">
+        <h3 class="sonnet">Sonnet 4.6</h3>
+        <div class="subtitle">Sweet spot — rapid si capabil</div>
+        <ul>
+          <li>Scriere cod (zilnic)</li>
+          <li>Implementare features</li>
+          <li>Code review</li>
+          <li>Bug fixes, tests</li>
+        </ul>
+        <div class="badge">Recomandat pentru One21</div>
+      </div>
+
+      <div class="card">
+        <h3 class="haiku">Haiku 4.5</h3>
+        <div class="subtitle">Rapid si ieftin</div>
+        <ul>
+          <li>Generare boilerplate</li>
+          <li>Intrebari rapide</li>
+          <li>Task-uri repetitive</li>
+          <li>Formatare, renaming</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ── Strategy ── -->
+    <div class="strategy">
+      <h2>Strategia <span>Optima</span> pentru One21</h2>
+      <p>Foloseste modelul potrivit pentru fiecare faza de dezvoltare</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="label">Faza 1</div>
+          <div class="model opus">Opus 4.6</div>
+          <div class="desc">Planificare &<br>arhitectura</div>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">
+          <div class="label">Faza 2</div>
+          <div class="model sonnet">Sonnet 4.6</div>
+          <div class="desc">Implementare &<br>development</div>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">
+          <div class="label">Faza 3</div>
+          <div class="model haiku">Haiku 4.5</div>
+          <div class="desc">Boilerplate &<br>task-uri mici</div>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">
+          <div class="label">Review</div>
+          <div class="model opus">Opus 4.6</div>
+          <div class="desc">Review final &<br>optimizare</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>ONE</span> AI/gency &mdash; One21 Development &mdash; Feb 2026
+    </div>
+
+  </div>
+
+</body>
+</html>
