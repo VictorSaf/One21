@@ -1,0 +1,1155 @@
+/* ============================================================
+   ONECHAT DESIGN SYSTEM — COMPONENTS
+   ============================================================
+   Every component uses ONLY var() references to theme.css tokens.
+   No hardcoded color, size, or timing values.
+   ============================================================ */
+
+
+/* === 1. AVATAR === */
+/*
+  Usage:
+  <div class="avatar avatar--md">
+    <img src="..." alt="Name">
+    <span class="avatar__status avatar__status--online"></span>
+  </div>
+
+  Initials fallback (no <img>):
+  <div class="avatar avatar--md">AB</div>
+*/
+
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-xs);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+.avatar--sm {
+  width: var(--sp-6);
+  height: var(--sp-6);
+  font-size: var(--font-xs);
+}
+
+.avatar--md {
+  width: var(--sp-9);
+  height: var(--sp-9);
+  font-size: var(--font-sm);
+}
+
+.avatar--lg {
+  width: var(--sp-12);
+  height: var(--sp-12);
+  font-size: var(--font-md);
+}
+
+.avatar__status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: var(--sp-2);
+  height: var(--sp-2);
+  border-radius: var(--radius-full);
+  background: var(--offline);
+  border: 2px solid var(--bg-secondary);
+}
+
+.avatar__status--online {
+  background: var(--online);
+}
+
+
+/* === 2. BADGE === */
+/*
+  Usage:
+  <span class="badge">3</span>
+  <span class="badge badge--danger">!</span>
+  <span class="badge badge--warning">5</span>
+  <span class="badge badge--muted">99+</span>
+*/
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sp-5);
+  height: var(--sp-5);
+  padding: 0 var(--sp-1);
+  border-radius: var(--radius-xl);
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.badge--danger {
+  background: var(--danger);
+  color: var(--text-primary);
+}
+
+.badge--warning {
+  background: var(--warning);
+  color: var(--bg-primary);
+}
+
+.badge--muted {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+
+/* === 3. BUTTON === */
+/*
+  Usage:
+  <button class="btn btn--primary">Send</button>
+  <button class="btn btn--secondary">Cancel</button>
+  <button class="btn btn--danger">Delete</button>
+  <button class="btn btn--ghost">Skip</button>
+  <button class="btn btn--icon"><svg>...</svg></button>
+  <button class="btn btn--primary btn--sm">Small</button>
+  <button class="btn btn--primary" disabled>Disabled</button>
+*/
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: var(--sp-9);
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-md);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  text-decoration: none;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn--secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.btn--secondary:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: var(--text-primary);
+  border-color: var(--danger);
+}
+
+.btn--danger:hover {
+  background: var(--danger);
+  opacity: 0.85;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn--ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn--icon {
+  width: var(--sp-9);
+  height: var(--sp-9);
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+
+.btn--sm {
+  height: var(--sp-7);
+  padding: 0 var(--sp-3);
+  font-size: var(--font-sm);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+/* === 4. INPUT === */
+/*
+  Usage:
+  <input class="input" type="text" placeholder="Search...">
+  <input class="input input--error" type="text" value="bad value">
+
+  With icon:
+  <div class="input-group">
+    <svg class="input-group__icon">...</svg>
+    <input class="input" type="text" placeholder="Search...">
+  </div>
+
+  Textarea:
+  <textarea class="input" rows="3" placeholder="Write..."></textarea>
+*/
+
+.input {
+  display: block;
+  width: 100%;
+  height: var(--sp-9);
+  padding: 0 var(--sp-3);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-md);
+  font-family: var(--font-family);
+  line-height: var(--line-height-normal);
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.input--error {
+  border-color: var(--danger);
+}
+
+.input--error:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-muted);
+}
+
+textarea.input {
+  height: auto;
+  min-height: calc(var(--sp-9) * 2);
+  padding: var(--sp-3);
+  resize: vertical;
+}
+
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-group__icon {
+  position: absolute;
+  left: var(--sp-3);
+  width: var(--sp-4);
+  height: var(--sp-4);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.input-group .input {
+  padding-left: var(--sp-9);
+}
+
+
+/* === 5. COMPOSE BAR === */
+/*
+  Usage:
+  <div class="compose">
+    <input class="compose__input" type="text" placeholder="Scrie un mesaj...">
+    <button class="compose__send">
+      <svg>...</svg>
+    </button>
+  </div>
+*/
+
+.compose {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.compose__input {
+  flex: 1;
+  min-height: var(--sp-11);
+  max-height: calc(var(--sp-12) * 3);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: var(--font-md);
+  font-family: var(--font-family);
+  line-height: var(--line-height-normal);
+  resize: none;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.compose__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.compose__input:focus {
+  border-color: var(--accent);
+}
+
+.compose__send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sp-11);
+  height: var(--sp-11);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.compose__send:hover {
+  background: var(--accent-hover);
+  transform: scale(1.06);
+}
+
+.compose__send:active {
+  transform: scale(0.95);
+}
+
+.compose__send svg {
+  width: var(--sp-5);
+  height: var(--sp-5);
+}
+
+
+/* === 6. CHAT ITEM === */
+/*
+  Usage (sidebar conversation row):
+  <div class="chat-item chat-item--active">
+    <div class="avatar avatar--md">
+      <img src="..." alt="">
+      <span class="avatar__status avatar__status--online"></span>
+    </div>
+    <div class="chat-item__body">
+      <div class="chat-item__header">
+        <span class="chat-item__name">Claudiu</span>
+        <span class="chat-item__time">14:32</span>
+      </div>
+      <div class="chat-item__preview">
+        <span class="chat-item__text">Salut, ai primit documentele?</span>
+        <span class="chat-item__check chat-item__check--unread"></span>
+      </div>
+    </div>
+  </div>
+*/
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.chat-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.chat-item--active {
+  background: var(--bg-tertiary);
+}
+
+.chat-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.chat-item__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.chat-item__name {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-item__time {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat-item__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.chat-item__text {
+  flex: 1;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-item__check {
+  flex-shrink: 0;
+  width: var(--sp-4);
+  height: var(--sp-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.chat-item__check--unread {
+  color: var(--accent);
+}
+
+
+/* === 7. MESSAGE BUBBLE === */
+/*
+  Usage:
+  Received:
+  <div class="msg msg--received">
+    <span class="msg__sender">Claude</span>
+    <p class="msg__text">Buna ziua! Cum pot sa va ajut?</p>
+    <div class="msg__meta">
+      <span class="msg__time">14:32</span>
+    </div>
+  </div>
+
+  Sent:
+  <div class="msg msg--sent">
+    <p class="msg__text">Multumesc pentru informatii!</p>
+    <div class="msg__meta">
+      <span class="msg__time">14:33</span>
+      <span class="msg__check msg__check--read">&#10003;&#10003;</span>
+    </div>
+  </div>
+
+  System:
+  <div class="msg msg--system">
+    <p class="msg__text">Claudiu s-a alaturat conversatiei</p>
+  </div>
+
+  With link preview:
+  <div class="msg msg--received">
+    <p class="msg__text">Check this out</p>
+    <div class="msg__link-preview">
+      <img src="..." alt="">
+      <div>
+        <strong>Title</strong>
+        <p>Description</p>
+      </div>
+    </div>
+    <div class="msg__meta"><span class="msg__time">14:35</span></div>
+  </div>
+
+  With image:
+  <div class="msg msg--sent">
+    <img class="msg__image" src="..." alt="">
+    <div class="msg__meta"><span class="msg__time">14:36</span></div>
+  </div>
+*/
+
+.msg {
+  max-width: 75%;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-md);
+  line-height: var(--line-height-relaxed);
+  word-wrap: break-word;
+  animation: msg-fade-in var(--transition-normal) ease;
+}
+
+@keyframes msg-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--sp-2));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg--received {
+  align-self: flex-start;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.msg--sent {
+  align-self: flex-end;
+  background: var(--accent-muted);
+  border: 1px solid transparent;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.msg--system {
+  align-self: center;
+  max-width: 90%;
+  background: transparent;
+  padding: var(--sp-2) var(--sp-4);
+  text-align: center;
+  font-size: var(--font-sm);
+  color: var(--text-tertiary);
+}
+
+.msg__sender {
+  display: block;
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: var(--sp-1);
+}
+
+.msg__text {
+  margin: 0;
+}
+
+.msg__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+
+.msg__time {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+}
+
+.msg__check {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  letter-spacing: -2px;
+}
+
+.msg__check--read {
+  color: var(--accent);
+}
+
+.msg__link-preview {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.msg__link-preview img {
+  width: var(--sp-12);
+  height: var(--sp-12);
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.msg__link-preview strong {
+  display: block;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--sp-1);
+}
+
+.msg__link-preview p {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.msg__image {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--sp-1);
+}
+
+
+/* === 8. NAV === */
+/*
+  Usage:
+  <nav class="nav">
+    <div class="nav__brand">O</div>
+    <a class="nav__item nav__item--active" href="#" title="Chat">
+      <svg>...</svg>
+    </a>
+    <a class="nav__item" href="#" title="Contacts">
+      <svg>...</svg>
+    </a>
+    <div class="nav__spacer"></div>
+    <a class="nav__item" href="#" title="Settings">
+      <svg>...</svg>
+    </a>
+  </nav>
+*/
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--nav-width);
+  min-width: var(--nav-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: var(--sp-4) 0;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.nav__brand {
+  width: var(--sp-10);
+  height: var(--sp-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--sp-4);
+  flex-shrink: 0;
+}
+
+.nav__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sp-11);
+  height: var(--sp-11);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.nav__item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav__item--active {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+}
+
+.nav__item svg {
+  width: var(--sp-5);
+  height: var(--sp-5);
+}
+
+.nav__spacer {
+  flex: 1;
+}
+
+
+/* === 9. SIDEBAR === */
+/*
+  Usage:
+  <aside class="sidebar">
+    <div class="sidebar__header">
+      <h2 class="sidebar__title">Mesaje</h2>
+      <button class="btn btn--icon btn--ghost">
+        <svg>...</svg>
+      </button>
+    </div>
+    <div class="sidebar__search">
+      <div class="input-group">
+        <svg class="input-group__icon">...</svg>
+        <input class="input" type="text" placeholder="Cauta...">
+      </div>
+    </div>
+    <div class="sidebar__list">
+      <span class="sidebar__section-label">Recent</span>
+      <!-- chat-item elements -->
+    </div>
+  </aside>
+*/
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  flex-shrink: 0;
+}
+
+.sidebar__title {
+  font-size: var(--font-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.sidebar__search {
+  padding: 0 var(--sp-4) var(--sp-3);
+  flex-shrink: 0;
+}
+
+.sidebar__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--sp-2);
+}
+
+.sidebar__section-label {
+  display: block;
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+
+/* === 10. PANEL HEADER === */
+/*
+  Usage:
+  <header class="panel-header">
+    <div class="avatar avatar--md">
+      <img src="..." alt="">
+    </div>
+    <div class="panel-header__info">
+      <h3 class="panel-header__title">Interviu Business</h3>
+      <span class="panel-header__subtitle">Online</span>
+    </div>
+    <div class="panel-header__actions">
+      <button class="btn btn--icon btn--ghost"><svg>...</svg></button>
+      <button class="btn btn--icon btn--ghost"><svg>...</svg></button>
+    </div>
+  </header>
+*/
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: calc(var(--sp-12) + var(--sp-6));
+}
+
+.panel-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-header__title {
+  font-size: var(--font-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-header__subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.panel-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+}
+
+
+/* === 11. MESSAGES AREA === */
+/*
+  Usage:
+  <div class="messages-area">
+    <div class="msg msg--received">...</div>
+    <div class="msg msg--sent">...</div>
+  </div>
+*/
+
+.messages-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+
+/* === 12. DIVIDER === */
+/*
+  Usage:
+  <div class="divider">
+    <span class="divider__text">Ieri, 14 Feb</span>
+  </div>
+*/
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider__text {
+  font-size: var(--font-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+
+/* === 13. TYPING INDICATOR === */
+/*
+  Usage:
+  <div class="typing">
+    <span></span><span></span><span></span>
+  </div>
+*/
+
+.typing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-sm);
+  align-self: flex-start;
+}
+
+.typing span {
+  display: block;
+  width: var(--sp-2);
+  height: var(--sp-2);
+  background: var(--text-tertiary);
+  border-radius: var(--radius-full);
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(calc(var(--sp-2) * -1));
+    opacity: 1;
+  }
+}
+
+
+/* === 14. FILE CARD === */
+/*
+  Usage:
+  <div class="file-card">
+    <div class="file-card__icon">
+      <svg>...</svg>
+    </div>
+    <div class="file-card__info">
+      <span class="file-card__name">Raport_Q4.pdf</span>
+      <span class="file-card__size">2.4 MB</span>
+    </div>
+    <button class="file-card__download btn btn--icon btn--ghost">
+      <svg>...</svg>
+    </button>
+  </div>
+*/
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.file-card:hover {
+  background: var(--bg-tertiary);
+}
+
+.file-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sp-10);
+  height: var(--sp-10);
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.file-card__icon--danger {
+  background: var(--danger-muted);
+  color: var(--danger);
+}
+
+.file-card__icon svg {
+  width: var(--sp-5);
+  height: var(--sp-5);
+}
+
+.file-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.file-card__name {
+  font-size: var(--font-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-card__size {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+}
+
+.file-card__download {
+  flex-shrink: 0;
+}
+
+
+/* === 15. MEDIA GRID === */
+/*
+  Usage:
+  <div class="media-grid">
+    <div class="media-grid__item">
+      <img src="..." alt="">
+    </div>
+    <div class="media-grid__item">
+      <img src="..." alt="">
+    </div>
+  </div>
+*/
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+}
+
+.media-grid__item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.media-grid__item:hover {
+  opacity: 0.8;
+}
+
+.media-grid__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* === 16. INFO PANEL === */
+/*
+  Usage:
+  <aside class="info-panel">
+    <div class="info-panel__section">
+      <div class="info-panel__section-header">
+        <h4 class="info-panel__section-title">Media</h4>
+        <button class="info-panel__see-all btn btn--ghost btn--sm">See all</button>
+      </div>
+      <!-- content -->
+    </div>
+  </aside>
+*/
+
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--panel-width);
+  min-width: var(--panel-width);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.info-panel__section {
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.info-panel__section:last-child {
+  border-bottom: none;
+}
+
+.info-panel__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-3);
+}
+
+.info-panel__section-title {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.info-panel__see-all {
+  font-size: var(--font-xs);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.info-panel__see-all:hover {
+  color: var(--accent-hover);
+}
+
+
+/* === 17. APP LAYOUT === */
+/*
+  Usage:
+  <div class="app">
+    <nav class="nav">...</nav>
+    <aside class="sidebar">...</aside>
+    <main class="main">
+      <header class="panel-header">...</header>
+      <div class="messages-area">...</div>
+      <div class="compose">...</div>
+    </main>
+    <aside class="info-panel">...</aside>
+  </div>
+*/
+
+.app {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-primary);
+}

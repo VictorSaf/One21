@@ -1,0 +1,188 @@
+/* ============================================================
+   ONECHAT DESIGN SYSTEM — THEME TOKENS
+   ============================================================
+   This file contains ALL CSS custom properties (design tokens)
+   and base reset styles. No component styles live here.
+   ============================================================ */
+
+:root {
+  /* --- Backgrounds --- */
+  --bg-primary:   #0d0d12;
+  --bg-secondary: #141419;
+  --bg-tertiary:  #1a1a21;
+  --bg-elevated:  #222230;
+
+  /* --- Borders --- */
+  --border:       #2a2a35;
+  --border-light: #35354a;
+
+  /* --- Text --- */
+  --text-primary:   #ececf1;
+  --text-secondary: #8e8ea0;
+  --text-tertiary:  #5a5a6e;
+
+  /* --- Accent (Emerald) --- */
+  --accent:       #10b981;
+  --accent-hover: #34d399;
+  --accent-muted: rgba(16, 185, 129, 0.12);
+
+  /* --- Semantic --- */
+  --danger:       #ef4444;
+  --danger-muted: rgba(239, 68, 68, 0.12);
+  --warning:       #f59e0b;
+  --warning-muted: rgba(245, 158, 11, 0.12);
+  --info:          #3b82f6;
+  --info-muted:    rgba(59, 130, 246, 0.12);
+
+  /* --- Status --- */
+  --online:  #10b981;
+  --offline: #5a5a6e;
+
+  /* --- Spacing (8px base) --- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  28px;
+  --sp-8:  32px;
+  --sp-9:  36px;
+  --sp-10: 40px;
+  --sp-11: 44px;
+  --sp-12: 48px;
+
+  /* --- Border Radius --- */
+  --radius-sm:   6px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
+  --radius-full: 50%;
+
+  /* --- Typography --- */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+                 'Helvetica Neue', Arial, sans-serif;
+
+  --font-xs:  10px;
+  --font-sm:  12px;
+  --font-md:  14px;
+  --font-lg:  16px;
+  --font-xl:  20px;
+  --font-2xl: 24px;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --line-height-tight:  1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* --- Shadows --- */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* --- Transitions --- */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Z-index --- */
+  --z-base:    1;
+  --z-sticky:  100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal:   400;
+  --z-toast:   500;
+
+  /* --- Layout --- */
+  --nav-width:     72px;
+  --sidebar-width: 320px;
+  --panel-width:   300px;
+}
+
+
+/* ============================================================
+   BASE RESET
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-md);
+  font-weight: var(--weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font-family: var(--font-family);
+}

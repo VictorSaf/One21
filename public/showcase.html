@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneChat Design System — Showcase</title>
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/components.css">
+<style>
+  /* Showcase-only styles (gallery layout, not part of the design system) */
+  .showcase {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--sp-6) var(--sp-4);
+  }
+  .showcase__heading {
+    font-size: var(--font-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--sp-2);
+  }
+  .showcase__subheading {
+    font-size: var(--font-md);
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-8);
+  }
+  .section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--sp-6);
+    margin-bottom: var(--sp-6);
+  }
+  .section__title {
+    font-size: var(--font-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--sp-4);
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .section__subtitle {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-3);
+    font-weight: var(--weight-medium);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-4);
+    align-items: center;
+  }
+  .row--start {
+    align-items: flex-start;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2);
+  }
+  .swatch__color {
+    width: var(--sp-10);
+    height: var(--sp-10);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .swatch__label {
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+  }
+  .swatch__value {
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+    font-family: monospace;
+  }
+  .spacing-box {
+    background: var(--accent-muted);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-xs);
+    color: var(--accent);
+    font-weight: var(--weight-semibold);
+  }
+  .font-sample {
+    color: var(--text-primary);
+    margin-bottom: var(--sp-2);
+  }
+  .font-label {
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+    font-family: monospace;
+  }
+  .showcase-chat-list {
+    max-width: 360px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .showcase-messages {
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+  .showcase-compose {
+    max-width: 580px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .showcase-files {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    max-width: 400px;
+  }
+  .layout-preview {
+    height: 600px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .layout-preview .app {
+    height: 100%;
+  }
+  /* SVG icon helper */
+  .icon-svg {
+    width: var(--sp-5);
+    height: var(--sp-5);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+
+<div class="showcase">
+  <h1 class="showcase__heading">OneChat Design System</h1>
+  <p class="showcase__subheading">Complete component gallery and visual reference for the dark-mode chat application.</p>
+
+
+  <!-- ========== 1. COLOR PALETTE ========== -->
+  <div class="section">
+    <h2 class="section__title">1. Color Palette</h2>
+
+    <p class="section__subtitle">Backgrounds</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-primary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--bg-primary</span>
+          <span class="swatch__value">#0d0d12</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-secondary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--bg-secondary</span>
+          <span class="swatch__value">#141419</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-tertiary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--bg-tertiary</span>
+          <span class="swatch__value">#1a1a21</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-elevated);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--bg-elevated</span>
+          <span class="swatch__value">#222230</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section__subtitle">Text</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-primary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--text-primary</span>
+          <span class="swatch__value">#ececf1</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-secondary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--text-secondary</span>
+          <span class="swatch__value">#8e8ea0</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-tertiary);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--text-tertiary</span>
+          <span class="swatch__value">#5a5a6e</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section__subtitle">Borders</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--border);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--border</span>
+          <span class="swatch__value">#2a2a35</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--border-light);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--border-light</span>
+          <span class="swatch__value">#35354a</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section__subtitle">Accent &amp; Semantic</p>
+    <div class="row">
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--accent);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--accent</span>
+          <span class="swatch__value">#10b981</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--accent-hover);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--accent-hover</span>
+          <span class="swatch__value">#34d399</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--danger);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--danger</span>
+          <span class="swatch__value">#ef4444</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--warning);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--warning</span>
+          <span class="swatch__value">#f59e0b</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--info);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--info</span>
+          <span class="swatch__value">#3b82f6</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--online);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--online</span>
+          <span class="swatch__value">#10b981</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--offline);"></div>
+        <div class="col" style="gap: 2px;">
+          <span class="swatch__label">--offline</span>
+          <span class="swatch__value">#5a5a6e</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 2. TYPOGRAPHY ========== -->
+  <div class="section">
+    <h2 class="section__title">2. Typography</h2>
+    <div class="col">
+      <div>
+        <div class="font-sample" style="font-size: var(--font-2xl); font-weight: var(--weight-bold);">The quick brown fox (24px Bold)</div>
+        <span class="font-label">--font-2xl / --weight-bold</span>
+      </div>
+      <div>
+        <div class="font-sample" style="font-size: var(--font-xl); font-weight: var(--weight-semibold);">The quick brown fox (20px Semibold)</div>
+        <span class="font-label">--font-xl / --weight-semibold</span>
+      </div>
+      <div>
+        <div class="font-sample" style="font-size: var(--font-lg); font-weight: var(--weight-medium);">The quick brown fox (16px Medium)</div>
+        <span class="font-label">--font-lg / --weight-medium</span>
+      </div>
+      <div>
+        <div class="font-sample" style="font-size: var(--font-md); font-weight: var(--weight-regular);">The quick brown fox (14px Regular)</div>
+        <span class="font-label">--font-md / --weight-regular</span>
+      </div>
+      <div>
+        <div class="font-sample" style="font-size: var(--font-sm); font-weight: var(--weight-regular);">The quick brown fox (12px Regular)</div>
+        <span class="font-label">--font-sm / --weight-regular</span>
+      </div>
+      <div>
+        <div class="font-sample" style="font-size: var(--font-xs); font-weight: var(--weight-regular);">The quick brown fox (10px Regular)</div>
+        <span class="font-label">--font-xs / --weight-regular</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 3. SPACING ========== -->
+  <div class="section">
+    <h2 class="section__title">3. Spacing Scale</h2>
+    <div class="row" style="align-items: flex-end; gap: var(--sp-3);">
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 4px; height: 4px;"></div>
+        <span class="font-label">sp-1</span>
+        <span class="font-label">4px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 8px; height: 8px;"></div>
+        <span class="font-label">sp-2</span>
+        <span class="font-label">8px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 12px; height: 12px;"></div>
+        <span class="font-label">sp-3</span>
+        <span class="font-label">12px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 16px; height: 16px;"></div>
+        <span class="font-label">sp-4</span>
+        <span class="font-label">16px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 20px; height: 20px;"></div>
+        <span class="font-label">sp-5</span>
+        <span class="font-label">20px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 24px; height: 24px;"></div>
+        <span class="font-label">sp-6</span>
+        <span class="font-label">24px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 28px; height: 28px;"></div>
+        <span class="font-label">sp-7</span>
+        <span class="font-label">28px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 32px; height: 32px;"></div>
+        <span class="font-label">sp-8</span>
+        <span class="font-label">32px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 36px; height: 36px;"></div>
+        <span class="font-label">sp-9</span>
+        <span class="font-label">36px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 40px; height: 40px;"></div>
+        <span class="font-label">sp-10</span>
+        <span class="font-label">40px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 44px; height: 44px;"></div>
+        <span class="font-label">sp-11</span>
+        <span class="font-label">44px</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <div class="spacing-box" style="width: 48px; height: 48px;"></div>
+        <span class="font-label">sp-12</span>
+        <span class="font-label">48px</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 4. AVATARS ========== -->
+  <div class="section">
+    <h2 class="section__title">4. Avatars</h2>
+
+    <p class="section__subtitle">Sizes (sm / md / lg) with images</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <div class="avatar avatar--sm">
+        <img src="https://i.pravatar.cc/48?img=1" alt="User 1">
+      </div>
+      <div class="avatar avatar--md">
+        <img src="https://i.pravatar.cc/48?img=2" alt="User 2">
+        <span class="avatar__status avatar__status--online"></span>
+      </div>
+      <div class="avatar avatar--lg">
+        <img src="https://i.pravatar.cc/48?img=3" alt="User 3">
+        <span class="avatar__status avatar__status--online"></span>
+      </div>
+    </div>
+
+    <p class="section__subtitle">Initials fallback</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <div class="avatar avatar--sm">CS</div>
+      <div class="avatar avatar--md">AB</div>
+      <div class="avatar avatar--lg">CL</div>
+    </div>
+
+    <p class="section__subtitle">Without online status (offline default)</p>
+    <div class="row">
+      <div class="avatar avatar--md">
+        <img src="https://i.pravatar.cc/48?img=4" alt="User 4">
+        <span class="avatar__status"></span>
+      </div>
+      <div class="avatar avatar--md">
+        <img src="https://i.pravatar.cc/48?img=5" alt="User 5">
+        <span class="avatar__status avatar__status--online"></span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 5. BADGES ========== -->
+  <div class="section">
+    <h2 class="section__title">5. Badges</h2>
+    <div class="row">
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <span class="badge">3</span>
+        <span class="font-label">Default</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <span class="badge badge--danger">!</span>
+        <span class="font-label">Danger</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <span class="badge badge--warning">5</span>
+        <span class="font-label">Warning</span>
+      </div>
+      <div class="col" style="align-items: center; gap: var(--sp-1);">
+        <span class="badge badge--muted">99+</span>
+        <span class="font-label">Muted</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 6. BUTTONS ========== -->
+  <div class="section">
+    <h2 class="section__title">6. Buttons</h2>
+
+    <p class="section__subtitle">Variants</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <button class="btn btn--primary">Primary</button>
+      <button class="btn btn--secondary">Secondary</button>
+      <button class="btn btn--danger">Danger</button>
+      <button class="btn btn--ghost">Ghost</button>
+      <button class="btn btn--icon btn--ghost">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+    </div>
+
+    <p class="section__subtitle">Small size</p>
+    <div class="row" style="margin-bottom: var(--sp-4);">
+      <button class="btn btn--primary btn--sm">Small Primary</button>
+      <button class="btn btn--secondary btn--sm">Small Secondary</button>
+      <button class="btn btn--ghost btn--sm">Small Ghost</button>
+    </div>
+
+    <p class="section__subtitle">Disabled states</p>
+    <div class="row">
+      <button class="btn btn--primary" disabled>Disabled Primary</button>
+      <button class="btn btn--secondary" disabled>Disabled Secondary</button>
+      <button class="btn btn--danger" disabled>Disabled Danger</button>
+    </div>
+  </div>
+
+
+  <!-- ========== 7. INPUTS ========== -->
+  <div class="section">
+    <h2 class="section__title">7. Inputs</h2>
+    <div class="col" style="max-width: 400px; gap: var(--sp-4);">
+
+      <div>
+        <p class="section__subtitle">Default input</p>
+        <input class="input" type="text" placeholder="Scrie ceva...">
+      </div>
+
+      <div>
+        <p class="section__subtitle">With search icon</p>
+        <div class="input-group">
+          <svg class="input-group__icon icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="input" type="text" placeholder="Cauta conversatii...">
+        </div>
+      </div>
+
+      <div>
+        <p class="section__subtitle">Error state</p>
+        <input class="input input--error" type="text" value="invalid@">
+      </div>
+
+      <div>
+        <p class="section__subtitle">Textarea</p>
+        <textarea class="input" rows="3" placeholder="Scrie un mesaj mai lung..."></textarea>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 8. CHAT ITEMS ========== -->
+  <div class="section">
+    <h2 class="section__title">8. Chat Items (Sidebar Rows)</h2>
+    <div class="showcase-chat-list">
+
+      <div class="chat-item chat-item--active">
+        <div class="avatar avatar--md">
+          <img src="https://i.pravatar.cc/48?img=1" alt="Claudiu">
+          <span class="avatar__status avatar__status--online"></span>
+        </div>
+        <div class="chat-item__body">
+          <div class="chat-item__header">
+            <span class="chat-item__name">Claudiu Safta</span>
+            <span class="chat-item__time">14:32</span>
+          </div>
+          <div class="chat-item__preview">
+            <span class="chat-item__text">Am trimis documentele pentru interviu</span>
+            <span class="badge">2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-item">
+        <div class="avatar avatar--md">
+          <img src="https://i.pravatar.cc/48?img=6" alt="Claude">
+          <span class="avatar__status avatar__status--online"></span>
+        </div>
+        <div class="chat-item__body">
+          <div class="chat-item__header">
+            <span class="chat-item__name">Claude AI Analyst</span>
+            <span class="chat-item__time">13:15</span>
+          </div>
+          <div class="chat-item__preview">
+            <span class="chat-item__text">Analiza este gata, o poti descarca</span>
+            <span class="chat-item__check chat-item__check--unread">&#10003;&#10003;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-item">
+        <div class="avatar avatar--md">
+          <img src="https://i.pravatar.cc/48?img=7" alt="Design Team">
+        </div>
+        <div class="chat-item__body">
+          <div class="chat-item__header">
+            <span class="chat-item__name">Design Team</span>
+            <span class="chat-item__time">Ieri</span>
+          </div>
+          <div class="chat-item__preview">
+            <span class="chat-item__text">Mihai: Am actualizat mockup-urile</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-item">
+        <div class="avatar avatar--md">
+          <img src="https://i.pravatar.cc/48?img=8" alt="General">
+          <span class="avatar__status"></span>
+        </div>
+        <div class="chat-item__body">
+          <div class="chat-item__header">
+            <span class="chat-item__name">General</span>
+            <span class="chat-item__time">Mar</span>
+          </div>
+          <div class="chat-item__preview">
+            <span class="chat-item__text">Sedinta de planificare la ora 10</span>
+            <span class="chat-item__check">&#10003;</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========== 9. MESSAGE BUBBLES ========== -->
+  <div class="section">
+    <h2 class="section__title">9. Message Bubbles</h2>
+    <div class="showcase-messages">
+
+      <div class="msg msg--system">
+        <p class="msg__text">Claudiu s-a alaturat conversatiei</p>
+      </div>
+
+      <div class="msg msg--received">
+        <span class="msg__sender">Claude</span>
+        <p class="msg__text">Buna ziua, Claudiu! Am finalizat analiza strategica pentru Investorhood. As vrea sa discutam cateva puncte importante despre directia de dezvoltare.</p>
+        <div class="msg__meta">
+          <span class="msg__time">14:30</span>
+        </div>
+      </div>
+
+      <div class="msg msg--sent">
+        <p class="msg__text">Salut Claude! Da, sunt pregatit. Hai sa incepem cu analiza pietei.</p>
+        <div class="msg__meta">
+          <span class="msg__time">14:31</span>
+          <span class="msg__check msg__check--read">&#10003;&#10003;</span>
+        </div>
+      </div>
+
+      <div class="msg msg--received">
+        <span class="msg__sender">Claude</span>
+        <p class="msg__text">Am gasit un articol relevant despre tendintele din fintech:</p>
+        <div class="msg__link-preview">
+          <img src="https://i.pravatar.cc/48?img=9" alt="preview">
+          <div>
+            <strong>Fintech Romania 2026: Tendinte si Oportunitati</strong>
+            <p>Piata fintech din Romania creste cu 35% anual. Citeste mai mult despre oportunitatile din sector...</p>
+          </div>
+        </div>
+        <div class="msg__meta">
+          <span class="msg__time">14:33</span>
+        </div>
+      </div>
+
+      <div class="msg msg--sent">
+        <img class="msg__image" src="https://i.pravatar.cc/300?img=10" alt="Shared image">
+        <div class="msg__meta">
+          <span class="msg__time">14:35</span>
+          <span class="msg__check">&#10003;&#10003;</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========== 10. COMPOSE BAR ========== -->
+  <div class="section">
+    <h2 class="section__title">10. Compose Bar</h2>
+    <div class="showcase-compose">
+      <div class="compose">
+        <input class="compose__input" type="text" placeholder="Scrie un mesaj...">
+        <button class="compose__send">
+          <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 11. FILE CARDS ========== -->
+  <div class="section">
+    <h2 class="section__title">11. File Cards</h2>
+    <div class="showcase-files">
+
+      <div class="file-card">
+        <div class="file-card__icon">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="file-card__info">
+          <span class="file-card__name">Raport_Investorhood_Q4.pdf</span>
+          <span class="file-card__size">2.4 MB</span>
+        </div>
+        <button class="file-card__download btn btn--icon btn--ghost">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card__icon">
+          <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div class="file-card__info">
+          <span class="file-card__name">Design_Mockup_v3.png</span>
+          <span class="file-card__size">856 KB</span>
+        </div>
+        <button class="file-card__download btn btn--icon btn--ghost">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card__icon file-card__icon--danger">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="file-card__info">
+          <span class="file-card__name">Contract_NDA.docx</span>
+          <span class="file-card__size">124 KB</span>
+        </div>
+        <button class="file-card__download btn btn--icon btn--ghost">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========== 12. TYPING INDICATOR ========== -->
+  <div class="section">
+    <h2 class="section__title">12. Typing Indicator</h2>
+    <div class="typing">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+
+  <!-- ========== 13. DIVIDER ========== -->
+  <div class="section">
+    <h2 class="section__title">13. Divider</h2>
+    <div class="divider">
+      <span class="divider__text">Ieri, 20 Februarie</span>
+    </div>
+  </div>
+
+
+  <!-- ========== 14. FULL LAYOUT PREVIEW ========== -->
+  <div class="section">
+    <h2 class="section__title">14. Full Layout Preview (3-panel + info panel)</h2>
+    <div class="layout-preview">
+      <div class="app">
+
+        <!-- NAV -->
+        <nav class="nav">
+          <div class="nav__brand">O</div>
+          <a class="nav__item nav__item--active" href="#" title="Mesaje">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </a>
+          <a class="nav__item" href="#" title="Contacte">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </a>
+          <a class="nav__item" href="#" title="Fisiere">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </a>
+          <div class="nav__spacer"></div>
+          <a class="nav__item" href="#" title="Setari">
+            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
+        </nav>
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+          <div class="sidebar__header">
+            <h2 class="sidebar__title">Mesaje</h2>
+            <button class="btn btn--icon btn--ghost">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="sidebar__search">
+            <div class="input-group">
+              <svg class="input-group__icon icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="input" type="text" placeholder="Cauta conversatii...">
+            </div>
+          </div>
+          <div class="sidebar__list">
+            <span class="sidebar__section-label">Recente</span>
+
+            <div class="chat-item chat-item--active">
+              <div class="avatar avatar--md">
+                <img src="https://i.pravatar.cc/48?img=1" alt="Claudiu">
+                <span class="avatar__status avatar__status--online"></span>
+              </div>
+              <div class="chat-item__body">
+                <div class="chat-item__header">
+                  <span class="chat-item__name">Interviu Business</span>
+                  <span class="chat-item__time">14:32</span>
+                </div>
+                <div class="chat-item__preview">
+                  <span class="chat-item__text">Claude: Am finalizat analiza...</span>
+                  <span class="badge">2</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-item">
+              <div class="avatar avatar--md">
+                <img src="https://i.pravatar.cc/48?img=2" alt="Design Team">
+                <span class="avatar__status avatar__status--online"></span>
+              </div>
+              <div class="chat-item__body">
+                <div class="chat-item__header">
+                  <span class="chat-item__name">Design Team</span>
+                  <span class="chat-item__time">13:15</span>
+                </div>
+                <div class="chat-item__preview">
+                  <span class="chat-item__text">Mihai: Am actualizat mockup-urile</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-item">
+              <div class="avatar avatar--md">
+                <img src="https://i.pravatar.cc/48?img=3" alt="General">
+              </div>
+              <div class="chat-item__body">
+                <div class="chat-item__header">
+                  <span class="chat-item__name">General</span>
+                  <span class="chat-item__time">Ieri</span>
+                </div>
+                <div class="chat-item__preview">
+                  <span class="chat-item__text">Sedinta de planificare la 10</span>
+                </div>
+              </div>
+            </div>
+
+            <span class="sidebar__section-label">Canale</span>
+
+            <div class="chat-item">
+              <div class="avatar avatar--md">
+                <img src="https://i.pravatar.cc/48?img=4" alt="Dev">
+              </div>
+              <div class="chat-item__body">
+                <div class="chat-item__header">
+                  <span class="chat-item__name">#dev-frontend</span>
+                  <span class="chat-item__time">Lun</span>
+                </div>
+                <div class="chat-item__preview">
+                  <span class="chat-item__text">Deploy-ul a fost finalizat</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main class="main">
+          <header class="panel-header">
+            <div class="avatar avatar--md">
+              <img src="https://i.pravatar.cc/48?img=1" alt="Claudiu">
+              <span class="avatar__status avatar__status--online"></span>
+            </div>
+            <div class="panel-header__info">
+              <h3 class="panel-header__title">Interviu Business</h3>
+              <span class="panel-header__subtitle">Claudiu, Claude -- Online</span>
+            </div>
+            <div class="panel-header__actions">
+              <button class="btn btn--icon btn--ghost">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </button>
+              <button class="btn btn--icon btn--ghost">
+                <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="messages-area">
+            <div class="divider">
+              <span class="divider__text">Ieri, 20 Februarie</span>
+            </div>
+
+            <div class="msg msg--system">
+              <p class="msg__text">Claudiu s-a alaturat conversatiei</p>
+            </div>
+
+            <div class="msg msg--received">
+              <span class="msg__sender">Claude</span>
+              <p class="msg__text">Buna ziua, Claudiu! Am pregatit analiza strategica pentru Investorhood. Sunt cateva puncte pe care ar trebui sa le discutam in detaliu.</p>
+              <div class="msg__meta">
+                <span class="msg__time">14:30</span>
+              </div>
+            </div>
+
+            <div class="msg msg--sent">
+              <p class="msg__text">Salut Claude! Perfect, hai sa le trecem in revista. Incepe cu analiza pietei te rog.</p>
+              <div class="msg__meta">
+                <span class="msg__time">14:31</span>
+                <span class="msg__check msg__check--read">&#10003;&#10003;</span>
+              </div>
+            </div>
+
+            <div class="msg msg--received">
+              <span class="msg__sender">Claude</span>
+              <p class="msg__text">Piata fintech din Romania are un potential semnificativ. Am identificat 3 segmente principale de clienti care ar beneficia de platforma Investorhood.</p>
+              <div class="msg__meta">
+                <span class="msg__time">14:32</span>
+              </div>
+            </div>
+
+            <div class="msg msg--sent">
+              <p class="msg__text">Excelent! Poti trimite si documentul cu datele complete?</p>
+              <div class="msg__meta">
+                <span class="msg__time">14:33</span>
+                <span class="msg__check">&#10003;&#10003;</span>
+              </div>
+            </div>
+
+            <div class="typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <div class="compose">
+            <input class="compose__input" type="text" placeholder="Scrie un mesaj...">
+            <button class="compose__send">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </main>
+
+        <!-- INFO PANEL -->
+        <aside class="info-panel">
+          <div class="info-panel__section" style="text-align: center;">
+            <div class="avatar avatar--lg" style="margin: 0 auto var(--sp-3);">
+              <img src="https://i.pravatar.cc/48?img=1" alt="Claudiu">
+              <span class="avatar__status avatar__status--online"></span>
+            </div>
+            <h3 style="font-size: var(--font-lg); font-weight: var(--weight-semibold); color: var(--text-primary);">Interviu Business</h3>
+            <p style="font-size: var(--font-sm); color: var(--text-secondary); margin-top: var(--sp-1);">Claudiu Safta, Claude AI</p>
+          </div>
+
+          <div class="info-panel__section">
+            <div class="info-panel__section-header">
+              <h4 class="info-panel__section-title">Media</h4>
+              <button class="info-panel__see-all btn btn--ghost btn--sm">See all</button>
+            </div>
+            <div class="media-grid">
+              <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=5" alt="media 1"></div>
+              <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=6" alt="media 2"></div>
+              <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=7" alt="media 3"></div>
+              <div class="media-grid__item"><img src="https://i.pravatar.cc/100?img=8" alt="media 4"></div>
+            </div>
+          </div>
+
+          <div class="info-panel__section">
+            <div class="info-panel__section-header">
+              <h4 class="info-panel__section-title">Fisiere</h4>
+              <button class="info-panel__see-all btn btn--ghost btn--sm">See all</button>
+            </div>
+            <div class="col" style="gap: var(--sp-2);">
+              <div class="file-card">
+                <div class="file-card__icon">
+                  <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="file-card__info">
+                  <span class="file-card__name">Raport_Q4.pdf</span>
+                  <span class="file-card__size">2.4 MB</span>
+                </div>
+              </div>
+              <div class="file-card">
+                <div class="file-card__icon file-card__icon--danger">
+                  <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="file-card__info">
+                  <span class="file-card__name">NDA_Contract.docx</span>
+                  <span class="file-card__size">124 KB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-panel__section">
+            <div class="info-panel__section-header">
+              <h4 class="info-panel__section-title">Membri</h4>
+            </div>
+            <div class="col" style="gap: var(--sp-2);">
+              <div style="display: flex; align-items: center; gap: var(--sp-3);">
+                <div class="avatar avatar--sm">
+                  <img src="https://i.pravatar.cc/48?img=1" alt="Claudiu">
+                  <span class="avatar__status avatar__status--online"></span>
+                </div>
+                <span style="font-size: var(--font-md); color: var(--text-primary);">Claudiu Safta</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: var(--sp-3);">
+                <div class="avatar avatar--sm">
+                  <img src="https://i.pravatar.cc/48?img=6" alt="Claude">
+                  <span class="avatar__status avatar__status--online"></span>
+                </div>
+                <span style="font-size: var(--font-md); color: var(--text-primary);">Claude AI Analyst</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
