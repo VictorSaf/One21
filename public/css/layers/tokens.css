@@ -1,0 +1,191 @@
+/* ============================================================
+   ONE21 — NEURAL TERMINAL Design Tokens
+   @layer tokens — prima prioritate in cascada
+   Modifica DOAR aici pentru a schimba tema globala.
+   ============================================================ */
+
+@layer tokens {
+  :root {
+    /* ─── Backgrounds ─── */
+    /* Contrast intentionally stepped: each level is clearly distinct */
+    --bg-base:       #040404;   /* absolute canvas — main bg */
+    --bg-surface:    #0d0d0d;   /* sidebar, panels — visible step up */
+    --bg-elevated:   #141414;   /* cards, active items */
+    --bg-active:     #1a1a1a;   /* hover/selected state */
+    --bg-hover:      rgba(255,255,255,0.04);
+
+    /* ─── Borders ─── */
+    /* More visible than before — helps define panel edges */
+    --border-dim:    #1c1c1c;
+    --border-mid:    #272727;
+    --border-bright: #383838;
+    --border-accent: rgba(0,230,118,0.2);
+    --border-accent-strong: rgba(0,230,118,0.5);
+
+    /* ─── Accent — Electric Green ─── */
+    --accent:        #00e676;
+    --accent-dim:    #00b856;
+    --accent-muted:  rgba(0,230,118,0.07);
+    --accent-glow:   rgba(0,230,118,0.15);
+
+    /* ─── Text ─── */
+    --text-primary:   #c4c4c4;
+    --text-secondary: #545454;
+    --text-tertiary:  #2c2c2c;
+    --text-accent:    #00e676;
+    --text-inverse:   #070707;
+
+    /* ─── Semantic ─── */
+    --online:        #00e676;
+    --offline:       #333333;
+    --busy:          #ff9c00;
+    --error:         #ff3d3d;
+    --warning:       #ffb300;
+    --info:          #00b4d8;
+    --danger:        #ff3d3d;
+    --danger-muted:  rgba(255,61,61,0.08);
+    --warning-muted: rgba(255,179,0,0.08);
+
+    /* ─── Extended semantic ─── */
+    --danger-border:       rgba(255,61,61,0.2);
+    --danger-border-mid:   rgba(255,61,61,0.35);
+    --danger-hover:        rgba(255,61,61,0.07);
+    --danger-focus:        rgba(255,61,61,0.4);
+    --danger-focus-shadow: rgba(255,61,61,0.08);
+
+    /* ─── Purple (auth/system events) ─── */
+    --purple:              #8888ff;
+    --purple-muted:        rgba(100,100,220,0.12);
+
+    /* ─── Info extended ─── */
+    --info-muted:          rgba(0,180,216,0.12);
+
+    /* ─── Overlay ─── */
+    --overlay-bg:          rgba(0,0,0,0.75);
+    --shadow-overlay:      rgba(0,0,0,0.6);
+
+    /* ─── Accent animation helpers ─── */
+    --accent-anim-glow-0:  rgba(0,230,118,0);
+    --accent-anim-glow-35: rgba(0,230,118,0.35);
+    --accent-anim-bg-05:   rgba(0,230,118,0.05);
+    --accent-anim-bg-06:   rgba(0,230,118,0.06);
+    --accent-anim-bg-08:   rgba(0,230,118,0.08);
+    --accent-anim-bg-12:   rgba(0,230,118,0.12);
+    --accent-anim-bg-30:   rgba(0,230,118,0.3);
+
+    /* ─── Accent border variants ─── */
+    --accent-border-25:    rgba(0,230,118,0.25);
+    --accent-border-40:    rgba(0,230,118,0.4);
+    --accent-border-60:    rgba(0,230,118,0.6);
+
+    /* ─── Body background gradients ─── */
+    --accent-bg-gradient-1: rgba(0,230,118,0.025);
+    --accent-bg-gradient-2: rgba(0,230,118,0.014);
+    --info-bg-gradient:     rgba(0,180,216,0.009);
+
+    /* ─── Scanline & selection ─── */
+    --scanline-color:      rgba(0,0,0,0.025);
+    --selection-bg:        rgba(0,230,118,0.18);
+
+    /* ─── Purple extended ─── */
+    --purple-light:        #a78bfa;
+    --purple-border:       rgba(167,139,250,0.25);
+    --purple-bg:           rgba(167,139,250,0.06);
+
+    /* ─── Info extended borders/bg ─── */
+    --info-border:         rgba(0,180,216,0.25);
+    --info-bg:             rgba(0,180,216,0.05);
+
+    /* ─── Danger extended ─── */
+    --danger-border-25:    rgba(255,61,61,0.25);
+    --danger-border-50:    rgba(255,61,61,0.5);
+    --danger-bg:           rgba(255,61,61,0.06);
+
+    /* ─── Overlay extended ─── */
+    --overlay-bg-50:       rgba(0,0,0,0.5);
+
+    /* ─── Typography ─── */
+    --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+    --font-family:  var(--font-mono);
+
+    /* ─── Font sizes ─── */
+    --font-xs:  10px;
+    --font-sm:  11px;
+    --font-md:  13px;
+    --font-lg:  15px;
+    --font-xl:  20px;
+    --font-2xl: 28px;
+    --font-3xl: 42px;
+
+    /* ─── Font weights ─── */
+    --weight-light:    300;
+    --weight-regular:  400;
+    --weight-medium:   500;
+    --weight-semibold: 600;
+    --weight-bold:     700;
+
+    /* ─── Line heights ─── */
+    --line-height-tight:   1.2;
+    --line-height-normal:  1.5;
+    --line-height-relaxed: 1.65;
+
+    /* ─── Spacing (8px base) ─── */
+    --sp-1:  4px;
+    --sp-2:  8px;
+    --sp-3:  12px;
+    --sp-4:  16px;
+    --sp-5:  20px;
+    --sp-6:  24px;
+    --sp-7:  28px;
+    --sp-8:  32px;
+    --sp-9:  36px;
+    --sp-10: 40px;
+    --sp-11: 44px;
+    --sp-12: 48px;
+
+    /* ─── Border Radius — minimal, geometric ─── */
+    --radius-sm:   2px;
+    --radius-md:   3px;
+    --radius-lg:   4px;
+    --radius-xl:   6px;
+    --radius-full: 50%;
+
+    /* ─── Layout ─── */
+    --sidebar-width: 260px;
+    --nav-width:     0px;
+    --panel-width:   280px;
+    --header-h:      52px;
+    --statusbar-h:   28px;
+
+    /* ─── Shadows ─── */
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.6);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.7);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.85);
+
+    /* ─── Transitions ─── */
+    --transition-fast:   120ms ease;
+    --transition-normal: 220ms ease;
+    --transition-slow:   400ms cubic-bezier(0.16,1,0.3,1);
+
+    /* ─── Z-index ─── */
+    --z-base:     1;
+    --z-sticky:   100;
+    --z-dropdown: 200;
+    --z-overlay:  300;
+    --z-modal:    400;
+    --z-toast:    500;
+
+    /* ─── Legacy compat aliases (used by existing JS / old components) ─── */
+    --bg-primary:   var(--bg-base);
+    --bg-secondary: var(--bg-surface);
+    --bg-tertiary:  var(--bg-elevated);
+    --glass-bg:     var(--bg-surface);
+    --glass-border: var(--border-dim);
+    --glass-blur:   blur(0px);
+    --glass-glow:   none;
+    --border:       var(--border-dim);
+    --border-light: var(--border-mid);
+    --brand:        var(--accent);
+  }
+}

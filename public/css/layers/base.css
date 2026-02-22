@@ -1,0 +1,90 @@
+/* ============================================================
+   ONE21 — Base Reset & Body Styles
+   @layer base — reset global + stiluri body
+   ============================================================ */
+
+@layer base {
+
+  /* ============================================================
+     BASE RESET
+     ============================================================ */
+
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+
+  /* ─── Dynamic background — very slow imperceptible drift ─── */
+  @keyframes bg-drift {
+    0%   { background-position: 0% 50%,   20% 30%,  100% 100%, 0% 0%; }
+    33%  { background-position: 100% 50%,  70% 60%,  0% 0%,    0% 0%; }
+    66%  { background-position: 50% 100%,  90% 10%,  60% 50%,  0% 0%; }
+    100% { background-position: 0% 50%,   20% 30%,  100% 100%, 0% 0%; }
+  }
+
+  body {
+    font-family: var(--font-mono);
+    font-size: var(--font-md);
+    font-weight: var(--weight-regular);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    min-height: 100vh;
+    position: relative;
+    /* Layered radial gradients give a subtle, shifting glow */
+    background:
+      radial-gradient(ellipse 80% 55% at 15% 55%, var(--accent-bg-gradient-1) 0%, transparent 68%),
+      radial-gradient(ellipse 60% 40% at 85% 22%, var(--accent-bg-gradient-2) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 45% at 55% 95%, var(--info-bg-gradient) 0%, transparent 60%),
+      var(--bg-base);
+    background-size: 280% 280%, 240% 240%, 200% 200%, 100% 100%;
+    animation: bg-drift 100s ease infinite;
+  }
+
+  /* Subtle scanline texture — barely perceptible */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scanline-color) 2px,
+      var(--scanline-color) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--accent);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar       { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-mid); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
+
+  a              { color: var(--accent); text-decoration: none; }
+  a:hover        { color: var(--accent-dim); }
+  img            { display: block; max-width: 100%; }
+  button         { font-family: var(--font-mono); cursor: pointer; }
+  input,
+  textarea,
+  select         { font-family: var(--font-mono); }
+
+}

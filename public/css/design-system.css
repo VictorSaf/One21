@@ -1,0 +1,21 @@
+/* ============================================================
+   ONE21 — NEURAL TERMINAL Design System Entry Point
+   ============================================================
+   Toate @import TREBUIE sa fie primele (CSS spec).
+   @layer declaration dupa imports stabileste ordinea pentru
+   layer-ele declarate in fisierele de pagina (pages, overrides).
+
+   Ordinea layer-elor (crescatoare ca prioritate):
+   tokens < base < components < pages < overrides
+   ============================================================ */
+
+/* Font import */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
+
+/* Layer imports — TREBUIE inainte de orice alta regula */
+@import './layers/tokens.css' layer(tokens);
+@import './layers/base.css' layer(base);
+@import './layers/components.css' layer(components);
+
+/* Stabileste ordinea completa a layer-elor (include pages + overrides din fisierele de pagina) */
+@layer tokens, base, components, pages, overrides;

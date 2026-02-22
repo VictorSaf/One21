@@ -4,25 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Neural Terminal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/theme.css">
-<link rel="stylesheet" href="/css/components.css">
-<style>
-  /* Page-specific overrides */
-  .nav__logout { display: none; } /* hidden; logout is in sidebar footer */
-
-  /* Overlay for info-panel on mobile */
-  .info-panel-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: calc(var(--z-overlay) - 1);
-  }
-  .info-panel-backdrop.visible { display: block; }
-</style>
+<link rel="stylesheet" href="/css/design-system.css">
+<link rel="stylesheet" href="/css/layers/pages/chat.css">
 </head>
 <body>
 
@@ -39,7 +22,7 @@
         <span class="brand-logo__box">ONE</span>
         <span class="brand-logo__suffix">_21</span>
       </div>
-      <button class="sidebar__icon-btn" title="Setări" onclick="window.location='/admin.html'" id="adminNavBtn" style="display:none;">
+      <button class="sidebar__icon-btn u-hidden" title="Setări" onclick="window.location='/admin.html'" id="adminNavBtn">
         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -65,11 +48,11 @@
       <div id="sidebarList"></div>
 
       <!-- INFRASTRUCTURE section -->
-      <div class="sidebar__section-label" style="margin-top: var(--sp-2);">
+      <div class="sidebar__section-label u-mt-2">
         <span>Infrastructure</span>
       </div>
 
-      <div class="sidebar__infra-item" id="infraConsoleBtn" onclick="window.location='/admin.html'" style="cursor:pointer; display:none;">
+      <div class="sidebar__infra-item u-hidden" id="infraConsoleBtn" onclick="window.location='/admin.html'">
         <svg class="icon-svg icon-svg--settings" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         <span>Console</span>
       </div>
@@ -111,9 +94,9 @@
       <div class="avatar avatar--md" id="panelAvatar"></div>
       <div class="panel-header__info">
         <h3 class="panel-header__title" id="panelTitle">SELECT_NODE</h3>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div class="u-flex-center">
           <span class="panel-header__subtitle" id="panelSubtitle"></span>
-          <span class="badge badge--outline" id="panelEncryptBadge" style="display:none;">ENCRYPTED_LINK</span>
+          <span class="badge badge--outline u-hidden" id="panelEncryptBadge">ENCRYPTED_LINK</span>
         </div>
       </div>
       <div class="panel-header__actions">
@@ -132,7 +115,7 @@
     <!-- ── Search overlay ── -->
     <div class="search-overlay hidden" id="searchOverlay">
       <div class="search-box">
-        <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg class="icon-svg icon-svg--sm icon-svg--muted" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="searchInput" placeholder="SEARCH_TRANSMISSIONS...">
         <button class="btn btn--ghost btn--sm" id="searchCloseBtn">✕</button>
       </div>
@@ -169,7 +152,7 @@
         </div>
         <div class="stat-card">
           <svg class="icon-svg stat-card__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span class="stat-card__value" style="color:var(--accent);">LIVE</span>
+          <span class="stat-card__value u-accent">LIVE</span>
           <span class="stat-card__label">Status</span>
         </div>
       </div>
@@ -196,7 +179,7 @@
     </div>
 
     <!-- ── Compose Bar ── -->
-    <div class="compose" id="composeArea" style="display:none;">
+    <div class="compose u-hidden" id="composeArea">
       <div class="compose__row">
         <button class="btn btn--icon btn--ghost" title="Atasament" id="attachBtn">
           <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -248,12 +231,12 @@
     </div>
 
     <div class="info-panel__section">
-      <button class="btn btn--secondary btn--sm" id="editRoomBtn" style="width:100%;margin-bottom:6px;">✏ EDIT_NODE</button>
-      <button class="btn btn--danger btn--sm" id="archiveRoomBtn" style="width:100%;">⊗ ARCHIVE_NODE</button>
+      <button class="btn btn--secondary btn--sm btn--full u-mb-1" id="editRoomBtn">✏ EDIT_NODE</button>
+      <button class="btn btn--danger btn--sm btn--full" id="archiveRoomBtn">⊗ ARCHIVE_NODE</button>
     </div>
 
-    <div class="info-panel__section" style="border-top:none;padding-top:0;">
-      <button class="btn btn--ghost btn--sm" onclick="toggleInfoPanel()" style="width:100%;">✕ CLOSE</button>
+    <div class="info-panel__section info-panel__section--no-top">
+      <button class="btn btn--ghost btn--sm btn--full" onclick="toggleInfoPanel()">✕ CLOSE</button>
     </div>
 
   </aside>
