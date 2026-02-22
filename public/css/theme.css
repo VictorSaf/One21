@@ -64,6 +64,7 @@
 
   /* ─── Overlay ─── */
   --overlay-bg:          rgba(0,0,0,0.75);
+  --shadow-overlay:      rgba(0,0,0,0.6);
 
   /* ─── Accent animation helpers ─── */
   --accent-anim-glow-0:  rgba(0,230,118,0);

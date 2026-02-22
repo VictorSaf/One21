@@ -32,7 +32,7 @@
 
 /* Per-category icon color hints (can be overridden per icon) */
 .icon-svg--rooms    { color: var(--accent); }
-.icon-svg--files    { color: #00b4d8; }
+.icon-svg--files    { color: var(--info); }
 .icon-svg--admin    { color: var(--warning); }
 .icon-svg--danger   { color: var(--error); }
 .icon-svg--settings { color: var(--text-secondary); }
@@ -170,11 +170,11 @@
 .btn--danger {
   background: transparent;
   color: var(--error);
-  border-color: rgba(255,61,61,0.35);
+  border-color: var(--danger-border-mid);
 }
 
 .btn--danger:hover {
-  background: rgba(255,61,61,0.07);
+  background: var(--danger-hover);
 }
 
 .btn--ghost {
@@ -248,8 +248,8 @@
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
 
-.input--error { border-color: rgba(255,61,61,0.4); }
-.input--error:focus { border-color: var(--error); box-shadow: 0 0 0 2px rgba(255,61,61,0.08); }
+.input--error { border-color: var(--danger-focus); }
+.input--error:focus { border-color: var(--error); box-shadow: 0 0 0 2px var(--danger-focus-shadow); }
 
 textarea.input {
   height: auto;
@@ -357,8 +357,8 @@ textarea.input {
 
 /* Subtle shine on logo box */
 @keyframes logo-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
-  50%       { box-shadow: 0 0 8px 1px rgba(0,230,118,0.12); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-anim-glow-0); }
+  50%       { box-shadow: 0 0 8px 1px var(--accent-glow); }
 }
 
 .brand-logo__box {
@@ -520,9 +520,9 @@ textarea.input {
 
 /* === 7. CHAT ITEM === */
 @keyframes item-activity {
-  0%   { box-shadow: 0 0 0 0 rgba(0,230,118,0.35); }
-  50%  { box-shadow: 0 0 0 5px rgba(0,230,118,0); }
-  100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
+  0%   { box-shadow: 0 0 0 0 var(--accent-anim-glow-35); }
+  50%  { box-shadow: 0 0 0 5px var(--accent-anim-glow-0); }
+  100% { box-shadow: 0 0 0 0 var(--accent-anim-glow-0); }
 }
 
 .chat-item {
@@ -563,7 +563,7 @@ textarea.input {
   left: 0;
   width: 35%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0,230,118,0.05), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-anim-bg-05), transparent);
   animation: active-scan 7s ease-in-out infinite 1s;
   pointer-events: none;
 }
@@ -667,7 +667,7 @@ textarea.input {
   background: linear-gradient(
     90deg,
     var(--border-dim),
-    rgba(0,230,118,0.3),
+    var(--accent-anim-bg-30),
     var(--border-dim)
   );
   background-size: 300% 100%;
@@ -895,7 +895,7 @@ textarea.input {
 /* Highlight from search */
 @keyframes highlight-pulse {
   0%, 100% { background: transparent; }
-  50%       { background: rgba(0,230,118,0.08); }
+  50%       { background: var(--accent-anim-bg-08); }
 }
 .msg--highlight { animation: highlight-pulse 1s ease 2; }
 
@@ -1258,7 +1258,7 @@ textarea.input {
 
 @keyframes stat-border-glow {
   0%, 100% { border-color: var(--border-mid); }
-  50%       { border-color: rgba(0,230,118,0.2); }
+  50%       { border-color: var(--border-accent); }
 }
 
 .stat-card {
@@ -1345,9 +1345,9 @@ textarea.input {
 .feed-log__text  { color: var(--text-secondary); }
 
 .feed-log__tag--ok     { background: rgba(0,230,118,0.12);  color: var(--accent); }
-.feed-log__tag--info   { background: rgba(0,180,216,0.12);  color: var(--info); }
+.feed-log__tag--info   { background: var(--info-muted);  color: var(--info); }
 .feed-log__tag--sync   { background: rgba(255,179,0,0.10);  color: var(--warning); }
-.feed-log__tag--auth   { background: rgba(100,100,220,0.12); color: #8888ff; }
+.feed-log__tag--auth   { background: var(--purple-muted); color: var(--purple); }
 .feed-log__tag--error  { background: rgba(255,61,61,0.10);  color: var(--error); }
 
 
@@ -1375,7 +1375,7 @@ textarea.input {
 
 .info-panel--open {
   transform: translateX(0);
-  box-shadow: -4px 0 24px rgba(0,0,0,0.6);
+  box-shadow: -4px 0 24px var(--shadow-overlay);
 }
 
 .info-panel__section {
@@ -1423,7 +1423,7 @@ textarea.input {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: var(--overlay-bg);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -1511,7 +1511,7 @@ textarea.input {
   color: var(--error);
   padding: var(--sp-2) var(--sp-3);
   background: var(--danger-muted);
-  border: 1px solid rgba(255,61,61,0.2);
+  border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
