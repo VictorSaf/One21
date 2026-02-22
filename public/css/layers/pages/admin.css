@@ -615,6 +615,12 @@
 
   .inline-select:focus { border-color: var(--border-accent); }
 
+  /* ── Table cell utilities ── */
+  .td-meta  { color: var(--text-secondary); font-size: var(--font-xs); }
+  .td-mono  { font-family: var(--font-mono); color: var(--text-secondary); }
+  .u-dim    { opacity: 0.6; }
+  .td-empty { color: var(--text-tertiary); }
+
   /* -- Empty state -- */
   .empty-state {
     text-align: center;

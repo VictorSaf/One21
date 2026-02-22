@@ -84,7 +84,7 @@
         <div class="admin-section__header">
           <span class="admin-section__title">Recent_Activity</span>
           <button class="t-btn t-btn--accent" onclick="loadOverview()">
-            <svg style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5;" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <svg class="icon-svg icon-svg--xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             Refresh
           </button>
         </div>
@@ -146,7 +146,7 @@
 
       <div class="admin-toolbar">
         <button class="t-btn t-btn--accent t-btn--lg" onclick="generateInvite()">
-          <svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg class="icon-svg icon-svg--xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Generate_New_Code
         </button>
       </div>
@@ -326,8 +326,8 @@ async function loadOverview() {
         <span class="td-secondary">@${u.username}</span>
       </td>
       <td><span class="t-badge t-badge--${u.role}">${u.role}</span></td>
-      <td style="color:var(--text-secondary);font-size:var(--font-xs);">${formatTime(u.last_seen)}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${u.message_count}</td>
+      <td class="td-meta">${formatTime(u.last_seen)}</td>
+      <td class="td-mono">${u.message_count}</td>
     </tr>`).join('');
 }
 
@@ -347,7 +347,7 @@ function renderUsers(users) {
       <td>
         <span class="td-primary">${u.display_name}</span>
         <span class="td-secondary">@${u.username}</span>
-        ${u.invited_by_name ? `<span class="td-secondary" style="opacity:0.6;">invited by @${u.invited_by_name}</span>` : ''}
+        ${u.invited_by_name ? `<span class="td-secondary u-dim">invited by @${u.invited_by_name}</span>` : ''}
       </td>
       <td>
         ${u.id === me.id
@@ -365,8 +365,8 @@ function renderUsers(users) {
           ${u.is_online ? 'Online' : 'Offline'}
         </span>
       </td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${u.message_count}</td>
-      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${formatDate(u.created_at)}</td>
+      <td class="td-mono">${u.message_count}</td>
+      <td class="td-meta">${formatDate(u.created_at)}</td>
       <td>
         ${u.id !== me.id ? `<button class="t-btn t-btn--accent" onclick="editDisplayName(${u.id}, '${u.display_name.replace(/'/g, "\\'")}')">Edit_Name</button>` : '—'}
       </td>
@@ -401,11 +401,11 @@ async function loadInvites() {
     : data.invites.map(inv => `
     <tr>
       <td><span class="invite-code" onclick="copyCode('${inv.code}')" title="Click to copy">${inv.code}</span></td>
-      <td style="color:var(--text-secondary);font-size:var(--font-xs);">${inv.created_by_name || '—'}</td>
+      <td class="td-meta">${inv.created_by_name || '—'}</td>
       <td>${inv.used_by_name
         ? `<span class="td-primary">${inv.used_by_display}</span><span class="td-secondary">@${inv.used_by_name}</span>`
-        : '<span style="color:var(--text-tertiary)">—</span>'}</td>
-      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${inv.expires_at ? formatDate(inv.expires_at) : 'No_Expiry'}</td>
+        : '<span class="td-empty">—</span>'}</td>
+      <td class="td-meta">${inv.expires_at ? formatDate(inv.expires_at) : 'No_Expiry'}</td>
       <td>${inv.used_by
         ? '<span class="t-badge t-badge--used">✓ Claimed</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
@@ -451,9 +451,9 @@ function renderRooms(rooms) {
         ${r.description ? `<span class="td-secondary">${r.description}</span>` : ''}
       </td>
       <td><span class="t-badge t-badge--type">${typeLabel[r.type]||r.type}</span></td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.member_count}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.message_count}</td>
-      <td style="font-size:var(--font-xs);color:var(--text-secondary);">${r.last_message ? formatTime(r.last_message_at) : '—'}</td>
+      <td class="td-mono">${r.member_count}</td>
+      <td class="td-mono">${r.message_count}</td>
+      <td class="td-meta">${r.last_message ? formatTime(r.last_message_at) : '—'}</td>
       <td>${r.is_archived
         ? '<span class="t-badge t-badge--archived">Archived</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
@@ -474,8 +474,8 @@ async function loadExport() {
     <tr>
       <td><span class="td-primary">${r.name}</span></td>
       <td><span class="t-badge t-badge--type">${r.type}</span></td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.message_count}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${r.member_count}</td>
+      <td class="td-mono">${r.message_count}</td>
+      <td class="td-mono">${r.member_count}</td>
       <td>
         <a href="/api/admin/export/${r.id}" download
            onclick="addAuthHeader(event, ${r.id})"

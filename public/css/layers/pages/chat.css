@@ -16,4 +16,7 @@
     z-index: calc(var(--z-overlay) - 1);
   }
   .info-panel-backdrop.visible { display: block; }
+
+  /* ── Utility ── */
+  .u-flex-center { display: flex; align-items: center; gap: var(--sp-2); }
 }
