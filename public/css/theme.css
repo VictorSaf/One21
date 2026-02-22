@@ -48,6 +48,30 @@
   --danger-muted:  rgba(255,61,61,0.08);
   --warning-muted: rgba(255,179,0,0.08);
 
+  /* ─── Extended semantic ─── */
+  --danger-border:       rgba(255,61,61,0.2);
+  --danger-border-mid:   rgba(255,61,61,0.35);
+  --danger-hover:        rgba(255,61,61,0.07);
+  --danger-focus:        rgba(255,61,61,0.4);
+  --danger-focus-shadow: rgba(255,61,61,0.08);
+
+  /* ─── Purple (auth/system events) ─── */
+  --purple:              #8888ff;
+  --purple-muted:        rgba(100,100,220,0.12);
+
+  /* ─── Info extended ─── */
+  --info-muted:          rgba(0,180,216,0.12);
+
+  /* ─── Overlay ─── */
+  --overlay-bg:          rgba(0,0,0,0.75);
+
+  /* ─── Accent animation helpers ─── */
+  --accent-anim-glow-0:  rgba(0,230,118,0);
+  --accent-anim-glow-35: rgba(0,230,118,0.35);
+  --accent-anim-bg-05:   rgba(0,230,118,0.05);
+  --accent-anim-bg-08:   rgba(0,230,118,0.08);
+  --accent-anim-bg-30:   rgba(0,230,118,0.3);
+
   /* ─── Typography ─── */
   --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   --font-display: 'Barlow Condensed', 'Impact', sans-serif;
