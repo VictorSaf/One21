@@ -1,0 +1,19 @@
+/* ============================================================
+   ONE21 — Chat Page Specific Styles
+   @layer pages — override-uri specifice paginii /chat.html
+   ============================================================ */
+
+@layer pages {
+  /* Page-specific overrides */
+  .nav__logout { display: none; } /* hidden; logout is in sidebar footer */
+
+  /* Overlay for info-panel on mobile */
+  .info-panel-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: calc(var(--z-overlay) - 1);
+  }
+  .info-panel-backdrop.visible { display: block; }
+}
