@@ -68,8 +68,41 @@
     --accent-anim-glow-0:  rgba(0,230,118,0);
     --accent-anim-glow-35: rgba(0,230,118,0.35);
     --accent-anim-bg-05:   rgba(0,230,118,0.05);
+    --accent-anim-bg-06:   rgba(0,230,118,0.06);
     --accent-anim-bg-08:   rgba(0,230,118,0.08);
+    --accent-anim-bg-12:   rgba(0,230,118,0.12);
     --accent-anim-bg-30:   rgba(0,230,118,0.3);
+
+    /* ─── Accent border variants ─── */
+    --accent-border-25:    rgba(0,230,118,0.25);
+    --accent-border-40:    rgba(0,230,118,0.4);
+    --accent-border-60:    rgba(0,230,118,0.6);
+
+    /* ─── Body background gradients ─── */
+    --accent-bg-gradient-1: rgba(0,230,118,0.025);
+    --accent-bg-gradient-2: rgba(0,230,118,0.014);
+    --info-bg-gradient:     rgba(0,180,216,0.009);
+
+    /* ─── Scanline & selection ─── */
+    --scanline-color:      rgba(0,0,0,0.025);
+    --selection-bg:        rgba(0,230,118,0.18);
+
+    /* ─── Purple extended ─── */
+    --purple-light:        #a78bfa;
+    --purple-border:       rgba(167,139,250,0.25);
+    --purple-bg:           rgba(167,139,250,0.06);
+
+    /* ─── Info extended borders/bg ─── */
+    --info-border:         rgba(0,180,216,0.25);
+    --info-bg:             rgba(0,180,216,0.05);
+
+    /* ─── Danger extended ─── */
+    --danger-border-25:    rgba(255,61,61,0.25);
+    --danger-border-50:    rgba(255,61,61,0.5);
+    --danger-bg:           rgba(255,61,61,0.06);
+
+    /* ─── Overlay extended ─── */
+    --overlay-bg-50:       rgba(0,0,0,0.5);
 
     /* ─── Typography ─── */
     --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;

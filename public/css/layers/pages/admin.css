@@ -46,7 +46,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(0,230,118,0.5);
+    border: 1px solid var(--border-accent-strong);
     padding: 2px 7px;
     color: var(--accent);
     font-family: var(--font-mono);
@@ -135,7 +135,7 @@
     top: 0; left: 0;
     width: 25%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0,230,118,0.06), transparent);
+    background: linear-gradient(90deg, transparent, var(--accent-anim-bg-06), transparent);
     animation: nav-scan 7s ease-in-out infinite;
     pointer-events: none;
   }
@@ -206,13 +206,13 @@
   .admin-nav__footer-btn:hover svg { transform: rotate(90deg); }
 
   .admin-nav__footer-btn--danger {
-    border-color: rgba(255,61,61,0.2);
+    border-color: var(--danger-border);
     color: var(--error);
   }
 
   .admin-nav__footer-btn--danger:hover {
     background: var(--danger-muted);
-    border-color: rgba(255,61,61,0.4);
+    border-color: var(--danger-focus);
     color: var(--error);
   }
 
@@ -471,24 +471,24 @@
   }
 
   .t-badge--admin  {
-    color: #a78bfa;
-    border-color: rgba(167,139,250,0.25);
-    background: rgba(167,139,250,0.06);
+    color: var(--purple-light);
+    border-color: var(--purple-border);
+    background: var(--purple-bg);
   }
   .t-badge--user   {
     color: var(--accent);
-    border-color: rgba(0,230,118,0.25);
-    background: rgba(0,230,118,0.05);
+    border-color: var(--accent-border-25);
+    background: var(--accent-anim-bg-05);
   }
   .t-badge--agent  {
     color: var(--info);
-    border-color: rgba(0,180,216,0.25);
-    background: rgba(0,180,216,0.05);
+    border-color: var(--info-border);
+    background: var(--info-bg);
   }
   .t-badge--active {
     color: var(--accent);
-    border-color: rgba(0,230,118,0.25);
-    background: rgba(0,230,118,0.05);
+    border-color: var(--accent-border-25);
+    background: var(--accent-anim-bg-05);
   }
   .t-badge--used   {
     color: var(--text-secondary);
@@ -525,7 +525,7 @@
     flex-shrink: 0;
   }
 
-  .t-status--online .t-status__dot { background: var(--online); box-shadow: 0 0 5px rgba(0,230,118,0.5); }
+  .t-status--online .t-status__dot { background: var(--online); box-shadow: 0 0 5px var(--border-accent-strong); }
   .t-status--online { color: var(--text-primary); }
   .t-status--offline { color: var(--text-secondary); }
 
@@ -538,15 +538,15 @@
     color: var(--accent);
     cursor: pointer;
     padding: 2px 6px;
-    border: 1px solid rgba(0,230,118,0.2);
+    border: 1px solid var(--border-accent);
     border-radius: var(--radius-sm);
     display: inline-block;
     transition: all var(--transition-fast);
   }
 
   .invite-code:hover {
-    background: rgba(0,230,118,0.06);
-    border-color: rgba(0,230,118,0.4);
+    background: var(--accent-anim-bg-06);
+    border-color: var(--accent-border-40);
   }
 
   /* -- Action buttons -- */
@@ -576,21 +576,21 @@
   }
 
   .t-btn--accent {
-    border-color: rgba(0,230,118,0.3);
+    border-color: var(--accent-anim-bg-30);
     color: var(--accent);
   }
   .t-btn--accent:hover {
-    background: rgba(0,230,118,0.07);
-    border-color: rgba(0,230,118,0.6);
+    background: var(--accent-muted);
+    border-color: var(--accent-border-60);
   }
 
   .t-btn--danger {
-    border-color: rgba(255,61,61,0.25);
+    border-color: var(--danger-border-25);
     color: var(--error);
   }
   .t-btn--danger:hover {
     background: var(--danger-muted);
-    border-color: rgba(255,61,61,0.5);
+    border-color: var(--danger-border-50);
   }
 
   .t-btn--lg {
@@ -647,7 +647,7 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--accent);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0,230,118,0.05);
+    box-shadow: 0 8px 24px var(--overlay-bg-50), 0 0 20px var(--accent-anim-bg-05);
     z-index: var(--z-toast);
     animation: toastIn 0.2s ease;
   }
