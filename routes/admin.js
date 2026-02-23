@@ -205,6 +205,9 @@ router.get('/room-requests', (req, res) => {
 router.put('/room-requests/:id', (req, res) => {
   const db = getDb();
   const { status, admin_note, member_ids } = req.body;
+  if (Array.isArray(member_ids) && !member_ids.every(id => Number.isInteger(id) && id > 0)) {
+    return res.status(400).json({ error: 'member_ids must be an array of positive integers' });
+  }
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ error: 'status must be approved or rejected' });
   }
