@@ -3,6 +3,7 @@ const { z } = require('zod');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
 const { getPermission } = require('../middleware/permissions');
+const { addDocument } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -89,6 +90,19 @@ router.post('/:id/messages', (req, res) => {
   const r = db.prepare(
     'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
   ).run(roomId, req.user.id, text, type || 'text', reply_to || null);
+
+  // Vectorize message (fire-and-forget)
+  const msgId = r.lastInsertRowid;
+  const senderName = req.user.display_name || req.user.username;
+  setImmediate(() => {
+    addDocument('messages', text, {
+      message_id: msgId,
+      room_id: roomId,
+      sender_id: req.user.id,
+      sender: senderName,
+      ts: new Date().toISOString(),
+    }).catch(() => {});
+  });
 
   const message = db.prepare(`
     SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
