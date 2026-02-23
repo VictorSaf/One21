@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
+const { checkPermission } = require('../middleware/permissions');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -47,7 +48,7 @@ const upload = multer({
 });
 
 // POST /api/rooms/:id/upload
-router.post('/:id/upload', upload.single('file'), (req, res) => {
+router.post('/:id/upload', checkPermission('can_send_files'), upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const db = getDb();
