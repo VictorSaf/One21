@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const { getDb } = require('../db/init');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { getAllPermissions } = require('../middleware/permissions');
+const { logEvent } = require('../lib/events');
+const { search } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(authMiddleware, requireAdmin);
@@ -88,6 +90,11 @@ router.post('/invites', (req, res) => {
     : '{}';
   db.prepare('INSERT INTO invitations (code, created_by, expires_at, note, default_permissions) VALUES (?, ?, ?, ?, ?)')
     .run(code, req.user.id, expiresAt, note, defaultPermissions);
+  logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
+    admin_id: req.user.id,
+    code,
+    note,
+  });
   res.json({ code, expires_at: expiresAt, note, default_permissions: req.body.default_permissions || {} });
 });
 
@@ -186,6 +193,10 @@ router.put('/users/:id/permissions', (req, res) => {
   })();
 
   const perms = getAllPermissions(userId);
+  logEvent('permissions_changed', `Admin ${req.user.username} updated permissions for user ${userId}`, {
+    admin_id: req.user.id,
+    target_user_id: userId,
+  });
   res.json({ permissions: perms });
 });
 
@@ -239,7 +250,35 @@ router.put('/room-requests/:id', (req, res) => {
     room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
   }
 
+  logEvent('room_request_reviewed', `Admin ${req.user.username} ${status} room request "${request.name}"`, {
+    admin_id: req.user.id,
+    request_id: parseInt(req.params.id),
+    status,
+  });
   res.json({ ok: true, status, room });
+});
+
+// GET /api/admin/search?q=...&collection=all|messages|admin_events
+router.get('/search', async (req, res) => {
+  const q = req.query.q;
+  const collection = req.query.collection || 'all';
+  if (!q || q.trim().length < 2) return res.status(400).json({ error: 'q must be at least 2 characters' });
+
+  try {
+    let results = [];
+    if (collection === 'all' || collection === 'messages') {
+      const msgs = await search('messages', q, 8);
+      results.push(...msgs.map(r => ({ ...r, collection: 'messages' })));
+    }
+    if (collection === 'all' || collection === 'admin_events') {
+      const evts = await search('admin_events', q, 5);
+      results.push(...evts.map(r => ({ ...r, collection: 'admin_events' })));
+    }
+    results.sort((a, b) => b.score - a.score);
+    res.json({ results: results.slice(0, 10) });
+  } catch (err) {
+    res.status(500).json({ error: 'Search failed', detail: err.message });
+  }
 });
 
 module.exports = router;
