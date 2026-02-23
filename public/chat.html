@@ -41,7 +41,7 @@
       <!-- LIVE_NODES section label -->
       <div class="sidebar__section-label">
         <span>Live_Nodes</span>
-        <button id="newRoomBtn" title="Conversatie noua">+</button>
+        <button id="newRoomBtn" title="Request_Room">+</button>
       </div>
 
       <!-- Rooms list (populated by chat.js) -->
@@ -322,6 +322,31 @@
       <div class="modal__footer">
         <button class="btn btn--secondary" id="cancelEditRoom">ABORT</button>
         <button class="btn btn--primary" id="submitEditRoom">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room Request Modal -->
+  <div id="modalRoomRequest" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">Request_New_Room</h3>
+        <button class="btn btn--icon btn--ghost modal__close" id="closeRoomRequest">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label class="modal__label">Node_ID (required)</label>
+          <input type="text" id="reqRoomName" class="modal__input" placeholder="ex: ALPHA_PROTOCOL" maxlength="80"/>
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Description (optional)</label>
+          <textarea id="reqRoomDesc" class="modal__textarea" placeholder="Node purpose..." rows="3" maxlength="200"></textarea>
+        </div>
+        <p id="roomRequestError" class="modal__error hidden"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" id="cancelRoomRequest">ABORT</button>
+        <button class="btn btn--primary" id="submitRoomRequest">SUBMIT_REQUEST</button>
       </div>
     </div>
   </div>
