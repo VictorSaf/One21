@@ -38,9 +38,10 @@ function getAllPermissions(userId) {
  */
 function checkPermission(permission, defaultAllowed = true) {
   return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     if (req.user.role === 'admin') return next();
     const value = getPermission(req.user.id, permission);
-    const allowed = value !== null ? value : defaultAllowed;
+    const allowed = value !== null ? Boolean(value) : Boolean(defaultAllowed);
     if (!allowed) return res.status(403).json({ error: `Permission denied: ${permission}` });
     next();
   };
