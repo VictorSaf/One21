@@ -87,11 +87,35 @@ function getDb() {
       UNIQUE(user_id, endpoint)
     );
 
+    CREATE TABLE IF NOT EXISTS user_permissions (
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      permission TEXT NOT NULL,
+      value      TEXT NOT NULL DEFAULT 'true',
+      granted_by INTEGER REFERENCES users(id),
+      granted_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, permission)
+    );
+
+    CREATE TABLE IF NOT EXISTS room_requests (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      requested_by      INTEGER NOT NULL REFERENCES users(id),
+      name              TEXT NOT NULL,
+      description       TEXT,
+      requested_members TEXT DEFAULT '[]',
+      status            TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+      reviewed_by       INTEGER REFERENCES users(id),
+      reviewed_at       TEXT,
+      admin_note        TEXT,
+      created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(code);
     CREATE INDEX IF NOT EXISTS idx_message_reads_user ON message_reads(user_id);
     CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_room_requests_status  ON room_requests(status);
   `);
 
   // Run migrations for existing DBs
@@ -117,6 +141,8 @@ function migrate(db) {
   safeAdd('messages', 'file_url', 'TEXT');
   safeAdd('messages', 'file_name', 'TEXT');
   safeAdd('messages', 'is_edited', 'INTEGER NOT NULL DEFAULT 0');
+  safeAdd('invitations', 'default_permissions', "TEXT DEFAULT '{}'");
+  safeAdd('invitations', 'note', 'TEXT');
 }
 
 function seed(db) {
