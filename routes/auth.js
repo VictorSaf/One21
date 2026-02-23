@@ -44,16 +44,28 @@ router.post('/register', (req, res) => {
   const passwordHash = bcrypt.hashSync(password, 12);
   const displayName = display_name || username;
 
-  const createUser = db.transaction(() => {
+  const userId = db.transaction(() => {
     const r = db.prepare(
       `INSERT INTO users (username, display_name, password_hash, role, invited_by, invite_code)
        VALUES (?, ?, ?, 'user', ?, ?)`
     ).run(username, displayName, passwordHash, invite.created_by, invite.code);
     db.prepare('UPDATE invitations SET used_by = ? WHERE id = ?').run(r.lastInsertRowid, invite.id);
-    return r.lastInsertRowid;
-  });
 
-  const userId = createUser();
+    // Apply default_permissions from invite
+    if (invite.default_permissions && invite.default_permissions !== '{}') {
+      let perms = {};
+      try { perms = JSON.parse(invite.default_permissions); } catch {}
+      const upsert = db.prepare(`
+        INSERT INTO user_permissions (user_id, permission, value, granted_by)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id, permission) DO UPDATE SET value = excluded.value
+      `);
+      for (const [key, val] of Object.entries(perms)) {
+        upsert.run(r.lastInsertRowid, key, JSON.stringify(val), invite.created_by);
+      }
+    }
+    return r.lastInsertRowid;
+  })();
   const token = jwt.sign({ id: userId, username, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: { id: userId, username, display_name: displayName, role: 'user' } });
 });

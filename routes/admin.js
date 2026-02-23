@@ -82,8 +82,13 @@ router.post('/invites', (req, res) => {
   const db = getDb();
   const code = crypto.randomUUID().slice(0, 8).toUpperCase();
   const expiresAt = req.body.expires_at || null;
-  db.prepare('INSERT INTO invitations (code, created_by, expires_at) VALUES (?, ?, ?)').run(code, req.user.id, expiresAt);
-  res.json({ code, expires_at: expiresAt });
+  const note = req.body.note || null;
+  const defaultPermissions = req.body.default_permissions
+    ? JSON.stringify(req.body.default_permissions)
+    : '{}';
+  db.prepare('INSERT INTO invitations (code, created_by, expires_at, note, default_permissions) VALUES (?, ?, ?, ?, ?)')
+    .run(code, req.user.id, expiresAt, note, defaultPermissions);
+  res.json({ code, expires_at: expiresAt, note, default_permissions: req.body.default_permissions || {} });
 });
 
 // DELETE /api/admin/invites/:id — revoke unused invite
