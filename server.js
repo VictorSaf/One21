@@ -19,6 +19,7 @@ const agentRoutes   = require('./routes/agent');
 const pushRoutes    = require('./routes/push');
 const { notifyUser } = require('./routes/push');
 const roomRequestsRouter = require('./routes/room-requests');
+const { addDocument } = require('./lib/vectorstore');
 
 const PORT = process.env.PORT || 3737;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3737').split(',');
@@ -184,6 +185,17 @@ io.on('connection', (socket) => {
     const result = db.prepare(
       'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
     ).run(room_id, socket.user.id, text.trim(), type || 'text', reply_to || null);
+
+    // Vectorize message (fire-and-forget)
+    setImmediate(() => {
+      addDocument('messages', text.trim(), {
+        message_id: result.lastInsertRowid,
+        room_id,
+        sender_id: socket.user.id,
+        sender: socket.user.display_name || socket.user.username,
+        ts: new Date().toISOString(),
+      }).catch(() => {});
+    });
 
     const message = db.prepare(`
       SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
