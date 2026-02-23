@@ -508,7 +508,7 @@ async function loadInvites() {
     <tr>
       <td><span class="invite-code" onclick="copyCode('${inv.code}')" title="Click to copy">${inv.code}</span></td>
       <td class="td-meta">${inv.created_by_name || '—'}</td>
-      <td class="td-meta">${inv.created_at ? formatDate(inv.created_at) : '—'}</td>
+      <td class="td-meta" title="${inv.created_at || ''}">${inv.created_at ? formatDate(inv.created_at) : '—'}</td>
       <td>${inv.used_by_name
         ? `<span class="td-primary">${inv.used_by_display}</span><span class="td-secondary">@${inv.used_by_name}</span>`
         : '<span class="td-empty">—</span>'}</td>
