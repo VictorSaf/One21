@@ -44,7 +44,7 @@
     </button>
     <button class="admin-nav__item" data-page="room-requests">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Room_Requests <span class="nav-badge" id="requestsBadge" style="display:none">0</span>
+      Room_Requests <span class="nav-badge u-hidden" id="requestsBadge">0</span>
     </button>
     <button class="admin-nav__item" data-page="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -208,8 +208,8 @@
         <div class="admin-page-title">Neural_Search</div>
       </div>
       <div class="admin-toolbar">
-        <input class="admin-toolbar__input" type="text" id="searchQuery"
-          placeholder="QUERY_NEURAL_NETWORK..." onkeydown="if(event.key==='Enter') runSearch()" style="flex:1">
+        <input class="admin-toolbar__input admin-toolbar__input--grow" type="text" id="searchQuery"
+          placeholder="QUERY_NEURAL_NETWORK..." onkeydown="if(event.key==='Enter') runSearch()">
         <select id="searchCollection" class="inline-select">
           <option value="all">All</option>
           <option value="messages">Messages</option>
@@ -316,16 +316,16 @@
             <option value="custom">Custom</option>
           </select>
         </div>
-        <div id="inviteCustomPerms" style="margin-top:12px">
+        <div id="inviteCustomPerms" class="invite-custom-perms">
           <div class="perm-row">
             <span class="perm-row__label">can_send_files</span>
             <input type="checkbox" class="perm-toggle" id="inv_files" checked>
           </div>
           <div id="inv_agents_section"></div>
         </div>
-        <div style="margin-top:16px">
-          <div class="perm-row__label" style="margin-bottom:6px">Note (optional)</div>
-          <input type="text" id="inviteNote" placeholder="e.g. For marketing team" class="admin-toolbar__input" style="width:100%;box-sizing:border-box">
+        <div class="invite-note-block">
+          <div class="perm-row__label invite-note-label">Note (optional)</div>
+          <input type="text" id="inviteNote" placeholder="e.g. For marketing team" class="admin-toolbar__input invite-note-input">
         </div>
       </div>
       <div class="modal__footer">
@@ -448,7 +448,7 @@ async function loadUsers() {
 function renderUsers(users) {
   const me = Auth.getUser();
   document.getElementById('usersBody').innerHTML = users.map(u => `
-    <tr onclick="openPermsPanel(${u.id}, '${u.username}')" style="cursor:pointer">
+    <tr onclick="openPermsPanel(${u.id}, '${u.username}')" class="u-pointer">
       <td>
         <span class="td-primary">${u.display_name}</span>
         <span class="td-secondary">@${u.username}</span>
@@ -612,6 +612,9 @@ async function openPermsPanel(userId, username) {
   document.getElementById('permsPanel').classList.add('open');
   document.getElementById('permsOverlay').classList.add('open');
 
+  // Ensure allUsers is populated (needed for agent checkboxes in renderPermsPanel)
+  if (allUsers.length === 0) await loadUsers().catch(() => {});
+
   const data = await Auth.api(`/api/admin/users/${userId}/permissions`);
   if (!data) return;
   renderPermsPanel(data.permissions);
@@ -621,21 +624,21 @@ function renderPermsPanel(p) {
   const agents = allUsers.filter(u => u.role === 'agent');
   document.getElementById('permsPanelBody').innerHTML = `
     <div>
-      <div class="admin-section__title" style="margin-bottom:12px;font-family:var(--font-mono);font-size:0.75rem;color:var(--color-accent)">FILE_PERMISSIONS</div>
+      <div class="perms-section-label perms-section-label--spaced">FILE_PERMISSIONS</div>
       <div class="perm-row">
         <span class="perm-row__label">can_send_files</span>
         <input type="checkbox" class="perm-toggle" id="perm_files" ${p.can_send_files ? 'checked' : ''}>
       </div>
     </div>
     <div>
-      <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--color-accent);margin-bottom:8px">MESSAGE_LIMITS</div>
+      <div class="perms-section-label">MESSAGE_LIMITS</div>
       <div class="perm-row">
         <span class="perm-row__label">max_messages_per_day</span>
         <input type="number" class="perm-number-input" id="perm_maxmsg" placeholder="∞" value="${p.max_messages_per_day ?? ''}">
       </div>
     </div>
     <div>
-      <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--color-accent);margin-bottom:8px">AI_ACCESS</div>
+      <div class="perms-section-label">AI_ACCESS</div>
       ${agents.length === 0 ? '<div class="u-dim">No AI agents configured.</div>' : agents.map(a => `
         <div class="perm-row">
           <span class="perm-row__label">${a.display_name}</span>
@@ -678,8 +681,8 @@ function closePermsPanel() {
 function openInviteModal() {
   const agents = allUsers.filter(u => u.role === 'agent');
   document.getElementById('inv_agents_section').innerHTML = agents.length === 0
-    ? '<div class="u-dim" style="padding:8px 0">No AI agents configured.</div>'
-    : '<div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--color-accent);margin:12px 0 8px">AI_ACCESS</div>' +
+    ? '<div class="u-dim no-agents-msg">No AI agents configured.</div>'
+    : '<div class="ai-access-label">AI_ACCESS</div>' +
       agents.map(a => `
         <div class="perm-row">
           <span class="perm-row__label">${a.display_name}</span>
@@ -730,8 +733,8 @@ async function loadRoomRequests() {
   if (!data) return;
   const pending = data.requests.filter(r => r.status === 'pending');
   const badge = document.getElementById('requestsBadge');
-  if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'inline'; }
-  else { badge.style.display = 'none'; }
+  if (pending.length > 0) { badge.textContent = pending.length; badge.classList.remove('u-hidden'); }
+  else { badge.classList.add('u-hidden'); }
 
   document.getElementById('requestsBody').innerHTML = data.requests.length === 0
     ? '<tr><td colspan="6" class="td-empty">No room requests yet.</td></tr>'
@@ -743,8 +746,8 @@ async function loadRoomRequests() {
         <td class="td-meta">${formatDate(r.created_at)}</td>
         <td><span class="badge badge--${r.status}">${r.status}</span></td>
         <td>${r.status === 'pending' ? `
-          <button class="t-btn t-btn--accent" style="margin-right:4px" onclick="approveRequest(${r.id}, ${JSON.stringify(JSON.parse(r.requested_members || '[]'))})">Approve</button>
-          <button class="t-btn" style="color:var(--color-danger)" onclick="rejectRequest(${r.id})">Reject</button>
+          <button class="t-btn t-btn--accent t-btn--approve" onclick="approveRequest(${r.id}, ${JSON.stringify(JSON.parse(r.requested_members || '[]'))})">Approve</button>
+          <button class="t-btn t-btn--reject" onclick="rejectRequest(${r.id})">Reject</button>
         ` : r.admin_note ? `<span class="u-dim">${r.admin_note}</span>` : '—'}</td>
       </tr>
     `).join('');

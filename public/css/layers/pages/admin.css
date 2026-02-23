@@ -761,6 +761,45 @@
   .badge--approved { background: var(--success-bg, rgba(0,200,100,0.15)); color: var(--online); border: 1px solid var(--success-border, rgba(0,200,100,0.3)); }
   .badge--rejected { background: var(--danger-muted); color: var(--error); border: 1px solid var(--danger-border); }
 
+  /* ── Utility classes ── */
+  .u-pointer { cursor: pointer; }
+  .u-hidden  { display: none; }
+
+  /* ── Perms panel section headings (used in renderPermsPanel JS) ── */
+  .perms-section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .perms-section-label--spaced {
+    margin-bottom: 12px;
+  }
+
+  /* ── Invite modal layout helpers ── */
+  .invite-custom-perms { margin-top: 12px; }
+  .invite-note-block   { margin-top: 16px; }
+  .invite-note-label   { margin-bottom: 6px; }
+  .invite-note-input   { width: 100%; box-sizing: border-box; }
+
+  /* ── No-agents message in invite/perms panels ── */
+  .no-agents-msg { padding: 8px 0; }
+
+  /* ── AI_ACCESS section heading inside invite panel ── */
+  .ai-access-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin: 12px 0 8px;
+  }
+
+  /* ── Search input that should grow to fill toolbar ── */
+  .admin-toolbar__input--grow { flex: 1; }
+
+  /* ── Room-request action buttons ── */
+  .t-btn--approve { margin-right: 4px; }
+  .t-btn--reject  { color: var(--danger); }
+
   /* ── Neural Search results ── */
   .search-result {
     padding: var(--sp-4); border-bottom: 1px solid var(--border-dim);
