@@ -98,12 +98,12 @@ function getDb() {
 
     CREATE TABLE IF NOT EXISTS room_requests (
       id                INTEGER PRIMARY KEY AUTOINCREMENT,
-      requested_by      INTEGER NOT NULL REFERENCES users(id),
+      requested_by      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name              TEXT NOT NULL,
       description       TEXT,
       requested_members TEXT DEFAULT '[]',
       status            TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
-      reviewed_by       INTEGER REFERENCES users(id),
+      reviewed_by       INTEGER REFERENCES users(id) ON DELETE SET NULL,
       reviewed_at       TEXT,
       admin_note        TEXT,
       created_at        TEXT NOT NULL DEFAULT (datetime('now'))
