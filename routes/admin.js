@@ -189,4 +189,54 @@ router.put('/users/:id/permissions', (req, res) => {
   res.json({ permissions: perms });
 });
 
+// GET /api/admin/room-requests
+router.get('/room-requests', (req, res) => {
+  const db = getDb();
+  const requests = db.prepare(`
+    SELECT rr.*, u.username as requester_name, u.display_name as requester_display
+    FROM room_requests rr
+    JOIN users u ON rr.requested_by = u.id
+    ORDER BY rr.created_at DESC
+  `).all();
+  res.json({ requests });
+});
+
+// PUT /api/admin/room-requests/:id — approve or reject
+router.put('/room-requests/:id', (req, res) => {
+  const db = getDb();
+  const { status, admin_note, member_ids } = req.body;
+  if (!['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ error: 'status must be approved or rejected' });
+  }
+
+  const request = db.prepare('SELECT * FROM room_requests WHERE id = ?').get(req.params.id);
+  if (!request) return res.status(404).json({ error: 'Request not found' });
+  if (request.status !== 'pending') return res.status(400).json({ error: 'Request already reviewed' });
+
+  db.prepare(`
+    UPDATE room_requests SET status = ?, reviewed_by = ?, reviewed_at = datetime('now'), admin_note = ?
+    WHERE id = ?
+  `).run(status, req.user.id, admin_note || null, req.params.id);
+
+  let room = null;
+  if (status === 'approved') {
+    const members = Array.isArray(member_ids) ? member_ids : JSON.parse(request.requested_members || '[]');
+    const roomId = db.transaction(() => {
+      const r = db.prepare(
+        'INSERT INTO rooms (name, description, type, created_by) VALUES (?, ?, ?, ?)'
+      ).run(request.name, request.description || null, 'group', req.user.id);
+      const id = r.lastInsertRowid;
+      db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)').run(id, request.requested_by, 'owner');
+      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)');
+      for (const uid of members) {
+        if (uid !== request.requested_by) add.run(id, uid, 'member');
+      }
+      return id;
+    })();
+    room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  }
+
+  res.json({ ok: true, status, room });
+});
+
 module.exports = router;

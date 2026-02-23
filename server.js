@@ -18,6 +18,7 @@ const fileRoutes    = require('./routes/files');
 const agentRoutes   = require('./routes/agent');
 const pushRoutes    = require('./routes/push');
 const { notifyUser } = require('./routes/push');
+const roomRequestsRouter = require('./routes/room-requests');
 
 const PORT = process.env.PORT || 3737;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3737').split(',');
@@ -85,6 +86,7 @@ app.use('/api/agent', agentRoutes);      // agent first — no JWT auth
 app.use('/api/files', fileRoutes);       // file download — auth inside route
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/room-requests', roomRequestsRouter);
 app.use('/api/push', pushRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/rooms', messageRoutes);
