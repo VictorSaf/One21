@@ -18,6 +18,9 @@ const fileRoutes    = require('./routes/files');
 const agentRoutes   = require('./routes/agent');
 const pushRoutes    = require('./routes/push');
 const { notifyUser } = require('./routes/push');
+const roomRequestsRouter = require('./routes/room-requests');
+const { addDocument } = require('./lib/vectorstore');
+const { getPermission } = require('./middleware/permissions');
 
 const PORT = process.env.PORT || 3737;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3737').split(',');
@@ -85,6 +88,7 @@ app.use('/api/agent', agentRoutes);      // agent first — no JWT auth
 app.use('/api/files', fileRoutes);       // file download — auth inside route
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/room-requests', roomRequestsRouter);
 app.use('/api/push', pushRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/rooms', messageRoutes);
@@ -179,9 +183,49 @@ io.on('connection', (socket) => {
     ).get(room_id, socket.user.id);
     if (!membership) return;
 
+    // Check max_messages_per_day
+    if (socket.user.role !== 'admin') {
+      const maxPerDay = getPermission(socket.user.id, 'max_messages_per_day');
+      if (maxPerDay !== null) {
+        const todayCount = db.prepare(
+          "SELECT COUNT(*) as n FROM messages WHERE sender_id = ? AND created_at >= date('now')"
+        ).get(socket.user.id).n;
+        if (todayCount >= maxPerDay) {
+          socket.emit('error', { message: `Daily message limit of ${maxPerDay} reached.` });
+          return;
+        }
+      }
+    }
+
+    // Check allowed_agents — if room has agent members, user must have access
+    if (socket.user.role !== 'admin') {
+      const agentMembers = db.prepare(
+        "SELECT u.id FROM room_members rm JOIN users u ON rm.user_id = u.id WHERE rm.room_id = ? AND u.role = 'agent'"
+      ).all(room_id);
+      if (agentMembers.length > 0) {
+        const allowedAgents = getPermission(socket.user.id, 'allowed_agents') || [];
+        const hasAccess = agentMembers.some(m => allowedAgents.includes(m.id));
+        if (!hasAccess) {
+          socket.emit('error', { message: 'You do not have access to AI agents in this room.' });
+          return;
+        }
+      }
+    }
+
     const result = db.prepare(
       'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
     ).run(room_id, socket.user.id, text.trim(), type || 'text', reply_to || null);
+
+    // Vectorize message (fire-and-forget)
+    setImmediate(() => {
+      addDocument('messages', text.trim(), {
+        message_id: result.lastInsertRowid,
+        room_id,
+        sender_id: socket.user.id,
+        sender: socket.user.display_name || socket.user.username,
+        ts: new Date().toISOString(),
+      }).catch(() => {});
+    });
 
     const message = db.prepare(`
       SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role

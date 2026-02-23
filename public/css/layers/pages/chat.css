@@ -19,4 +19,22 @@
 
   /* ── Utility ── */
   .u-flex-center { display: flex; align-items: center; gap: var(--sp-2); }
+
+  /* ── Room request modal textarea ── */
+  .modal__textarea {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    padding: var(--sp-2) var(--sp-3);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    letter-spacing: 0.04em;
+    outline: none;
+    resize: vertical;
+    transition: border-color var(--transition-fast);
+    box-sizing: border-box;
+  }
+  .modal__textarea:focus { border-color: var(--border-accent); }
 }

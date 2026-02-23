@@ -42,6 +42,14 @@
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Node_Map
     </button>
+    <button class="admin-nav__item" data-page="room-requests">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Room_Requests <span class="nav-badge u-hidden" id="requestsBadge">0</span>
+    </button>
+    <button class="admin-nav__item" data-page="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Neural_Search
+    </button>
     <button class="admin-nav__item" data-page="export">
       <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
       Data_Export
@@ -145,7 +153,7 @@
       </div>
 
       <div class="admin-toolbar">
-        <button class="t-btn t-btn--accent t-btn--lg" onclick="generateInvite()">
+        <button class="t-btn t-btn--accent t-btn--lg" onclick="openInviteModal()">
           <svg class="icon-svg icon-svg--xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Generate_New_Code
         </button>
@@ -169,6 +177,50 @@
 
     </div>
 
+
+    <!-- ── ROOM REQUESTS ── -->
+    <div class="admin-page" id="page-room-requests">
+      <div class="admin-page-header">
+        <div class="admin-page-label">Pending_Review</div>
+        <div class="admin-page-title">Room_Requests</div>
+      </div>
+      <div class="admin-section">
+        <table>
+          <thead>
+            <tr>
+              <th>Requester</th>
+              <th>Room_Name</th>
+              <th>Description</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="requestsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── NEURAL SEARCH ── -->
+    <div class="admin-page" id="page-search">
+      <div class="admin-page-header">
+        <div class="admin-page-label">Semantic_Query</div>
+        <div class="admin-page-title">Neural_Search</div>
+      </div>
+      <div class="admin-toolbar">
+        <input class="admin-toolbar__input admin-toolbar__input--grow" type="text" id="searchQuery"
+          placeholder="QUERY_NEURAL_NETWORK..." onkeydown="if(event.key==='Enter') runSearch()">
+        <select id="searchCollection" class="inline-select">
+          <option value="all">All</option>
+          <option value="messages">Messages</option>
+          <option value="admin_events">Admin Events</option>
+        </select>
+        <button class="t-btn t-btn--accent" onclick="runSearch()">Search</button>
+      </div>
+      <div class="admin-section" id="searchResultsContainer">
+        <div class="u-dim">Enter a query to search semantically across all interactions.</div>
+      </div>
+    </div>
 
     <!-- ── ROOMS ── -->
     <div class="admin-page" id="page-rooms">
@@ -230,6 +282,59 @@
     </div>
 
   </main>
+
+  <!-- ── USER PERMISSIONS PANEL ── -->
+  <div class="perms-panel" id="permsPanel">
+    <div class="perms-panel__header">
+      <span class="perms-panel__title" id="permsPanelTitle">Node_Permissions</span>
+      <button class="perms-panel__close" onclick="closePermsPanel()">✕</button>
+    </div>
+    <div class="perms-panel__body" id="permsPanelBody">
+      <div class="u-dim">Select a node to view permissions.</div>
+    </div>
+    <div class="perms-panel__footer">
+      <button class="t-btn t-btn--accent" onclick="savePermissions()">Save_Permissions</button>
+      <button class="t-btn" onclick="closePermsPanel()">Cancel</button>
+    </div>
+  </div>
+  <div class="perms-overlay" id="permsOverlay" onclick="closePermsPanel()"></div>
+
+  <!-- ── INVITE WIZARD MODAL ── -->
+  <div class="modal-overlay" id="inviteModal">
+    <div class="modal">
+      <div class="modal__header">
+        <span class="modal__title">Generate_Access_Code</span>
+        <button class="modal__close" onclick="closeInviteModal()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="perm-row">
+          <span class="perm-row__label">Preset</span>
+          <select id="invitePreset" onchange="applyInvitePreset(this.value)" class="inline-select">
+            <option value="guest">Guest (no files, no AI)</option>
+            <option value="standard" selected>Standard</option>
+            <option value="ai">AI User (all agents)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="inviteCustomPerms" class="invite-custom-perms">
+          <div class="perm-row">
+            <span class="perm-row__label">can_send_files</span>
+            <input type="checkbox" class="perm-toggle" id="inv_files" checked>
+          </div>
+          <div id="inv_agents_section"></div>
+        </div>
+        <div class="invite-note-block">
+          <div class="perm-row__label invite-note-label">Note (optional)</div>
+          <input type="text" id="inviteNote" placeholder="e.g. For marketing team" class="admin-toolbar__input invite-note-input">
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="t-btn t-btn--accent" onclick="generateInviteWithPerms()">Generate_Code</button>
+        <button class="t-btn" onclick="closeInviteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -255,7 +360,7 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
 
-    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport };
+    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'room-requests': loadRoomRequests, 'search': () => {} };
     loaders[btn.dataset.page] && loaders[btn.dataset.page]();
   });
 });
@@ -343,7 +448,7 @@ async function loadUsers() {
 function renderUsers(users) {
   const me = Auth.getUser();
   document.getElementById('usersBody').innerHTML = users.map(u => `
-    <tr>
+    <tr onclick="openPermsPanel(${u.id}, '${u.username}')" class="u-pointer">
       <td>
         <span class="td-primary">${u.display_name}</span>
         <span class="td-secondary">@${u.username}</span>
@@ -495,6 +600,202 @@ async function addAuthHeader(e, roomId) {
   a.href = url; a.download = fname; a.click();
   URL.revokeObjectURL(url);
   toast(`Downloaded: ${fname}`);
+}
+
+// ── Permissions Panel ─────────────────────────────
+let currentPermUserId = null;
+
+async function openPermsPanel(userId, username) {
+  currentPermUserId = userId;
+  document.getElementById('permsPanelTitle').textContent = `Permissions: ${username}`;
+  document.getElementById('permsPanelBody').innerHTML = '<div class="u-dim">Loading...</div>';
+  document.getElementById('permsPanel').classList.add('open');
+  document.getElementById('permsOverlay').classList.add('open');
+
+  // Ensure allUsers is populated (needed for agent checkboxes in renderPermsPanel)
+  if (allUsers.length === 0) await loadUsers().catch(() => {});
+
+  const data = await Auth.api(`/api/admin/users/${userId}/permissions`);
+  if (!data) return;
+  renderPermsPanel(data.permissions);
+}
+
+function renderPermsPanel(p) {
+  const agents = allUsers.filter(u => u.role === 'agent');
+  document.getElementById('permsPanelBody').innerHTML = `
+    <div>
+      <div class="perms-section-label perms-section-label--spaced">FILE_PERMISSIONS</div>
+      <div class="perm-row">
+        <span class="perm-row__label">can_send_files</span>
+        <input type="checkbox" class="perm-toggle" id="perm_files" ${p.can_send_files ? 'checked' : ''}>
+      </div>
+    </div>
+    <div>
+      <div class="perms-section-label">MESSAGE_LIMITS</div>
+      <div class="perm-row">
+        <span class="perm-row__label">max_messages_per_day</span>
+        <input type="number" class="perm-number-input" id="perm_maxmsg" placeholder="∞" value="${p.max_messages_per_day ?? ''}">
+      </div>
+    </div>
+    <div>
+      <div class="perms-section-label">AI_ACCESS</div>
+      ${agents.length === 0 ? '<div class="u-dim">No AI agents configured.</div>' : agents.map(a => `
+        <div class="perm-row">
+          <span class="perm-row__label">${a.display_name}</span>
+          <input type="checkbox" class="perm-toggle perm-agent" data-agent-id="${a.id}"
+            ${(p.allowed_agents || []).includes(a.id) ? 'checked' : ''}>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function savePermissions() {
+  if (!currentPermUserId) return;
+  const canSendFiles = document.getElementById('perm_files').checked;
+  const maxMsg = document.getElementById('perm_maxmsg').value;
+  const agentCheckboxes = document.querySelectorAll('.perm-agent');
+  const allowedAgents = [...agentCheckboxes].filter(c => c.checked).map(c => parseInt(c.dataset.agentId));
+
+  const payload = {
+    can_send_files: canSendFiles,
+    allowed_agents: allowedAgents,
+    max_messages_per_day: maxMsg ? parseInt(maxMsg) : null,
+  };
+
+  const data = await Auth.api(`/api/admin/users/${currentPermUserId}/permissions`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (data) { toast('Permissions saved'); closePermsPanel(); }
+}
+
+function closePermsPanel() {
+  document.getElementById('permsPanel').classList.remove('open');
+  document.getElementById('permsOverlay').classList.remove('open');
+  currentPermUserId = null;
+}
+
+// ── Invite Wizard ────────────────────────────────
+function openInviteModal() {
+  const agents = allUsers.filter(u => u.role === 'agent');
+  document.getElementById('inv_agents_section').innerHTML = agents.length === 0
+    ? '<div class="u-dim no-agents-msg">No AI agents configured.</div>'
+    : '<div class="ai-access-label">AI_ACCESS</div>' +
+      agents.map(a => `
+        <div class="perm-row">
+          <span class="perm-row__label">${a.display_name}</span>
+          <input type="checkbox" class="perm-toggle inv-agent" data-agent-id="${a.id}">
+        </div>
+      `).join('');
+  document.getElementById('inviteNote').value = '';
+  document.getElementById('inviteModal').classList.add('open');
+  applyInvitePreset('standard');
+}
+
+function closeInviteModal() {
+  document.getElementById('inviteModal').classList.remove('open');
+}
+
+function applyInvitePreset(preset) {
+  const agents = document.querySelectorAll('.inv-agent');
+  const filesToggle = document.getElementById('inv_files');
+  if (preset === 'guest') { filesToggle.checked = false; agents.forEach(a => a.checked = false); }
+  else if (preset === 'standard') { filesToggle.checked = true; agents.forEach(a => a.checked = false); }
+  else if (preset === 'ai') { filesToggle.checked = true; agents.forEach(a => a.checked = true); }
+}
+
+async function generateInviteWithPerms() {
+  const canSendFiles = document.getElementById('inv_files').checked;
+  const agentCheckboxes = document.querySelectorAll('.inv-agent');
+  const allowedAgents = [...agentCheckboxes].filter(c => c.checked).map(c => parseInt(c.dataset.agentId));
+  const note = document.getElementById('inviteNote').value.trim();
+
+  const data = await Auth.api('/api/admin/invites', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note: note || null,
+      default_permissions: { can_send_files: canSendFiles, allowed_agents: allowedAgents },
+    }),
+  });
+  if (data) {
+    closeInviteModal();
+    toast(`Code generated: ${data.code}`);
+    loadInvites();
+  }
+}
+
+// ── Room Requests ─────────────────────────────────
+async function loadRoomRequests() {
+  const data = await Auth.api('/api/admin/room-requests');
+  if (!data) return;
+  const pending = data.requests.filter(r => r.status === 'pending');
+  const badge = document.getElementById('requestsBadge');
+  if (pending.length > 0) { badge.textContent = pending.length; badge.classList.remove('u-hidden'); }
+  else { badge.classList.add('u-hidden'); }
+
+  document.getElementById('requestsBody').innerHTML = data.requests.length === 0
+    ? '<tr><td colspan="6" class="td-empty">No room requests yet.</td></tr>'
+    : data.requests.map(r => `
+      <tr>
+        <td class="td-meta">${r.requester_display || r.requester_name}</td>
+        <td><strong>${r.name}</strong>${r.description ? `<div class="td-meta">${r.description}</div>` : ''}</td>
+        <td class="td-meta">${r.description || '—'}</td>
+        <td class="td-meta">${formatDate(r.created_at)}</td>
+        <td><span class="badge badge--${r.status}">${r.status}</span></td>
+        <td>${r.status === 'pending' ? `
+          <button class="t-btn t-btn--accent t-btn--approve" onclick="approveRequest(${r.id}, ${JSON.stringify(JSON.parse(r.requested_members || '[]'))})">Approve</button>
+          <button class="t-btn t-btn--reject" onclick="rejectRequest(${r.id})">Reject</button>
+        ` : r.admin_note ? `<span class="u-dim">${r.admin_note}</span>` : '—'}</td>
+      </tr>
+    `).join('');
+}
+
+async function approveRequest(id, memberIds) {
+  const data = await Auth.api(`/api/admin/room-requests/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'approved', member_ids: memberIds }),
+  });
+  if (data) { toast('Room created and approved'); loadRoomRequests(); }
+}
+
+async function rejectRequest(id) {
+  const data = await Auth.api(`/api/admin/room-requests/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'rejected' }),
+  });
+  if (data) { toast('Request rejected'); loadRoomRequests(); }
+}
+
+// ── Neural Search ────────────────────────────────
+async function runSearch() {
+  const q = document.getElementById('searchQuery').value.trim();
+  const col = document.getElementById('searchCollection').value;
+  if (!q) return;
+  document.getElementById('searchResultsContainer').innerHTML = '<div class="u-dim">Searching neural network...</div>';
+
+  const data = await Auth.api(`/api/admin/search?q=${encodeURIComponent(q)}&collection=${col}`);
+  if (!data) return;
+  if (!data.results || data.results.length === 0) {
+    document.getElementById('searchResultsContainer').innerHTML = '<div class="u-dim">No results found.</div>';
+    return;
+  }
+
+  document.getElementById('searchResultsContainer').innerHTML = data.results.map(r => `
+    <div class="search-result">
+      <div class="search-result__meta">
+        <span class="badge badge--${r.collection === 'messages' ? 'approved' : 'pending'}">${r.collection}</span>
+        ${r.metadata.sender ? `<span class="td-meta">${r.metadata.sender}</span>` : ''}
+        ${r.metadata.ts ? `<span class="td-meta">${formatTime(r.metadata.ts)}</span>` : ''}
+        <span class="search-score">score: ${(r.score * 100).toFixed(0)}%</span>
+      </div>
+      <div class="search-result__text">${r.text}</div>
+    </div>
+  `).join('');
 }
 
 // ── Init ──────────────────────────────────────────

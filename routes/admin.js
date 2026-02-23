@@ -2,6 +2,9 @@ const express = require('express');
 const crypto = require('crypto');
 const { getDb } = require('../db/init');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
+const { getAllPermissions } = require('../middleware/permissions');
+const { logEvent } = require('../lib/events');
+const { search } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(authMiddleware, requireAdmin);
@@ -81,8 +84,18 @@ router.post('/invites', (req, res) => {
   const db = getDb();
   const code = crypto.randomUUID().slice(0, 8).toUpperCase();
   const expiresAt = req.body.expires_at || null;
-  db.prepare('INSERT INTO invitations (code, created_by, expires_at) VALUES (?, ?, ?)').run(code, req.user.id, expiresAt);
-  res.json({ code, expires_at: expiresAt });
+  const note = req.body.note || null;
+  const defaultPermissions = req.body.default_permissions
+    ? JSON.stringify(req.body.default_permissions)
+    : '{}';
+  db.prepare('INSERT INTO invitations (code, created_by, expires_at, note, default_permissions) VALUES (?, ?, ?, ?, ?)')
+    .run(code, req.user.id, expiresAt, note, defaultPermissions);
+  logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
+    admin_id: req.user.id,
+    code,
+    note,
+  });
+  res.json({ code, expires_at: expiresAt, note, default_permissions: req.body.default_permissions || {} });
 });
 
 // DELETE /api/admin/invites/:id — revoke unused invite
@@ -141,6 +154,131 @@ router.get('/export/:roomId', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="one21-${room.name.replace(/\s+/g, '-')}-export.json"`);
   res.setHeader('Content-Type', 'application/json');
   res.json(exportData);
+});
+
+// GET /api/admin/users/:id/permissions
+router.get('/users/:id/permissions', (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const perms = getAllPermissions(parseInt(req.params.id));
+  res.json({ permissions: perms });
+});
+
+// PUT /api/admin/users/:id/permissions
+router.put('/users/:id/permissions', (req, res) => {
+  const db = getDb();
+  const userId = parseInt(req.params.id);
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const ALLOWED_KEYS = ['can_send_files', 'allowed_agents', 'max_messages_per_day', 'allowed_rooms'];
+  const upsert = db.prepare(`
+    INSERT INTO user_permissions (user_id, permission, value, granted_by)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, permission) DO UPDATE SET value = excluded.value, granted_by = excluded.granted_by, granted_at = datetime('now')
+  `);
+  const del = db.prepare('DELETE FROM user_permissions WHERE user_id = ? AND permission = ?');
+
+  db.transaction(() => {
+    for (const key of ALLOWED_KEYS) {
+      if (!(key in req.body)) continue;
+      const val = req.body[key];
+      if (val === null) {
+        del.run(userId, key);
+      } else {
+        upsert.run(userId, key, JSON.stringify(val), req.user.id);
+      }
+    }
+  })();
+
+  const perms = getAllPermissions(userId);
+  logEvent('permissions_changed', `Admin ${req.user.username} updated permissions for user ${userId}`, {
+    admin_id: req.user.id,
+    target_user_id: userId,
+  });
+  res.json({ permissions: perms });
+});
+
+// GET /api/admin/room-requests
+router.get('/room-requests', (req, res) => {
+  const db = getDb();
+  const requests = db.prepare(`
+    SELECT rr.*, u.username as requester_name, u.display_name as requester_display
+    FROM room_requests rr
+    JOIN users u ON rr.requested_by = u.id
+    ORDER BY rr.created_at DESC
+  `).all();
+  res.json({ requests });
+});
+
+// PUT /api/admin/room-requests/:id — approve or reject
+router.put('/room-requests/:id', (req, res) => {
+  const db = getDb();
+  const { status, admin_note, member_ids } = req.body;
+  if (Array.isArray(member_ids) && !member_ids.every(id => Number.isInteger(id) && id > 0)) {
+    return res.status(400).json({ error: 'member_ids must be an array of positive integers' });
+  }
+  if (!['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ error: 'status must be approved or rejected' });
+  }
+
+  const request = db.prepare('SELECT * FROM room_requests WHERE id = ?').get(req.params.id);
+  if (!request) return res.status(404).json({ error: 'Request not found' });
+  if (request.status !== 'pending') return res.status(400).json({ error: 'Request already reviewed' });
+
+  db.prepare(`
+    UPDATE room_requests SET status = ?, reviewed_by = ?, reviewed_at = datetime('now'), admin_note = ?
+    WHERE id = ?
+  `).run(status, req.user.id, admin_note || null, req.params.id);
+
+  let room = null;
+  if (status === 'approved') {
+    const members = Array.isArray(member_ids) ? member_ids : JSON.parse(request.requested_members || '[]');
+    const roomId = db.transaction(() => {
+      const r = db.prepare(
+        'INSERT INTO rooms (name, description, type, created_by) VALUES (?, ?, ?, ?)'
+      ).run(request.name, request.description || null, 'group', req.user.id);
+      const id = r.lastInsertRowid;
+      db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)').run(id, request.requested_by, 'owner');
+      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)');
+      for (const uid of members) {
+        if (uid !== request.requested_by) add.run(id, uid, 'member');
+      }
+      return id;
+    })();
+    room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  }
+
+  logEvent('room_request_reviewed', `Admin ${req.user.username} ${status} room request "${request.name}"`, {
+    admin_id: req.user.id,
+    request_id: parseInt(req.params.id),
+    status,
+  });
+  res.json({ ok: true, status, room });
+});
+
+// GET /api/admin/search?q=...&collection=all|messages|admin_events
+router.get('/search', async (req, res) => {
+  const q = req.query.q;
+  const collection = req.query.collection || 'all';
+  if (!q || q.trim().length < 2) return res.status(400).json({ error: 'q must be at least 2 characters' });
+
+  try {
+    let results = [];
+    if (collection === 'all' || collection === 'messages') {
+      const msgs = await search('messages', q, 8);
+      results.push(...msgs.map(r => ({ ...r, collection: 'messages' })));
+    }
+    if (collection === 'all' || collection === 'admin_events') {
+      const evts = await search('admin_events', q, 5);
+      results.push(...evts.map(r => ({ ...r, collection: 'admin_events' })));
+    }
+    results.sort((a, b) => b.score - a.score);
+    res.json({ results: results.slice(0, 10) });
+  } catch (err) {
+    res.status(500).json({ error: 'Search failed', detail: err.message });
+  }
 });
 
 module.exports = router;

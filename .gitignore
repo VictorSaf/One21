@@ -21,3 +21,4 @@ logs/
 
 # Git worktrees
 .worktrees/
+data/

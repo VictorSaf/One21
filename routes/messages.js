@@ -2,6 +2,8 @@ const express = require('express');
 const { z } = require('zod');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
+const { getPermission } = require('../middleware/permissions');
+const { addDocument } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -58,9 +60,49 @@ router.post('/:id/messages', (req, res) => {
   ).get(roomId, req.user.id);
   if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
 
+  // Check max_messages_per_day
+  if (req.user.role !== 'admin') {
+    const maxPerDay = getPermission(req.user.id, 'max_messages_per_day');
+    if (maxPerDay !== null) {
+      const todayCount = db.prepare(
+        "SELECT COUNT(*) as n FROM messages WHERE sender_id = ? AND created_at >= date('now')"
+      ).get(req.user.id).n;
+      if (todayCount >= maxPerDay) {
+        return res.status(429).json({ error: `Daily message limit of ${maxPerDay} reached.` });
+      }
+    }
+  }
+
+  // Check allowed_agents — if room has agent members, user must have access
+  if (req.user.role !== 'admin') {
+    const agentMembers = db.prepare(
+      "SELECT u.id FROM room_members rm JOIN users u ON rm.user_id = u.id WHERE rm.room_id = ? AND u.role = 'agent'"
+    ).all(roomId);
+    if (agentMembers.length > 0) {
+      const allowedAgents = getPermission(req.user.id, 'allowed_agents') || [];
+      const hasAccess = agentMembers.some(m => allowedAgents.includes(m.id));
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'You do not have access to AI agents in this room.' });
+      }
+    }
+  }
+
   const r = db.prepare(
     'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
   ).run(roomId, req.user.id, text, type || 'text', reply_to || null);
+
+  // Vectorize message (fire-and-forget)
+  const msgId = r.lastInsertRowid;
+  const senderName = req.user.display_name || req.user.username;
+  setImmediate(() => {
+    addDocument('messages', text, {
+      message_id: msgId,
+      room_id: roomId,
+      sender_id: req.user.id,
+      sender: senderName,
+      ts: new Date().toISOString(),
+    }).catch(() => {});
+  });
 
   const message = db.prepare(`
     SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role

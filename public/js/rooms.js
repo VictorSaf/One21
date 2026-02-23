@@ -167,6 +167,36 @@
     window.ChatModule && window.ChatModule.reloadCurrentRoom();
   }
 
+  // ── Room Request Modal ────────────────────────────
+  function openRoomRequestModal() {
+    hideError('roomRequestError');
+    $('reqRoomName').value = '';
+    $('reqRoomDesc').value = '';
+    showModal('modalRoomRequest');
+    $('reqRoomName').focus();
+  }
+
+  async function submitRoomRequest() {
+    hideError('roomRequestError');
+    const name = $('reqRoomName').value.trim();
+    const desc = $('reqRoomDesc').value.trim();
+    if (!name) {
+      showError('roomRequestError', 'Introduceți un nume pentru cameră.');
+      $('reqRoomName').focus();
+      return;
+    }
+
+    const data = await Auth.api('/api/room-requests', {
+      method: 'POST',
+      body: JSON.stringify({ name, description: desc || undefined }),
+    });
+
+    if (!data) return showError('roomRequestError', 'Eroare la trimiterea cererii.');
+    if (data.error) return showError('roomRequestError', data.error);
+
+    hideModal('modalRoomRequest');
+  }
+
   // ── Archive Room ─────────────────────────────────
   async function archiveRoom() {
     const roomId = window.ChatModule && window.ChatModule.getCurrentRoomId();
@@ -183,8 +213,13 @@
 
   // ── Event Binding ────────────────────────────────
   function bindEvents() {
-    // Create room
-    $('newRoomBtn')       && $('newRoomBtn').addEventListener('click', openCreateRoom);
+    // Room request (newRoomBtn now opens request flow for regular users)
+    $('newRoomBtn')           && $('newRoomBtn').addEventListener('click', openRoomRequestModal);
+    $('closeRoomRequest')     && $('closeRoomRequest').addEventListener('click', () => hideModal('modalRoomRequest'));
+    $('cancelRoomRequest')    && $('cancelRoomRequest').addEventListener('click', () => hideModal('modalRoomRequest'));
+    $('submitRoomRequest')    && $('submitRoomRequest').addEventListener('click', submitRoomRequest);
+
+    // Create room (kept for DM creation — admin path)
     $('closeCreateRoom')  && $('closeCreateRoom').addEventListener('click', () => hideModal('modalCreateRoom'));
     $('cancelCreateRoom') && $('cancelCreateRoom').addEventListener('click', () => hideModal('modalCreateRoom'));
     $('submitCreateRoom') && $('submitCreateRoom').addEventListener('click', submitCreateRoom);

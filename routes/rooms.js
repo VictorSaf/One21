@@ -45,6 +45,10 @@ router.post('/', (req, res) => {
   const result = createSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
 
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Users cannot create rooms directly. Submit a room request instead.' });
+  }
+
   const { name, description, type, member_ids } = result.data;
   const db = getDb();
 

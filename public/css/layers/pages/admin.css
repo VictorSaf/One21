@@ -668,4 +668,151 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── Permissions Panel ── */
+  .perms-panel {
+    position: fixed; top: 0; right: -440px; width: 420px; height: 100vh;
+    background: var(--bg-surface); border-left: 1px solid var(--border-mid);
+    display: flex; flex-direction: column; z-index: 200;
+    transition: right 0.25s ease;
+  }
+  .perms-panel.open { right: 0; }
+  .perms-panel__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border-mid);
+  }
+  .perms-panel__title {
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); letter-spacing: 0.05em;
+  }
+  .perms-panel__close {
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1.1rem; padding: 4px 8px;
+  }
+  .perms-panel__close:hover { color: var(--text-primary); }
+  .perms-panel__body {
+    flex: 1; overflow-y: auto; padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4);
+  }
+  .perms-panel__footer {
+    padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border-mid); display: flex; gap: var(--sp-3);
+  }
+  .perms-overlay {
+    display: none; position: fixed; inset: 0; background: var(--overlay-bg); z-index: 199;
+  }
+  .perms-overlay.open { display: block; }
+  .perm-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-3) 0; border-bottom: 1px solid var(--border-dim);
+  }
+  .perm-row:last-child { border-bottom: none; }
+  .perm-row__label {
+    font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono);
+  }
+  .perm-toggle {
+    appearance: none; width: 36px; height: 20px; background: var(--border-mid);
+    border-radius: 10px; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .perm-toggle:checked { background: var(--accent); }
+  .perm-toggle::after {
+    content:''; position: absolute; width: 14px; height: 14px; background: white;
+    border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s;
+  }
+  .perm-toggle:checked::after { left: 19px; }
+  .perm-number-input {
+    width: 80px; background: var(--bg-elevated); border: 1px solid var(--border-mid);
+    color: var(--text-primary); padding: 4px 8px; font-family: var(--font-mono);
+    font-size: 0.8rem; border-radius: var(--radius-sm);
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: var(--overlay-bg); z-index: 300;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-surface); border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm); width: 440px; max-width: 95vw;
+  }
+  .modal__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border-mid);
+  }
+  .modal__title {
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); letter-spacing: 0.05em;
+  }
+  .modal__close {
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1.1rem; padding: 4px 8px;
+  }
+  .modal__close:hover { color: var(--text-primary); }
+  .modal__body { padding: var(--sp-5); }
+  .modal__footer {
+    padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border-mid);
+    display: flex; gap: var(--sp-3); justify-content: flex-end;
+  }
+
+  /* ── Nav badge + status badges ── */
+  .nav-badge {
+    background: var(--error); color: white; font-size: 0.65rem;
+    border-radius: 9px; padding: 1px 6px; margin-left: 6px;
+  }
+  .badge {
+    font-size: 0.72rem; font-family: var(--font-mono); padding: 2px 8px;
+    border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .badge--pending  { background: var(--warning-bg, rgba(255,180,0,0.15)); color: var(--warning); border: 1px solid var(--warning-border, rgba(255,180,0,0.3)); }
+  .badge--approved { background: var(--success-bg, rgba(0,200,100,0.15)); color: var(--online); border: 1px solid var(--success-border, rgba(0,200,100,0.3)); }
+  .badge--rejected { background: var(--danger-muted); color: var(--error); border: 1px solid var(--danger-border); }
+
+  /* ── Utility classes ── */
+  .u-pointer { cursor: pointer; }
+  .u-hidden  { display: none; }
+
+  /* ── Perms panel section headings (used in renderPermsPanel JS) ── */
+  .perms-section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .perms-section-label--spaced {
+    margin-bottom: 12px;
+  }
+
+  /* ── Invite modal layout helpers ── */
+  .invite-custom-perms { margin-top: 12px; }
+  .invite-note-block   { margin-top: 16px; }
+  .invite-note-label   { margin-bottom: 6px; }
+  .invite-note-input   { width: 100%; box-sizing: border-box; }
+
+  /* ── No-agents message in invite/perms panels ── */
+  .no-agents-msg { padding: 8px 0; }
+
+  /* ── AI_ACCESS section heading inside invite panel ── */
+  .ai-access-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin: 12px 0 8px;
+  }
+
+  /* ── Search input that should grow to fill toolbar ── */
+  .admin-toolbar__input--grow { flex: 1; }
+
+  /* ── Room-request action buttons ── */
+  .t-btn--approve { margin-right: 4px; }
+  .t-btn--reject  { color: var(--danger); }
+
+  /* ── Neural Search results ── */
+  .search-result {
+    padding: var(--sp-4); border-bottom: 1px solid var(--border-dim);
+  }
+  .search-result:last-child { border-bottom: none; }
+  .search-result__meta {
+    display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); flex-wrap: wrap;
+  }
+  .search-result__text {
+    font-size: 0.875rem; color: var(--text-primary); line-height: 1.5;
+  }
+  .search-score {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); margin-left: auto;
+  }
+
 }
