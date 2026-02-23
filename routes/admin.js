@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { getDb } = require('../db/init');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
+const { getAllPermissions } = require('../middleware/permissions');
 
 const router = express.Router();
 router.use(authMiddleware, requireAdmin);
@@ -141,6 +142,46 @@ router.get('/export/:roomId', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="one21-${room.name.replace(/\s+/g, '-')}-export.json"`);
   res.setHeader('Content-Type', 'application/json');
   res.json(exportData);
+});
+
+// GET /api/admin/users/:id/permissions
+router.get('/users/:id/permissions', (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const perms = getAllPermissions(parseInt(req.params.id));
+  res.json({ permissions: perms });
+});
+
+// PUT /api/admin/users/:id/permissions
+router.put('/users/:id/permissions', (req, res) => {
+  const db = getDb();
+  const userId = parseInt(req.params.id);
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const ALLOWED_KEYS = ['can_send_files', 'allowed_agents', 'max_messages_per_day', 'allowed_rooms'];
+  const upsert = db.prepare(`
+    INSERT INTO user_permissions (user_id, permission, value, granted_by)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, permission) DO UPDATE SET value = excluded.value, granted_by = excluded.granted_by, granted_at = datetime('now')
+  `);
+  const del = db.prepare('DELETE FROM user_permissions WHERE user_id = ? AND permission = ?');
+
+  db.transaction(() => {
+    for (const key of ALLOWED_KEYS) {
+      if (!(key in req.body)) continue;
+      const val = req.body[key];
+      if (val === null) {
+        del.run(userId, key);
+      } else {
+        upsert.run(userId, key, JSON.stringify(val), req.user.id);
+      }
+    }
+  })();
+
+  const perms = getAllPermissions(userId);
+  res.json({ permissions: perms });
 });
 
 module.exports = router;
