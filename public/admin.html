@@ -55,6 +55,13 @@
       <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
       Data_Export
     </button>
+    <button class="admin-nav__item" data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Settings
+    </button>
 
     <div class="admin-nav__footer">
       <button class="admin-nav__footer-btn" onclick="goToChat()">
@@ -281,6 +288,83 @@
         </table>
       </div>
 
+    </div>
+
+
+    <!-- ── SETTINGS ── -->
+    <div class="admin-page" id="page-settings">
+
+      <div class="admin-page-header">
+        <div class="admin-page-label">System_Config</div>
+        <div class="admin-page-title">Settings</div>
+      </div>
+
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="api-keys">API_Keys</button>
+        <button class="settings-tab" data-tab="themes">UI_Themes</button>
+      </div>
+
+      <div class="settings-panel active" id="settings-tab-api-keys">
+        <div class="admin-section">
+          <div class="admin-section__header">
+            <span class="admin-section__title">Claude_API_Key</span>
+          </div>
+          <div class="settings-field">
+            <label class="settings-field__label">CLAUDE_API_KEY</label>
+            <div class="settings-field__row">
+              <input type="password" id="claudeApiKeyInput" class="input" placeholder="sk-ant-••••••••••••••••">
+              <button class="btn btn--primary btn--sm" onclick="saveApiKey()">Save</button>
+            </div>
+            <p class="settings-field__hint" id="apiKeyStatus">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-panel" id="settings-tab-themes">
+        <div class="admin-section">
+          <div class="admin-section__header">
+            <span class="admin-section__title">Themes</span>
+            <button class="btn btn--primary btn--sm" onclick="openThemeEditor(null)">+ New Theme</button>
+          </div>
+          <div id="themesList" class="themes-list">
+            <div class="themes-list__loading">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── THEME EDITOR MODAL ── -->
+    <div class="theme-editor-overlay u-hidden" id="themeEditorOverlay">
+      <div class="theme-editor">
+
+        <div class="theme-editor__header">
+          <input type="text" class="theme-editor__name" id="themeEditorName" placeholder="Theme name...">
+          <div class="theme-editor__actions">
+            <button class="btn btn--ghost btn--sm" onclick="closeThemeEditor()">Cancel</button>
+            <button class="btn btn--primary btn--sm" onclick="saveTheme()">Save Theme</button>
+          </div>
+        </div>
+
+        <div class="theme-editor__body">
+          <div class="theme-editor__chat">
+            <div class="theme-editor__chat-messages" id="themeChat"></div>
+            <div class="theme-editor__chat-input">
+              <input type="text" id="themeChatInput" placeholder="Descrie modificarea dorita..." onkeydown="if(event.key==='Enter')sendThemeChat()">
+              <button class="btn btn--primary btn--sm" onclick="sendThemeChat()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="theme-editor__preview">
+            <div class="theme-editor__preview-label">PREVIEW</div>
+            <iframe class="theme-editor__iframe" id="themePreviewFrame" src="/login.html" sandbox="allow-same-origin allow-scripts"></iframe>
+            <div class="theme-editor__tokens-label">TOKENS</div>
+            <div class="theme-editor__tokens" id="themeTokensList"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </main>
