@@ -1062,15 +1062,25 @@ async function sendThemeChat() {
   const loadingEl = appendChatMessage('claude', '...');
 
   try {
-    const data = await apiPost('/api/admin/themes/chat', {
-      message,
-      current_tokens: editorTokens,
+    const token = localStorage.getItem('one21_token');
+    const r = await fetch('/api/admin/themes/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ message, current_tokens: editorTokens }),
     });
+    const data = await r.json();
     loadingEl.remove();
-    appendChatMessage('claude', data.explanation || 'Done.');
-    editorTokens = data.tokens;
-    renderTokens();
-    updateIframePreview();
+    if (r.ok) {
+      appendChatMessage('claude', data.explanation || 'Done.');
+      editorTokens = data.tokens;
+      renderTokens();
+      updateIframePreview();
+    } else if (data.raw) {
+      // Claude responded but not in JSON format — show raw text as chat message
+      appendChatMessage('claude', data.raw);
+    } else {
+      appendChatMessage('error', data.error || 'Error');
+    }
   } catch(e) {
     loadingEl.remove();
     appendChatMessage('error', 'Error: ' + e.message);

@@ -66,11 +66,12 @@ Regulile aplicației:
 Tokenii curenți:
 ${JSON.stringify(current_tokens, null, 2)}
 
-Răspunde ÎNTOTDEAUNA cu JSON valid în formatul:
-{
-  "tokens": { ...toți tokenii modificați... },
-  "explanation": "Ce am modificat și de ce (1-2 propoziții)"
-}`;
+REGULA ABSOLUTĂ: Răspunzi MEREU cu JSON pur, fără text în afara lui, fără markdown, fără \`\`\`.
+Formatul exact (nicio deviație):
+{"tokens":{...toți tokenii, modificați sau nu...},"explanation":"mesajul tău"}
+
+Dacă cererea e ambiguă sau ai nevoie de clarificări: returnează tokenii NEMODIFICAȚI și pune întrebarea în "explanation".
+Dacă cererea e clară: aplică modificările și explică pe scurt în "explanation".`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
