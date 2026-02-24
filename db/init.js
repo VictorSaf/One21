@@ -264,8 +264,11 @@ function seed(db) {
     "--warning-muted": "rgba(255,179,0,0.08)", "--scanline-color": "rgba(0,0,0,0.025)",
     "--selection-bg": "rgba(0,230,118,0.18)"
   };
-  db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 1)")
-    .run('Neural Dark', JSON.stringify(defaultTokens));
+  const themeCount = db.prepare('SELECT COUNT(*) as n FROM themes').get().n;
+  if (themeCount === 0) {
+    db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 1)")
+      .run('Neural Dark', JSON.stringify(defaultTokens));
+  }
 
   console.log(`[DB] Seeded: admin, claude, claudiu, 2 rooms, invite: ${inviteCode}`);
 }
