@@ -216,7 +216,9 @@
 
       <div class="admin-toolbar">
         <input class="admin-toolbar__input" type="text" id="roomSearch" placeholder="QUERY_NODE..." oninput="filterRooms()">
-        <button class="t-btn t-btn--accent" onclick="openCreateRoom()">+ New_Channel</button>
+        <button class="t-btn t-btn--accent" onclick="openCreateRoom()">+ New_Node</button>
+        <input class="admin-toolbar__input admin-toolbar__input--node-id" type="text" id="deleteByNodeIdInput" placeholder="Node_ID to delete">
+        <button class="t-btn t-btn--reject" onclick="deleteRoomByNodeId()">Delete by Node_ID</button>
       </div>
 
       <div class="admin-section">
@@ -319,6 +321,8 @@
           <input type="text" class="theme-editor__name" id="themeEditorName" placeholder="Theme name...">
           <div class="theme-editor__actions">
             <button class="btn btn--ghost btn--sm" onclick="closeThemeEditor()">Cancel</button>
+            <button class="btn btn--ghost btn--sm" onclick="themeEditorUndo()" id="btnThemeUndo" title="Undo last change">Undo</button>
+            <button class="btn btn--ghost btn--sm" onclick="themeEditorExport()" title="Download theme JSON">Export</button>
             <button class="btn btn--secondary btn--sm" onclick="showSaveAsNew()" id="btnSaveAsNew">Save as New Theme</button>
             <button class="btn btn--primary btn--sm" onclick="saveTheme()">Save Theme</button>
           </div>
@@ -326,19 +330,29 @@
 
         <div class="theme-editor__body">
           <div class="theme-editor__chat">
+            <div class="theme-editor__apply-bar u-hidden" id="themeApplyBar">
+              <span class="theme-editor__apply-bar-text">You have a text suggestion.</span>
+              <button type="button" class="btn btn--primary btn--sm" id="themeApplyBarBtn" onclick="applyLastSuggestion()">Apply suggestion → Preview & tokens</button>
+            </div>
             <div class="theme-editor__chat-messages" id="themeChat"></div>
             <div class="theme-editor__chat-input">
-              <input type="text" id="themeChatInput" placeholder="Descrie modificarea dorita..." onkeydown="if(event.key==='Enter')sendThemeChat()">
+              <input type="text" id="themeChatInput" placeholder="Describe what you want (e.g. red accent, light theme, cyberpunk, gradients)..." onkeydown="if(event.key==='Enter')sendThemeChat()">
               <button class="btn btn--primary btn--sm" onclick="sendThemeChat()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
           </div>
           <div class="theme-editor__preview">
-            <div class="theme-editor__preview-label">PREVIEW</div>
+            <div class="theme-editor__preview-header">
+              <span class="theme-editor__preview-label">PREVIEW</span>
+              <button type="button" class="btn btn--ghost btn--sm theme-editor__preview-fullscreen" onclick="themeEditorFullscreenPreview()" title="Open preview in new window">Fullscreen</button>
+            </div>
             <iframe class="theme-editor__iframe" id="themePreviewFrame" src="/login.html" sandbox="allow-same-origin allow-scripts" tabindex="-1"></iframe>
             <div class="theme-editor__tokens-label">TOKENS</div>
-            <div class="theme-editor__tokens" id="themeTokensList"></div>
+            <div class="theme-editor__tokens-block" id="themeTokensBlock">
+              <div class="theme-editor__tokens-resize" id="themeTokensResize" title="Drag to resize" aria-label="Resize tokens panel"></div>
+              <div class="theme-editor__tokens" id="themeTokensList"></div>
+            </div>
           </div>
         </div>
 
@@ -427,13 +441,26 @@
         <button class="modal__close" onclick="closeRoomModal()">✕</button>
       </div>
       <div class="modal__body">
+        <div class="modal__field" id="roomModalTypeWrap">
+          <label class="modal__label">Type</label>
+          <select class="inline-select" id="roomModalType">
+            <option value="channel">Channel</option>
+            <option value="group">Group</option>
+          </select>
+        </div>
         <div class="modal__field">
           <label class="modal__label">Name</label>
-          <input class="input" type="text" id="roomModalName" placeholder="channel-name" maxlength="80">
+          <input class="input" type="text" id="roomModalName" placeholder="node-name" maxlength="80">
         </div>
         <div class="modal__field">
           <label class="modal__label">Description</label>
           <input class="input" type="text" id="roomModalDesc" placeholder="Optional description" maxlength="200">
+        </div>
+        <div class="modal__field room-modal-archived-wrap" id="roomModalArchivedWrap">
+          <label class="modal__label room-modal-archived-label">
+            <input type="checkbox" id="roomModalArchived" class="perm-toggle">
+            <span>Archived</span>
+          </label>
         </div>
         <div class="modal__field">
           <label class="modal__label">Members</label>
@@ -443,7 +470,7 @@
         <div id="roomModalError" class="u-error" style="display:none;"></div>
       </div>
       <div class="modal__footer">
-        <button class="t-btn t-btn--accent" onclick="saveRoom()">Save_Channel</button>
+        <button class="t-btn t-btn--accent" onclick="saveRoom()">Save_Node</button>
         <button class="t-btn" onclick="closeRoomModal()">Cancel</button>
       </div>
     </div>
@@ -470,16 +497,26 @@
 </div>
 
 
+<script src="/socket.io/socket.io.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/system-dialogs.js"></script>
 <script>
 // ── Auth guard ──────────────────────────────────
 if (!Auth.requireAuth()) {
   const u = Auth.getUser();
   if (u && u.role !== 'admin') {
-    alert('Acces restricționat — doar administratori.');
-    window.location.href = '/chat.html';
+    showAlert('Acces restricționat — doar administratori.').then(function () { window.location.href = '/chat.html'; });
   }
 }
+
+// ── Presence (keep admin online while on this page) ──
+(function () {
+  const token = Auth.getToken();
+  if (token) {
+    const socket = io({ auth: { token } });
+    socket.on('connect_error', () => {});
+  }
+})();
 
 let allUsers = [];
 let allRooms = [];
@@ -622,7 +659,7 @@ async function changeRole(userId, newRole) {
 }
 
 async function editDisplayName(userId, currentName) {
-  const newName = prompt('New display name:', currentName);
+  const newName = await showPrompt('New display name:', currentName, { title: 'Edit_Name' });
   if (!newName || newName.trim() === currentName) return;
   const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ display_name: newName.trim() }) });
   if (data && !data.error) { toast('Name updated'); loadUsers(); }
@@ -647,7 +684,7 @@ async function loadInvites() {
       <td>${inv.used_by
         ? '<span class="t-badge t-badge--used">✓ Claimed</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
-      <td>${!inv.used_by ? `<button class="t-btn t-btn--danger" onclick="revokeInvite(${inv.id})">Revoke</button>` : ''}</td>
+      <td>${!inv.used_by ? `<button type="button" class="t-btn t-btn--danger" onclick="revokeInvite(${inv.id})">Revoke</button>` : ''}</td>
     </tr>`).join('');
 }
 
@@ -661,9 +698,27 @@ async function generateInvite() {
 }
 
 async function revokeInvite(id) {
-  if (!confirm('Revoke this access code?')) return;
-  const data = await Auth.api(`/api/admin/invites/${id}`, { method: 'DELETE' });
-  if (data && data.ok) { toast('Code revoked'); loadInvites(); }
+  if (!(await showConfirm('Revoke this access code?', { destructive: true, okLabel: 'Revoke' }))) return;
+  const numId = parseInt(id, 10);
+  if (Number.isNaN(numId)) { toast('Invalid code'); return; }
+  const token = Auth.getToken();
+  if (!token) { toast('Session expired'); return; }
+  try {
+    const res = await fetch(`/api/admin/invites/${numId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      toast('Code revoked');
+      loadInvites();
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    toast(data.error || 'Failed to revoke');
+    if (res.status === 401) Auth.logout();
+  } catch (e) {
+    toast('Failed to revoke');
+  }
 }
 
 function copyCode(code) {
@@ -671,6 +726,23 @@ function copyCode(code) {
 }
 
 // ── Rooms ─────────────────────────────────────────
+(function initRoomsTableDelegation() {
+  document.getElementById('roomsBody').addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-room-action]');
+    if (!btn) return;
+    const row = btn.closest('tr');
+    if (!row || !row.dataset.roomId) return;
+    const id = parseInt(row.dataset.roomId, 10);
+    const name = row.dataset.roomName || '';
+    const desc = row.dataset.roomDesc || '';
+    const type = row.dataset.roomType || 'group';
+    const action = btn.dataset.roomAction;
+    if (action === 'edit') openEditRoom(id, name, desc, type);
+    else if (action === 'members') openMembersPanel(id, name);
+    else if (action === 'delete') deleteRoom(id, name);
+  });
+})();
+
 async function loadRooms() {
   const data = await Auth.api('/api/admin/conversations');
   if (!data) return;
@@ -680,13 +752,17 @@ async function loadRooms() {
 
 function renderRooms(rooms) {
   const typeLabel = { direct: 'Direct', group: 'Group', channel: 'Channel' };
+  const escape = (s) => (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   document.getElementById('roomsBody').innerHTML = rooms.length === 0
     ? '<tr><td colspan="7" class="empty-state">No nodes found</td></tr>'
-    : rooms.map(r => `
-    <tr${r.is_archived ? ' style="opacity:0.55"' : ''}>
+    : rooms.map(r => {
+        const nameAttr = escape(r.name);
+        const descAttr = escape(r.description || '');
+        return `
+    <tr data-room-id="${r.id}" data-room-name="${nameAttr}" data-room-desc="${descAttr}" data-room-type="${r.type || 'group'}"${r.is_archived ? ' style="opacity:0.55"' : ''}>
       <td>
-        <span class="td-primary">${r.name}</span>
-        ${r.description ? `<span class="td-secondary">${r.description}</span>` : ''}
+        <span class="td-primary">${escape(r.name)}</span>
+        ${r.description ? `<span class="td-secondary">${escape(r.description)}</span>` : ''}
       </td>
       <td><span class="t-badge t-badge--type">${typeLabel[r.type]||r.type}</span></td>
       <td class="td-mono">${r.member_count}</td>
@@ -696,11 +772,12 @@ function renderRooms(rooms) {
         ? '<span class="t-badge t-badge--archived">Archived</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
       <td style="white-space:nowrap">
-        <button class="t-btn t-btn--sm" onclick="openEditRoom(${r.id}, ${JSON.stringify(r.name)}, ${JSON.stringify(r.description||'')})">Edit</button>
-        <button class="t-btn t-btn--sm" onclick="openMembersPanel(${r.id}, ${JSON.stringify(r.name)})">Members</button>
-        ${r.type !== 'direct' ? `<button class="t-btn t-btn--sm t-btn--reject" onclick="deleteRoom(${r.id}, ${JSON.stringify(r.name)})">Delete</button>` : ''}
+        <button type="button" class="t-btn t-btn--sm" data-room-action="edit">Edit</button>
+        <button type="button" class="t-btn t-btn--sm" data-room-action="members">Members</button>
+        ${r.type !== 'direct' ? '<button type="button" class="t-btn t-btn--sm t-btn--reject" data-room-action="delete">Delete</button>' : ''}
       </td>
-    </tr>`).join('');
+    </tr>`;
+      }).join('');
 }
 
 function filterRooms() {
@@ -871,9 +948,12 @@ let allUsersForRoom = [];  // cached user list for room modal
 
 async function openCreateRoom() {
   roomModalId = null;
-  document.getElementById('roomModalTitle').textContent = 'New_Channel';
+  document.getElementById('roomModalTitle').textContent = 'New_Node';
   document.getElementById('roomModalName').value = '';
   document.getElementById('roomModalDesc').value = '';
+  document.getElementById('roomModalArchivedWrap').classList.remove('room-modal-archived-wrap--visible');
+  document.getElementById('roomModalTypeWrap').style.display = '';
+  document.getElementById('roomModalType').value = 'channel';
   document.getElementById('roomModalError').style.display = 'none';
   document.getElementById('roomModalMemberSearch').value = '';
   if (allUsersForRoom.length === 0) {
@@ -885,20 +965,28 @@ async function openCreateRoom() {
   document.getElementById('roomModalName').focus();
 }
 
-async function openEditRoom(id, name, desc) {
+async function openEditRoom(id, name, desc, type) {
   roomModalId = id;
-  document.getElementById('roomModalTitle').textContent = 'Edit_Channel';
+  const typeLabel = type === 'group' ? 'Group' : type === 'channel' ? 'Channel' : 'Node';
+  document.getElementById('roomModalTitle').textContent = `Edit_${typeLabel}`;
   document.getElementById('roomModalName').value = name;
   document.getElementById('roomModalDesc').value = desc || '';
+  document.getElementById('roomModalArchivedWrap').classList.add('room-modal-archived-wrap--visible');
+  document.getElementById('roomModalTypeWrap').style.display = 'none';
   document.getElementById('roomModalError').style.display = 'none';
   document.getElementById('roomModalMemberSearch').value = '';
   if (allUsersForRoom.length === 0) {
     const d = await Auth.api('/api/rooms/users/list');
     if (d) allUsersForRoom = d.users;
   }
-  // Load current members to pre-check them
+  // Load current members and archived state
   const roomData = await Auth.api(`/api/rooms/${id}`);
-  const currentMemberIds = roomData ? roomData.members.map(m => m.id) : [];
+  if (!roomData || !roomData.room) {
+    toast(roomData && roomData.error ? roomData.error : 'Could not load channel.');
+    return;
+  }
+  const currentMemberIds = roomData.members ? roomData.members.map(m => m.id) : [];
+  document.getElementById('roomModalArchived').checked = !!(roomData.room && roomData.room.is_archived);
   renderRoomModalUsers(allUsersForRoom, currentMemberIds);
   document.getElementById('roomModal').classList.add('open');
   document.getElementById('roomModalName').focus();
@@ -933,11 +1021,12 @@ async function saveRoom() {
   errEl.style.display = 'none';
 
   if (roomModalId) {
-    // Edit: update name/desc, then reconcile members
+    // Edit: update name/desc/archived, then reconcile members
+    const isArchived = document.getElementById('roomModalArchived').checked;
     const d = await Auth.api(`/api/rooms/${roomModalId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description: desc || null }),
+      body: JSON.stringify({ name, description: desc || null, is_archived: isArchived }),
     });
     if (!d) return;
     // Get current members and add/remove as needed
@@ -953,16 +1042,16 @@ async function saveRoom() {
         await Auth.api(`/api/rooms/${roomModalId}/members/${uid}`, { method: 'DELETE' });
       }
     }
-    toast('Channel updated');
+    toast('Node updated');
   } else {
     // Create
     const d = await Auth.api('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description: desc || undefined, type: 'group', member_ids: memberIds }),
+      body: JSON.stringify({ name, description: desc || undefined, type: document.getElementById('roomModalType').value, member_ids: memberIds }),
     });
-    if (!d || d.error) { errEl.textContent = d?.error || 'Error creating channel.'; errEl.style.display = ''; return; }
-    toast('Channel created');
+    if (!d || d.error) { errEl.textContent = d?.error || 'Error creating node.'; errEl.style.display = ''; return; }
+    toast('Node created');
   }
   closeRoomModal();
   loadRooms();
@@ -996,7 +1085,12 @@ async function openMembersPanel(roomId, name) {
 
 async function renderMembersPanel() {
   const data = await Auth.api(`/api/rooms/${membersPanelRoomId}`);
-  if (!data) return;
+  if (!data || !data.members) {
+    if (data && data.error) toast(data.error);
+    else toast('Could not load members.');
+    document.getElementById('membersPanelBody').innerHTML = '<div class="u-dim">Failed to load.</div>';
+    return;
+  }
   const roleLabel = { owner: 'owner', member: 'member', agent: 'agent' };
   document.getElementById('membersPanelBody').innerHTML = data.members.length === 0
     ? '<div class="u-dim">No members.</div>'
@@ -1050,9 +1144,23 @@ function closeMembersPanel() {
 }
 
 async function deleteRoom(id, name) {
-  if (!confirm(`Delete channel "${name}"? This cannot be undone.`)) return;
-  const d = await Auth.api(`/api/rooms/${id}`, { method: 'DELETE' });
-  if (d) { toast(`Channel "${name}" deleted`); loadRooms(); }
+  if (!(await showConfirm('Delete channel "' + name + '"? This cannot be undone.', { destructive: true, okLabel: 'Delete' }))) return;
+  const d = await Auth.api('/api/rooms/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (d) { toast('Channel "' + name + '" deleted'); loadRooms(); }
+}
+
+async function deleteRoomByNodeId() {
+  const name = document.getElementById('deleteByNodeIdInput').value.trim();
+  if (!name) { showAlert('Enter a Node_ID to delete.'); return; }
+  if (!(await showConfirm('Delete node "' + name + '"? This cannot be undone.', { destructive: true, okLabel: 'Delete' }))) return;
+  const d = await Auth.api('/api/rooms/' + encodeURIComponent(name), { method: 'DELETE' });
+  if (d) {
+    toast('Node "' + name + '" deleted');
+    loadRooms();
+    document.getElementById('deleteByNodeIdInput').value = '';
+  } else {
+    showAlert('Node not found or delete failed.');
+  }
 }
 
 // ── Neural Search ────────────────────────────────
@@ -1187,11 +1295,11 @@ async function activateTheme(id) {
   try {
     await apiPost('/api/admin/themes/' + id + '/activate', {});
     await loadThemes();
-  } catch(e) { alert('Error: ' + e.message); }
+  } catch(e) { showAlert('Error: ' + e.message); }
 }
 
 async function deleteTheme(id) {
-  if (!confirm('Delete this theme?')) return;
+  if (!(await showConfirm('Delete this theme?', { destructive: true, okLabel: 'Delete' }))) return;
   try {
     const token = localStorage.getItem('one21_token');
     await fetch('/api/admin/themes/' + id, {
@@ -1199,16 +1307,23 @@ async function deleteTheme(id) {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     await loadThemes();
-  } catch(e) { alert('Error: ' + e.message); }
+  } catch(e) { showAlert('Error: ' + e.message); }
 }
 
 // ── THEME EDITOR ─────────────────────────────────────────
 
 let editorThemeId = null;
 let editorTokens = {};
+let editorTokensBeforeUndo = null;
+let themeChatHistory = [];
+let lastRawSuggestionText = null;
 
 async function openThemeEditor(id) {
   editorThemeId = id;
+  editorTokensBeforeUndo = null;
+  themeChatHistory = [];
+  lastRawSuggestionText = null;
+  hideApplyBar();
   document.getElementById('themeChat').innerHTML = '';
   document.getElementById('themeChatInput').value = '';
   document.getElementById('themeEditorOverlay').classList.remove('u-hidden');
@@ -1225,18 +1340,67 @@ async function openThemeEditor(id) {
 
   renderTokens();
   updateIframePreview();
-  appendChatMessage('claude', 'Tema curentă: ' + Object.keys(editorTokens).length + ' tokeni. Descrie ce vrei să schimbi (ex: "fă accentul roșu", "temă light").');
+  // Retry once after a short delay so preview shows even if iframe was still loading when we opened
+  setTimeout(updateIframePreview, 150);
+  const preview = document.querySelector('#themeEditorOverlay .theme-editor__preview');
+  if (preview) {
+    const saved = localStorage.getItem('themeEditorTokensHeight');
+    if (saved) preview.style.setProperty('--theme-tokens-height', saved + 'px');
+  }
+  const undoBtn = document.getElementById('btnThemeUndo');
+  if (undoBtn) undoBtn.disabled = true;
+  appendChatMessage('claude', 'Current theme: ' + Object.keys(editorTokens).length + ' tokens. Describe what you want — e.g. "red accent", "light theme", "cyberpunk palette", "gradients and glow", or any creative direction.');
 }
 
 function closeThemeEditor() {
   document.getElementById('themeEditorOverlay').classList.add('u-hidden');
   editorThemeId = null;
   editorTokens = {};
+  editorTokensBeforeUndo = null;
+  themeChatHistory = [];
+  lastRawSuggestionText = null;
+  hideApplyBar();
+}
+
+function themeEditorUndo() {
+  if (!editorTokensBeforeUndo) return;
+  editorTokens = editorTokensBeforeUndo;
+  editorTokensBeforeUndo = null;
+  renderTokens();
+  updateIframePreview();
+  const btn = document.getElementById('btnThemeUndo');
+  if (btn) btn.disabled = true;
+}
+
+function themeEditorExport() {
+  const name = (document.getElementById('themeEditorName').value.trim() || 'theme').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const blob = new Blob([JSON.stringify({ name: name || 'theme', tokens: editorTokens }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (name || 'theme') + '.theme.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function themeEditorFullscreenPreview() {
+  const w = window.open('/login.html', 'themePreview', 'noopener,resizable,scrollbars');
+  if (!w) return;
+  const vars = Object.entries(editorTokens).map(([k, v]) => k + ':' + v).join(';');
+  const inject = function() {
+    try {
+      const style = w.document.createElement('style');
+      style.id = 'preview-theme-override';
+      style.textContent = '@layer tokens { :root { ' + vars.replace(/;/g, '; ') + ' } }';
+      w.document.head.appendChild(style);
+    } catch (e) {}
+  };
+  w.addEventListener('load', inject);
+  setTimeout(inject, 800);
 }
 
 async function saveTheme() {
   const name = document.getElementById('themeEditorName').value.trim();
-  if (!name) { alert('Theme name required'); return; }
+  if (!name) { showAlert('Theme name required'); return; }
   try {
     if (editorThemeId) {
       await apiPut('/api/admin/themes/' + editorThemeId, { name, tokens: editorTokens });
@@ -1245,7 +1409,7 @@ async function saveTheme() {
     }
     closeThemeEditor();
     await loadThemes();
-  } catch(e) { alert('Save failed: ' + e.message); }
+  } catch(e) { showAlert('Save failed: ' + e.message); }
 }
 
 function showSaveAsNew() {
@@ -1267,7 +1431,7 @@ async function confirmSaveAsNew() {
     hideSaveAsNew();
     closeThemeEditor();
     await loadThemes();
-  } catch(e) { alert('Save failed: ' + e.message); }
+  } catch(e) { showAlert('Save failed: ' + e.message); }
 }
 
 async function sendThemeChat() {
@@ -1285,48 +1449,262 @@ async function sendThemeChat() {
     const r = await fetch('/api/admin/themes/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ message, current_tokens: editorTokens }),
+      body: JSON.stringify({ message, current_tokens: editorTokens, history: themeChatHistory }),
     });
     const data = await r.json();
     loadingEl.remove();
     if (r.ok) {
+      editorTokensBeforeUndo = Object.assign({}, editorTokens);
+      lastRawSuggestionText = null;
+      hideApplyBar();
+      const undoBtn = document.getElementById('btnThemeUndo');
+      if (undoBtn) undoBtn.disabled = false;
       appendChatMessage('claude', data.explanation || 'Done.');
+      themeChatHistory.push({ role: 'user', content: message });
+      themeChatHistory.push({ role: 'assistant', content: data.explanation || 'Done.' });
+      const maxHistory = 20;
+      if (themeChatHistory.length > maxHistory) themeChatHistory = themeChatHistory.slice(-maxHistory);
       editorTokens = data.tokens;
       renderTokens();
       updateIframePreview();
+      setTimeout(updateIframePreview, 100);
+      scrollToTokensPanel();
     } else if (data.raw) {
-      // Claude responded but not in JSON format — show raw text as chat message
-      appendChatMessage('claude', data.raw);
+      lastRawSuggestionText = data.raw;
+      showApplyBar();
+      appendChatMessage('claude', data.raw, { rawSuggestion: true });
+      appendChatMessage('claude', '↓ Use "Apply suggestion → Preview & tokens" above the chat input to generate the theme and see it in the preview.', { isHint: true });
     } else {
-      appendChatMessage('error', data.error || 'Error');
+      const errMsg = (data.error || 'Error') + (data.detail ? ': ' + data.detail : '');
+      appendChatMessage('error', errMsg);
     }
   } catch(e) {
     loadingEl.remove();
-    appendChatMessage('error', 'Error: ' + e.message);
+    appendChatMessage('error', 'Error: ' + (e.message || 'Network or server error'));
   }
   input.disabled = false;
   input.focus();
 }
 
-function appendChatMessage(role, text) {
+function appendChatMessage(role, text, options) {
   const chat = document.getElementById('themeChat');
   const div = document.createElement('div');
-  div.className = 'theme-chat-msg theme-chat-msg--' + role;
-  div.textContent = text;
+  div.className = 'theme-chat-msg theme-chat-msg--' + role + (options && options.isHint ? ' theme-chat-msg--hint' : '');
+  const body = document.createElement('div');
+  body.className = 'theme-chat-msg__body';
+  body.textContent = text;
+  div.appendChild(body);
+  if (options && options.rawSuggestion) {
+    const actions = document.createElement('div');
+    actions.className = 'theme-chat-msg__actions';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn--primary btn--sm';
+    btn.textContent = 'Apply suggestion → Preview & tokens';
+    btn.addEventListener('click', function() {
+      applySuggestionToPreview(text);
+      btn.disabled = true;
+      btn.textContent = 'Applying…';
+    });
+    actions.appendChild(btn);
+    div.appendChild(actions);
+  }
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
   return div;
 }
 
+function scrollToTokensPanel() {
+  const el = document.getElementById('themeTokensBlock');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showApplyBar() {
+  const bar = document.getElementById('themeApplyBar');
+  if (bar) bar.classList.remove('u-hidden');
+}
+
+function hideApplyBar() {
+  const bar = document.getElementById('themeApplyBar');
+  if (bar) bar.classList.add('u-hidden');
+}
+
+function applyLastSuggestion() {
+  if (!lastRawSuggestionText) return;
+  const btn = document.getElementById('themeApplyBarBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+  applySuggestionToPreview(lastRawSuggestionText).finally(function() {
+    if (btn) { btn.disabled = false; btn.textContent = 'Apply suggestion → Preview & tokens'; }
+  });
+}
+
+async function applySuggestionToPreview(suggestionText) {
+  const loadingEl = appendChatMessage('claude', '...');
+  const message = 'Convert the following theme description into design tokens. Reply with JSON only: {"tokens":{...},"explanation":"..."}. Include all CSS custom properties (--name: value) needed. Preserve or extend existing token keys where it makes sense.\n\nDescription:\n' + suggestionText.slice(0, 12000);
+  try {
+    const token = localStorage.getItem('one21_token');
+    const r = await fetch('/api/admin/themes/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ message, current_tokens: editorTokens, history: themeChatHistory }),
+    });
+    const data = await r.json();
+    loadingEl.remove();
+    if (r.ok) {
+      editorTokensBeforeUndo = Object.assign({}, editorTokens);
+      const undoBtn = document.getElementById('btnThemeUndo');
+      if (undoBtn) undoBtn.disabled = false;
+      appendChatMessage('claude', data.explanation || 'Done.');
+      themeChatHistory.push({ role: 'user', content: message });
+      themeChatHistory.push({ role: 'assistant', content: data.explanation || 'Done.' });
+      const maxHistory = 20;
+      if (themeChatHistory.length > maxHistory) themeChatHistory = themeChatHistory.slice(-maxHistory);
+      editorTokens = data.tokens;
+      lastRawSuggestionText = null;
+      hideApplyBar();
+      renderTokens();
+      updateIframePreview();
+      setTimeout(updateIframePreview, 100);
+      scrollToTokensPanel();
+    } else if (data.raw) {
+      lastRawSuggestionText = data.raw;
+      showApplyBar();
+      appendChatMessage('claude', data.raw, { rawSuggestion: true });
+      appendChatMessage('claude', '↓ Use "Apply suggestion → Preview & tokens" above the chat input.', { isHint: true });
+    } else {
+      const errMsg = (data.error || 'Error') + (data.detail ? ': ' + data.detail : '');
+      appendChatMessage('error', errMsg);
+    }
+  } catch (e) {
+    loadingEl.remove();
+    appendChatMessage('error', 'Error: ' + (e.message || 'Network or server error'));
+  }
+}
+
+function parseColorToRgb(value) {
+  if (!value || typeof value !== 'string') return null;
+  const v = value.trim();
+  let m = v.match(/^#([0-9a-fA-F]{3})$/);
+  if (m) {
+    const h = m[1];
+    return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16)];
+  }
+  m = v.match(/^#([0-9a-fA-F]{6})$/);
+  if (m) {
+    const h = m[1];
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  m = v.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+  if (m) return [+m[1], +m[2], +m[3]];
+  m = v.match(/^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)$/);
+  if (m) return [+m[1], +m[2], +m[3]];
+  m = v.match(/^hsl\s*\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/);
+  if (m) {
+    const h = parseFloat(m[1]) / 360, s = parseFloat(m[2]) / 100, l = parseFloat(m[3]) / 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+  }
+  m = v.match(/^hsla\s*\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*,\s*[\d.]+\s*\)$/);
+  if (m) {
+    const h = parseFloat(m[1]) / 360, s = parseFloat(m[2]) / 100, l = parseFloat(m[3]) / 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+  }
+  return null;
+}
+function hue2rgb(p, q, t) {
+  if (t < 0) t += 1; if (t > 1) t -= 1;
+  if (t < 1/6) return p + (q - p) * 6 * t;
+  if (t < 1/2) return q;
+  if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+  return p;
+}
+function relativeLuminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+function contrastRatio(lum1, lum2) {
+  const L1 = Math.max(lum1, lum2);
+  const L2 = Math.min(lum1, lum2);
+  return (L1 + 0.05) / (L2 + 0.05);
+}
+function isColorValue(value) {
+  if (!value || typeof value !== 'string') return false;
+  const v = value.trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v) ||
+    /^rgb\s*\(/.test(v) || /^rgba\s*\(/.test(v) || /^hsl\s*\(/.test(v) || /^hsla\s*\(/.test(v);
+}
+function isForegroundToken(key) {
+  return /^--text-|^--accent$|^--error$|^--warning$|^--info$|^--danger$|^--online$|^--offline$/.test(key);
+}
+function getContrastWarning(fgValue, bgValue) {
+  const fg = parseColorToRgb(fgValue);
+  const bg = parseColorToRgb(bgValue);
+  if (!fg || !bg) return null;
+  const ratio = contrastRatio(relativeLuminance(...fg), relativeLuminance(...bg));
+  return ratio < 4.5 ? 'low' : null;
+}
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+function escapeAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function sanitizeCssColor(value) {
+  if (!value || typeof value !== 'string') return null;
+  const v = value.trim();
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) return v;
+  if (/^rgb\s*\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*\)$/.test(v)) return v;
+  if (/^rgba\s*\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*\)$/.test(v)) return v;
+  if (/^hsl\s*\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*\)$/.test(v)) return v;
+  if (/^hsla\s*\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*,\s*[\d.]+\s*\)$/.test(v)) return v;
+  return null;
+}
 function renderTokens() {
   const container = document.getElementById('themeTokensList');
   if (!container) return;
-  container.innerHTML = Object.entries(editorTokens).map(([k, v]) => `
-    <div class="token-row">
-      <span class="token-row__key">${k}</span>
-      <span class="token-row__value">${v}</span>
-    </div>
-  `).join('');
+  const bgBase = editorTokens['--bg-base'] || '#0d0d0d';
+  const warnSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/><line x1="12" y1="8" x2="12" y2="12"/></svg>';
+  const entries = Object.entries(editorTokens);
+  const safeColorValues = [];
+  const rules = [];
+  entries.forEach(([, v], i) => {
+    const safe = sanitizeCssColor(v);
+    if (safe) {
+      safeColorValues[i] = safe;
+      rules.push('.theme-editor__tokens .token-swatch-bg-' + i + '{background:' + safe + '}');
+    }
+  });
+  const styleBlock = rules.length ? '<style id="themeTokensSwatchStyles">' + rules.join('') + '</style>' : '';
+  container.innerHTML = styleBlock + entries.map(([k, v], i) => {
+    const isColor = isColorValue(v);
+    const isFg = isForegroundToken(k);
+    const warn = isFg && isColor && getContrastWarning(v, bgBase);
+    const swatchClass = isColor && safeColorValues[i] !== undefined ? 'token-row__swatch token-swatch-bg-' + i : 'token-row__swatch';
+    const swatch = isColor ? '<span class="' + swatchClass + '" title="' + escapeAttr(v) + '"></span>' : '';
+    const warnEl = warn ? '<span class="token-row__contrast-warn" title="Low contrast (WCAG AA)">' + warnSvg + '</span>' : '';
+    return '<div class="token-row">' + warnEl + '<span class="token-row__key">' + escapeHtml(k) + '</span>' + swatch + '<span class="token-row__value">' + escapeHtml(v) + '</span></div>';
+  }).join('');
 }
 
 function updateIframePreview() {
@@ -1341,10 +1719,21 @@ function updateIframePreview() {
       styleEl.id = 'preview-theme-override';
       iframeDoc.head.appendChild(styleEl);
     }
-    styleEl.textContent = ':root{' + vars + '}';
+    styleEl.textContent = '@layer tokens { :root { ' + vars.replace(/;/g, '; ') + ' } }';
   } catch(e) {
-    // cross-origin sau iframe nu e gata
+    // iframe not ready yet; onload will call updateIframePreview again
   }
+}
+
+function setupThemePreviewIframe() {
+  const iframe = document.getElementById('themePreviewFrame');
+  if (!iframe) return;
+  iframe.addEventListener('load', function onPreviewLoad() {
+    const overlay = document.getElementById('themeEditorOverlay');
+    if (overlay && !overlay.classList.contains('u-hidden')) {
+      updateIframePreview();
+    }
+  });
 }
 
 function parseCssTokens(css) {
@@ -1356,8 +1745,40 @@ function parseCssTokens(css) {
   return tokens;
 }
 
+function setupThemeTokensResize() {
+  const handle = document.getElementById('themeTokensResize');
+  const block = document.getElementById('themeTokensBlock');
+  if (!handle || !block) return;
+  const preview = block.closest('.theme-editor__preview');
+  if (!preview) return;
+  const MIN_H = 120;
+  const MAX_H = 400;
+  let startY = 0;
+  let startHeight = 0;
+  function onMove(e) {
+    const dy = startY - e.clientY;
+    const newH = Math.min(MAX_H, Math.max(MIN_H, startHeight + dy));
+    preview.style.setProperty('--theme-tokens-height', newH + 'px');
+    localStorage.setItem('themeEditorTokensHeight', String(newH));
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    const currentH = block.getBoundingClientRect().height;
+    startHeight = currentH > 0 ? currentH : (parseInt(localStorage.getItem('themeEditorTokensHeight'), 10) || 200);
+    startY = e.clientY;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
 // ── Init ──────────────────────────────────────────
 loadOverview();
+setupThemeTokensResize();
+setupThemePreviewIframe();
 </script>
 </body>
 </html>
