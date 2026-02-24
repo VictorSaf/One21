@@ -446,7 +446,7 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
 
-    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'room-requests': loadRoomRequests, 'search': () => {} };
+    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'room-requests': loadRoomRequests, 'search': () => {}, settings: () => { loadSettings(); loadThemes(); } };
     loaders[btn.dataset.page] && loaders[btn.dataset.page]();
   });
 });
@@ -883,6 +883,248 @@ async function runSearch() {
       <div class="search-result__text">${r.text}</div>
     </div>
   `).join('');
+}
+
+// ── API Helpers ──────────────────────────────────
+async function apiGet(path) {
+  const token = localStorage.getItem('one21_token');
+  const r = await fetch(path, { headers: { 'Authorization': 'Bearer ' + token } });
+  return r.json();
+}
+async function apiPost(path, body) {
+  const token = localStorage.getItem('one21_token');
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error'); }
+  return r.json();
+}
+async function apiPut(path, body) {
+  const token = localStorage.getItem('one21_token');
+  const r = await fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error'); }
+  return r.json();
+}
+
+// ── SETTINGS ────────────────────────────────────────────
+
+document.querySelectorAll('.settings-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('settings-tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+async function loadSettings() {
+  try {
+    const data = await apiGet('/api/admin/settings');
+    const input = document.getElementById('claudeApiKeyInput');
+    const status = document.getElementById('apiKeyStatus');
+    if (data.has_key) {
+      input.placeholder = data.claude_api_key;
+      status.textContent = 'Key configured ✓';
+      status.style.color = 'var(--online)';
+    } else {
+      status.textContent = 'No key configured';
+      status.style.color = 'var(--text-tertiary)';
+    }
+  } catch(e) {
+    console.error('loadSettings error', e);
+  }
+}
+
+async function saveApiKey() {
+  const val = document.getElementById('claudeApiKeyInput').value.trim();
+  if (!val) return;
+  const status = document.getElementById('apiKeyStatus');
+  try {
+    await apiPut('/api/admin/settings', { claude_api_key: val });
+    status.textContent = 'Saved ✓';
+    status.style.color = 'var(--online)';
+    document.getElementById('claudeApiKeyInput').value = '';
+    await loadSettings();
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = 'var(--error)';
+  }
+}
+
+// ── THEMES LIST ──────────────────────────────────────────
+
+async function loadThemes() {
+  const container = document.getElementById('themesList');
+  if (!container) return;
+  try {
+    const data = await apiGet('/api/admin/themes');
+    if (!data.themes || !data.themes.length) {
+      container.innerHTML = '<div style="color:var(--text-secondary);font-family:var(--font-mono);font-size:var(--font-sm);padding:var(--sp-4)">No themes</div>';
+      return;
+    }
+    container.innerHTML = data.themes.map(t => `
+      <div class="themes-list__item ${t.is_active ? 'themes-list__item--active' : ''}">
+        <div class="themes-list__info">
+          <span class="themes-list__name">${t.name}</span>
+          ${t.is_active ? '<span class="badge badge--accent">Active</span>' : ''}
+        </div>
+        <div class="themes-list__actions">
+          ${!t.is_active ? `<button class="btn btn--ghost btn--sm" onclick="activateTheme(${t.id})">Activate</button>` : ''}
+          <button class="btn btn--ghost btn--sm" onclick="openThemeEditor(${t.id})">Edit</button>
+          ${!t.is_active ? `<button class="btn btn--danger btn--sm" onclick="deleteTheme(${t.id})">Delete</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--error);font-family:var(--font-mono);font-size:var(--font-sm);padding:var(--sp-4)">Failed to load</div>';
+  }
+}
+
+async function activateTheme(id) {
+  try {
+    await apiPost('/api/admin/themes/' + id + '/activate', {});
+    await loadThemes();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteTheme(id) {
+  if (!confirm('Delete this theme?')) return;
+  try {
+    const token = localStorage.getItem('one21_token');
+    await fetch('/api/admin/themes/' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    await loadThemes();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── THEME EDITOR ─────────────────────────────────────────
+
+let editorThemeId = null;
+let editorTokens = {};
+
+async function openThemeEditor(id) {
+  editorThemeId = id;
+  document.getElementById('themeChat').innerHTML = '';
+  document.getElementById('themeChatInput').value = '';
+  document.getElementById('themeEditorOverlay').classList.remove('u-hidden');
+
+  if (id) {
+    const data = await apiGet('/api/admin/themes/' + id);
+    editorTokens = data.theme.tokens;
+    document.getElementById('themeEditorName').value = data.theme.name;
+  } else {
+    const cssText = await fetch('/api/theme/active.css').then(r => r.text());
+    editorTokens = parseCssTokens(cssText);
+    document.getElementById('themeEditorName').value = 'New Theme';
+  }
+
+  renderTokens();
+  updateIframePreview();
+  appendChatMessage('claude', 'Tema curentă: ' + Object.keys(editorTokens).length + ' tokeni. Descrie ce vrei să schimbi (ex: "fă accentul roșu", "temă light").');
+}
+
+function closeThemeEditor() {
+  document.getElementById('themeEditorOverlay').classList.add('u-hidden');
+  editorThemeId = null;
+  editorTokens = {};
+}
+
+async function saveTheme() {
+  const name = document.getElementById('themeEditorName').value.trim();
+  if (!name) { alert('Theme name required'); return; }
+  try {
+    if (editorThemeId) {
+      await apiPut('/api/admin/themes/' + editorThemeId, { name, tokens: editorTokens });
+    } else {
+      await apiPost('/api/admin/themes', { name, tokens: editorTokens });
+    }
+    closeThemeEditor();
+    await loadThemes();
+  } catch(e) { alert('Save failed: ' + e.message); }
+}
+
+async function sendThemeChat() {
+  const input = document.getElementById('themeChatInput');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  input.disabled = true;
+
+  appendChatMessage('user', message);
+  const loadingEl = appendChatMessage('claude', '...');
+
+  try {
+    const data = await apiPost('/api/admin/themes/chat', {
+      message,
+      current_tokens: editorTokens,
+    });
+    loadingEl.remove();
+    appendChatMessage('claude', data.explanation || 'Done.');
+    editorTokens = data.tokens;
+    renderTokens();
+    updateIframePreview();
+  } catch(e) {
+    loadingEl.remove();
+    appendChatMessage('error', 'Error: ' + e.message);
+  }
+  input.disabled = false;
+  input.focus();
+}
+
+function appendChatMessage(role, text) {
+  const chat = document.getElementById('themeChat');
+  const div = document.createElement('div');
+  div.className = 'theme-chat-msg theme-chat-msg--' + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function renderTokens() {
+  const container = document.getElementById('themeTokensList');
+  if (!container) return;
+  container.innerHTML = Object.entries(editorTokens).map(([k, v]) => `
+    <div class="token-row">
+      <span class="token-row__key">${k}</span>
+      <span class="token-row__value">${v}</span>
+    </div>
+  `).join('');
+}
+
+function updateIframePreview() {
+  const iframe = document.getElementById('themePreviewFrame');
+  if (!iframe) return;
+  const vars = Object.entries(editorTokens).map(([k, v]) => k + ':' + v).join(';');
+  try {
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    let styleEl = iframeDoc.getElementById('preview-theme-override');
+    if (!styleEl) {
+      styleEl = iframeDoc.createElement('style');
+      styleEl.id = 'preview-theme-override';
+      iframeDoc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = ':root{' + vars + '}';
+  } catch(e) {
+    // cross-origin sau iframe nu e gata
+  }
+}
+
+function parseCssTokens(css) {
+  const tokens = {};
+  const matches = css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g);
+  for (const [, key, value] of matches) {
+    tokens[key] = value.trim();
+  }
+  return tokens;
 }
 
 // ── Init ──────────────────────────────────────────
