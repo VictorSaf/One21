@@ -21,6 +21,8 @@ const { notifyUser } = require('./routes/push');
 const roomRequestsRouter = require('./routes/room-requests');
 const { addDocument } = require('./lib/vectorstore');
 const { getPermission } = require('./middleware/permissions');
+const settingsRoutes = require('./routes/settings');
+const themeRoutes    = require('./routes/theme');
 
 const PORT = process.env.PORT || 3737;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3737').split(',');
@@ -84,6 +86,8 @@ app.get('/health', (req, res) => {
 });
 
 // --- API Routes ---
+app.use('/api/theme', themeRoutes);
+app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/agent', agentRoutes);      // agent first — no JWT auth
 app.use('/api/files', fileRoutes);       // file download — auth inside route
 app.use('/api/auth', authRoutes);

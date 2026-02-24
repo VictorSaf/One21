@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Access Terminal</title>
 <link rel="stylesheet" href="/css/design-system.css">
+<link rel="stylesheet" href="/api/theme/active.css">
 <link rel="stylesheet" href="/css/layers/pages/login.css">
 </head>
 <body>
@@ -29,18 +30,6 @@
     <!-- Form -->
     <form id="loginForm" class="login-form" autocomplete="off">
 
-      <!-- Register-only fields -->
-      <div class="register-fields" id="registerFields">
-        <div class="login-field">
-          <label for="inviteCode">Invite_Code</label>
-          <input type="text" id="inviteCode" placeholder="XXXXXXXX" autocomplete="off">
-        </div>
-        <div class="login-field">
-          <label for="displayName">Display_Name</label>
-          <input type="text" id="displayName" placeholder="Operator callsign">
-        </div>
-      </div>
-
       <div class="login-field">
         <label for="username">Node_ID</label>
         <input type="text" id="username" placeholder="Username" autocomplete="username" required>
@@ -56,11 +45,6 @@
         Authenticate
       </button>
     </form>
-
-    <div class="login-toggle">
-      <span id="toggleText">No account?</span>
-      <a id="toggleLink" onclick="toggleMode()">Register</a>
-    </div>
   </div>
 
   <!-- Status footer -->
@@ -69,37 +53,16 @@
       <span class="status-dot status-dot--online"></span>
       LINK:STABLE
     </span>
-    <span class="login-footer__item">SEC:EAL7</span>
+    <span class="login-footer__item">TLS:1.3</span>
+    <span class="login-footer__item">HSTS:1Y</span>
+    <span class="login-footer__item">JWT:HS256</span>
+    <span class="login-footer__item">BCRYPT:R12</span>
     <span class="login-footer__item">ONE21_v2.0</span>
   </div>
 </div>
 
 
 <script>
-  let isRegister = false;
-
-  function toggleMode() {
-    isRegister = !isRegister;
-    const fields      = document.getElementById('registerFields');
-    const btn         = document.getElementById('submitBtn');
-    const toggleText  = document.getElementById('toggleText');
-    const toggleLink  = document.getElementById('toggleLink');
-    const error       = document.getElementById('errorBox');
-    error.classList.remove('visible');
-
-    if (isRegister) {
-      fields.classList.add('visible');
-      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Init_Account`;
-      toggleText.textContent  = 'Already registered?';
-      toggleLink.textContent  = 'Login';
-    } else {
-      fields.classList.remove('visible');
-      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg> Authenticate`;
-      toggleText.textContent  = 'No account?';
-      toggleLink.textContent  = 'Register';
-    }
-  }
-
   function showError(msg) {
     const box = document.getElementById('errorBox');
     box.textContent = 'ERR: ' + msg;
@@ -117,27 +80,11 @@
     const password = document.getElementById('password').value;
 
     try {
-      let res;
-      if (isRegister) {
-        const invite_code  = document.getElementById('inviteCode').value.trim();
-        const display_name = document.getElementById('displayName').value.trim();
-        if (!invite_code) {
-          showError('Invite code required');
-          btn.disabled = false;
-          return;
-        }
-        res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, invite_code, display_name })
-        });
-      } else {
-        res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-      }
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
 
       const data = await res.json();
       if (!res.ok) { showError(data.error || 'Authentication failed'); btn.disabled = false; return; }
