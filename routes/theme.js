@@ -7,7 +7,7 @@ const router = express.Router();
 
 // ── PUBLIC ──────────────────────────────────────────
 // GET /api/theme/active.css
-router.get('/active.css', (req, res) => {
+router.get('/theme/active.css', (req, res) => {
   const db = getDb();
   const theme = db.prepare('SELECT tokens FROM themes WHERE is_active = 1').get();
   if (!theme) {

@@ -86,7 +86,7 @@ app.get('/health', (req, res) => {
 });
 
 // --- API Routes ---
-app.use('/api/theme', themeRoutes);
+app.use('/api', themeRoutes);
 app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/agent', agentRoutes);      // agent first — no JWT auth
 app.use('/api/files', fileRoutes);       // file download — auth inside route

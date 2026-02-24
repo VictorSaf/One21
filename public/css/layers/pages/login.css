@@ -235,26 +235,7 @@
     pointer-events: none;
   }
 
-  /* -- Toggle / error -- */
-  .login-toggle {
-    text-align: center;
-    margin-top: 16px;
-    font-family: var(--font-mono);
-    font-size: var(--font-xs);
-    color: var(--text-tertiary);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .login-toggle a {
-    color: var(--accent);
-    cursor: pointer;
-    text-decoration: none;
-    margin-left: 4px;
-  }
-
-  .login-toggle a:hover { color: var(--accent-dim); }
-
+  /* -- Error -- */
   .login-error {
     display: none;
     padding: 9px var(--sp-3);
@@ -270,9 +251,6 @@
   }
 
   .login-error.visible { display: block; }
-
-  .register-fields { display: none; }
-  .register-fields.visible { display: contents; }
 
   /* -- Bottom status line -- */
   .login-footer {
