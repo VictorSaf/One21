@@ -342,6 +342,7 @@
           <input type="text" class="theme-editor__name" id="themeEditorName" placeholder="Theme name...">
           <div class="theme-editor__actions">
             <button class="btn btn--ghost btn--sm" onclick="closeThemeEditor()">Cancel</button>
+            <button class="btn btn--secondary btn--sm" onclick="showSaveAsNew()" id="btnSaveAsNew">Save as New Theme</button>
             <button class="btn btn--primary btn--sm" onclick="saveTheme()">Save Theme</button>
           </div>
         </div>
@@ -366,6 +367,26 @@
 
       </div>
     </div>
+
+  <!-- ── SAVE AS NEW THEME MODAL ── -->
+  <div class="modal-overlay" id="saveAsNewOverlay" onclick="if(event.target===this)hideSaveAsNew()">
+    <div class="modal">
+      <div class="modal__header">
+        <span class="modal__title">Save as New Theme</span>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label>Theme Name</label>
+          <input type="text" class="input" id="newThemeNameInput" placeholder="Ex: Neural Blue, Amber Dark..."
+            onkeydown="if(event.key==='Enter')confirmSaveAsNew(); if(event.key==='Escape')hideSaveAsNew()">
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" onclick="hideSaveAsNew()">Cancel</button>
+        <button class="btn btn--primary btn--sm" onclick="confirmSaveAsNew()">Save</button>
+      </div>
+    </div>
+  </div>
 
   </main>
 
@@ -1046,6 +1067,28 @@ async function saveTheme() {
     } else {
       await apiPost('/api/admin/themes', { name, tokens: editorTokens });
     }
+    closeThemeEditor();
+    await loadThemes();
+  } catch(e) { alert('Save failed: ' + e.message); }
+}
+
+function showSaveAsNew() {
+  const input = document.getElementById('newThemeNameInput');
+  input.value = '';
+  document.getElementById('saveAsNewOverlay').classList.add('open');
+  setTimeout(() => input.focus(), 50);
+}
+
+function hideSaveAsNew() {
+  document.getElementById('saveAsNewOverlay').classList.remove('open');
+}
+
+async function confirmSaveAsNew() {
+  const name = document.getElementById('newThemeNameInput').value.trim();
+  if (!name) { document.getElementById('newThemeNameInput').focus(); return; }
+  try {
+    await apiPost('/api/admin/themes', { name, tokens: editorTokens });
+    hideSaveAsNew();
     closeThemeEditor();
     await loadThemes();
   } catch(e) { alert('Save failed: ' + e.message); }

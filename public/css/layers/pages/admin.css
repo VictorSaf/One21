@@ -934,6 +934,9 @@
 
   .theme-editor-overlay.u-hidden { display: none; }
 
+  /* Save-as-new modal must sit above theme-editor-overlay (z-modal=400) */
+  #saveAsNewOverlay { z-index: var(--z-toast); }
+
   .theme-editor {
     display: flex;
     flex-direction: column;
