@@ -109,6 +109,21 @@ function getDb() {
       created_at        TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key        TEXT PRIMARY KEY,
+      value      TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS themes (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT NOT NULL,
+      tokens     TEXT NOT NULL,
+      is_active  INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(code);
@@ -116,6 +131,7 @@ function getDb() {
     CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
     CREATE INDEX IF NOT EXISTS idx_room_requests_status  ON room_requests(status);
+    CREATE INDEX IF NOT EXISTS idx_themes_active ON themes(is_active);
   `);
 
   // Run migrations for existing DBs
@@ -143,6 +159,30 @@ function migrate(db) {
   safeAdd('messages', 'is_edited', 'INTEGER NOT NULL DEFAULT 0');
   safeAdd('invitations', 'default_permissions', "TEXT DEFAULT '{}'");
   safeAdd('invitations', 'note', 'TEXT');
+
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+  } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS themes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      tokens TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_themes_active ON themes(is_active)");
+    const hasTheme = db.prepare('SELECT COUNT(*) as n FROM themes').get().n;
+    if (hasTheme === 0) {
+      const defaultTokens = {"--bg-base":"#040404","--bg-surface":"#0d0d0d","--bg-elevated":"#141414","--bg-active":"#1a1a1a","--bg-hover":"rgba(255,255,255,0.04)","--border-dim":"#1c1c1c","--border-mid":"#272727","--border-bright":"#383838","--border-accent":"rgba(0,230,118,0.2)","--border-accent-strong":"rgba(0,230,118,0.5)","--accent":"#00e676","--accent-dim":"#00b856","--accent-muted":"rgba(0,230,118,0.07)","--accent-glow":"rgba(0,230,118,0.15)","--text-primary":"#c4c4c4","--text-secondary":"#545454","--text-tertiary":"#2c2c2c","--text-accent":"#00e676","--text-inverse":"#070707","--online":"#00e676","--offline":"#333333","--busy":"#ff9c00","--error":"#ff3d3d","--warning":"#ffb300","--info":"#00b4d8","--danger":"#ff3d3d","--danger-muted":"rgba(255,61,61,0.08)","--danger-border":"rgba(255,61,61,0.2)","--danger-border-mid":"rgba(255,61,61,0.35)","--danger-hover":"rgba(255,61,61,0.07)","--danger-focus":"rgba(255,61,61,0.4)","--danger-focus-shadow":"rgba(255,61,61,0.08)","--danger-border-25":"rgba(255,61,61,0.25)","--danger-border-50":"rgba(255,61,61,0.5)","--danger-bg":"rgba(255,61,61,0.06)","--purple":"#8888ff","--purple-muted":"rgba(100,100,220,0.12)","--purple-light":"#a78bfa","--purple-border":"rgba(167,139,250,0.25)","--purple-bg":"rgba(167,139,250,0.06)","--info-muted":"rgba(0,180,216,0.12)","--info-border":"rgba(0,180,216,0.25)","--info-bg":"rgba(0,180,216,0.05)","--overlay-bg":"rgba(0,0,0,0.75)","--shadow-overlay":"rgba(0,0,0,0.6)","--overlay-bg-50":"rgba(0,0,0,0.5)","--accent-anim-glow-0":"rgba(0,230,118,0)","--accent-anim-glow-35":"rgba(0,230,118,0.35)","--accent-anim-bg-05":"rgba(0,230,118,0.05)","--accent-anim-bg-06":"rgba(0,230,118,0.06)","--accent-anim-bg-08":"rgba(0,230,118,0.08)","--accent-anim-bg-12":"rgba(0,230,118,0.12)","--accent-anim-bg-30":"rgba(0,230,118,0.3)","--accent-border-25":"rgba(0,230,118,0.25)","--accent-border-40":"rgba(0,230,118,0.4)","--accent-border-60":"rgba(0,230,118,0.6)","--accent-bg-gradient-1":"rgba(0,230,118,0.025)","--accent-bg-gradient-2":"rgba(0,230,118,0.014)","--shadow-sm":"0 1px 4px rgba(0,0,0,0.6)","--shadow-md":"0 4px 16px rgba(0,0,0,0.7)","--shadow-lg":"0 12px 40px rgba(0,0,0,0.85)","--warning-muted":"rgba(255,179,0,0.08)","--scanline-color":"rgba(0,0,0,0.025)","--selection-bg":"rgba(0,230,118,0.18)"};
+      db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 1)").run('Neural Dark', JSON.stringify(defaultTokens));
+    }
+  } catch {}
 }
 
 function seed(db) {
@@ -190,6 +230,42 @@ function seed(db) {
   addMsg.run(bizRoom.lastInsertRowid, claudiuId, 'Salut Claude! Ma bucur sa te cunosc. Da, hai sa vorbim deschis.', 'text');
   addMsg.run(bizRoom.lastInsertRowid, agentId, 'Am pregatit analiza strategica pentru Investorhood. Piata fintech din Romania are un potential semnificativ.', 'text');
   addMsg.run(generalRoom.lastInsertRowid, adminId, 'Bine ati venit pe One21!', 'text');
+
+  const defaultTokens = {
+    "--bg-base": "#040404", "--bg-surface": "#0d0d0d", "--bg-elevated": "#141414",
+    "--bg-active": "#1a1a1a", "--bg-hover": "rgba(255,255,255,0.04)",
+    "--border-dim": "#1c1c1c", "--border-mid": "#272727", "--border-bright": "#383838",
+    "--border-accent": "rgba(0,230,118,0.2)", "--border-accent-strong": "rgba(0,230,118,0.5)",
+    "--accent": "#00e676", "--accent-dim": "#00b856", "--accent-muted": "rgba(0,230,118,0.07)",
+    "--accent-glow": "rgba(0,230,118,0.15)",
+    "--text-primary": "#c4c4c4", "--text-secondary": "#545454", "--text-tertiary": "#2c2c2c",
+    "--text-accent": "#00e676", "--text-inverse": "#070707",
+    "--online": "#00e676", "--offline": "#333333", "--busy": "#ff9c00",
+    "--error": "#ff3d3d", "--warning": "#ffb300", "--info": "#00b4d8",
+    "--danger": "#ff3d3d", "--danger-muted": "rgba(255,61,61,0.08)",
+    "--danger-border": "rgba(255,61,61,0.2)", "--danger-border-mid": "rgba(255,61,61,0.35)",
+    "--danger-hover": "rgba(255,61,61,0.07)", "--danger-focus": "rgba(255,61,61,0.4)",
+    "--danger-focus-shadow": "rgba(255,61,61,0.08)", "--danger-border-25": "rgba(255,61,61,0.25)",
+    "--danger-border-50": "rgba(255,61,61,0.5)", "--danger-bg": "rgba(255,61,61,0.06)",
+    "--purple": "#8888ff", "--purple-muted": "rgba(100,100,220,0.12)",
+    "--purple-light": "#a78bfa", "--purple-border": "rgba(167,139,250,0.25)",
+    "--purple-bg": "rgba(167,139,250,0.06)", "--info-muted": "rgba(0,180,216,0.12)",
+    "--info-border": "rgba(0,180,216,0.25)", "--info-bg": "rgba(0,180,216,0.05)",
+    "--overlay-bg": "rgba(0,0,0,0.75)", "--shadow-overlay": "rgba(0,0,0,0.6)",
+    "--overlay-bg-50": "rgba(0,0,0,0.5)",
+    "--accent-anim-glow-0": "rgba(0,230,118,0)", "--accent-anim-glow-35": "rgba(0,230,118,0.35)",
+    "--accent-anim-bg-05": "rgba(0,230,118,0.05)", "--accent-anim-bg-06": "rgba(0,230,118,0.06)",
+    "--accent-anim-bg-08": "rgba(0,230,118,0.08)", "--accent-anim-bg-12": "rgba(0,230,118,0.12)",
+    "--accent-anim-bg-30": "rgba(0,230,118,0.3)", "--accent-border-25": "rgba(0,230,118,0.25)",
+    "--accent-border-40": "rgba(0,230,118,0.4)", "--accent-border-60": "rgba(0,230,118,0.6)",
+    "--accent-bg-gradient-1": "rgba(0,230,118,0.025)", "--accent-bg-gradient-2": "rgba(0,230,118,0.014)",
+    "--shadow-sm": "0 1px 4px rgba(0,0,0,0.6)", "--shadow-md": "0 4px 16px rgba(0,0,0,0.7)",
+    "--shadow-lg": "0 12px 40px rgba(0,0,0,0.85)",
+    "--warning-muted": "rgba(255,179,0,0.08)", "--scanline-color": "rgba(0,0,0,0.025)",
+    "--selection-bg": "rgba(0,230,118,0.18)"
+  };
+  db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 1)")
+    .run('Neural Dark', JSON.stringify(defaultTokens));
 
   console.log(`[DB] Seeded: admin, claude, claudiu, 2 rooms, invite: ${inviteCode}`);
 }
