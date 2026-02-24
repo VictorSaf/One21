@@ -128,6 +128,20 @@ router.put('/:id', (req, res) => {
   res.json({ room });
 });
 
+// DELETE /api/rooms/:id — admin only, delete room + cascade members
+router.delete('/:id', (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const db = getDb();
+  const roomId = req.params.id;
+  const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  db.transaction(() => {
+    db.prepare('DELETE FROM room_members WHERE room_id = ?').run(roomId);
+    db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
+  })();
+  res.json({ ok: true });
+});
+
 // POST /api/rooms/:id/members — add member (owner or admin)
 router.post('/:id/members', (req, res) => {
   const db = getDb();

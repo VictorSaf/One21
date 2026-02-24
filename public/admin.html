@@ -43,10 +43,7 @@
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Node_Map
     </button>
-    <button class="admin-nav__item" data-page="room-requests">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Room_Requests <span class="nav-badge u-hidden" id="requestsBadge">0</span>
-    </button>
+
     <button class="admin-nav__item" data-page="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Neural_Search
@@ -187,28 +184,6 @@
     </div>
 
 
-    <!-- ── ROOM REQUESTS ── -->
-    <div class="admin-page" id="page-room-requests">
-      <div class="admin-page-header">
-        <div class="admin-page-label">Pending_Review</div>
-        <div class="admin-page-title">Room_Requests</div>
-      </div>
-      <div class="admin-section">
-        <table>
-          <thead>
-            <tr>
-              <th>Requester</th>
-              <th>Room_Name</th>
-              <th>Description</th>
-              <th>Submitted</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="requestsBody"></tbody>
-        </table>
-      </div>
-    </div>
 
     <!-- ── NEURAL SEARCH ── -->
     <div class="admin-page" id="page-search">
@@ -241,6 +216,7 @@
 
       <div class="admin-toolbar">
         <input class="admin-toolbar__input" type="text" id="roomSearch" placeholder="QUERY_NODE..." oninput="filterRooms()">
+        <button class="t-btn t-btn--accent" onclick="openCreateRoom()">+ New_Channel</button>
       </div>
 
       <div class="admin-section">
@@ -253,6 +229,7 @@
               <th>Msg_Count</th>
               <th>Last_Transmission</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="roomsBody"></tbody>
@@ -442,6 +419,54 @@
     </div>
   </div>
 
+  <!-- ── CREATE / EDIT CHANNEL MODAL ── -->
+  <div class="modal-overlay" id="roomModal">
+    <div class="modal">
+      <div class="modal__header">
+        <span class="modal__title" id="roomModalTitle">New_Channel</span>
+        <button class="modal__close" onclick="closeRoomModal()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label class="modal__label">Name</label>
+          <input class="input" type="text" id="roomModalName" placeholder="channel-name" maxlength="80">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Description</label>
+          <input class="input" type="text" id="roomModalDesc" placeholder="Optional description" maxlength="200">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Members</label>
+          <input class="input" type="text" id="roomModalMemberSearch" placeholder="Search users..." oninput="filterRoomModalUsers()">
+          <div id="roomModalUserList" style="margin-top:var(--sp-2);max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:var(--sp-1);"></div>
+        </div>
+        <div id="roomModalError" class="u-error" style="display:none;"></div>
+      </div>
+      <div class="modal__footer">
+        <button class="t-btn t-btn--accent" onclick="saveRoom()">Save_Channel</button>
+        <button class="t-btn" onclick="closeRoomModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MEMBERS PANEL ── -->
+  <div class="perms-panel" id="membersPanel">
+    <div class="perms-panel__header">
+      <span class="perms-panel__title" id="membersPanelTitle">Members</span>
+      <button class="perms-panel__close" onclick="closeMembersPanel()">✕</button>
+    </div>
+    <div class="perms-panel__body" id="membersPanelBody">
+      <div class="u-dim">Select a channel to view members.</div>
+    </div>
+    <div class="perms-panel__footer">
+      <div style="display:flex;gap:var(--sp-2);width:100%;">
+        <input class="input" type="text" id="addMemberSearch" placeholder="Add member..." oninput="filterAddMemberList()" style="flex:1;">
+        <div id="addMemberDropdown" style="display:none;position:absolute;bottom:calc(var(--sp-12) + var(--sp-4));left:var(--sp-4);right:var(--sp-4);background:var(--bg-elevated);border:1px solid var(--border-mid);border-radius:4px;max-height:150px;overflow-y:auto;z-index:var(--z-dropdown);"></div>
+      </div>
+    </div>
+  </div>
+  <div class="perms-overlay" id="membersOverlay" onclick="closeMembersPanel()"></div>
+
 </div>
 
 
@@ -467,7 +492,7 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
 
-    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'room-requests': loadRoomRequests, 'search': () => {}, settings: () => { loadSettings(); loadThemes(); } };
+    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'search': () => {}, settings: () => { loadSettings(); loadThemes(); } };
     loaders[btn.dataset.page] && loaders[btn.dataset.page]();
   });
 });
@@ -656,9 +681,9 @@ async function loadRooms() {
 function renderRooms(rooms) {
   const typeLabel = { direct: 'Direct', group: 'Group', channel: 'Channel' };
   document.getElementById('roomsBody').innerHTML = rooms.length === 0
-    ? '<tr><td colspan="6" class="empty-state">No nodes found</td></tr>'
+    ? '<tr><td colspan="7" class="empty-state">No nodes found</td></tr>'
     : rooms.map(r => `
-    <tr>
+    <tr${r.is_archived ? ' style="opacity:0.55"' : ''}>
       <td>
         <span class="td-primary">${r.name}</span>
         ${r.description ? `<span class="td-secondary">${r.description}</span>` : ''}
@@ -670,6 +695,11 @@ function renderRooms(rooms) {
       <td>${r.is_archived
         ? '<span class="t-badge t-badge--archived">Archived</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="t-btn t-btn--sm" onclick="openEditRoom(${r.id}, ${JSON.stringify(r.name)}, ${JSON.stringify(r.description||'')})">Edit</button>
+        <button class="t-btn t-btn--sm" onclick="openMembersPanel(${r.id}, ${JSON.stringify(r.name)})">Members</button>
+        ${r.type !== 'direct' ? `<button class="t-btn t-btn--sm t-btn--reject" onclick="deleteRoom(${r.id}, ${JSON.stringify(r.name)})">Delete</button>` : ''}
+      </td>
     </tr>`).join('');
 }
 
@@ -835,48 +865,194 @@ async function generateInviteWithPerms() {
   }
 }
 
-// ── Room Requests ─────────────────────────────────
-async function loadRoomRequests() {
-  const data = await Auth.api('/api/admin/room-requests');
-  if (!data) return;
-  const pending = data.requests.filter(r => r.status === 'pending');
-  const badge = document.getElementById('requestsBadge');
-  if (pending.length > 0) { badge.textContent = pending.length; badge.classList.remove('u-hidden'); }
-  else { badge.classList.add('u-hidden'); }
+// ── Channel Management ────────────────────────────
+let roomModalId = null;    // null = create, number = edit
+let allUsersForRoom = [];  // cached user list for room modal
 
-  document.getElementById('requestsBody').innerHTML = data.requests.length === 0
-    ? '<tr><td colspan="6" class="td-empty">No room requests yet.</td></tr>'
-    : data.requests.map(r => `
-      <tr>
-        <td class="td-meta">${r.requester_display || r.requester_name}</td>
-        <td><strong>${r.name}</strong>${r.description ? `<div class="td-meta">${r.description}</div>` : ''}</td>
-        <td class="td-meta">${r.description || '—'}</td>
-        <td class="td-meta">${formatDate(r.created_at)}</td>
-        <td><span class="badge badge--${r.status}">${r.status}</span></td>
-        <td>${r.status === 'pending' ? `
-          <button class="t-btn t-btn--accent t-btn--approve" onclick="approveRequest(${r.id}, ${JSON.stringify(JSON.parse(r.requested_members || '[]'))})">Approve</button>
-          <button class="t-btn t-btn--reject" onclick="rejectRequest(${r.id})">Reject</button>
-        ` : r.admin_note ? `<span class="u-dim">${r.admin_note}</span>` : '—'}</td>
-      </tr>
+async function openCreateRoom() {
+  roomModalId = null;
+  document.getElementById('roomModalTitle').textContent = 'New_Channel';
+  document.getElementById('roomModalName').value = '';
+  document.getElementById('roomModalDesc').value = '';
+  document.getElementById('roomModalError').style.display = 'none';
+  document.getElementById('roomModalMemberSearch').value = '';
+  if (allUsersForRoom.length === 0) {
+    const d = await Auth.api('/api/rooms/users/list');
+    if (d) allUsersForRoom = d.users;
+  }
+  renderRoomModalUsers(allUsersForRoom, []);
+  document.getElementById('roomModal').classList.add('open');
+  document.getElementById('roomModalName').focus();
+}
+
+async function openEditRoom(id, name, desc) {
+  roomModalId = id;
+  document.getElementById('roomModalTitle').textContent = 'Edit_Channel';
+  document.getElementById('roomModalName').value = name;
+  document.getElementById('roomModalDesc').value = desc || '';
+  document.getElementById('roomModalError').style.display = 'none';
+  document.getElementById('roomModalMemberSearch').value = '';
+  if (allUsersForRoom.length === 0) {
+    const d = await Auth.api('/api/rooms/users/list');
+    if (d) allUsersForRoom = d.users;
+  }
+  // Load current members to pre-check them
+  const roomData = await Auth.api(`/api/rooms/${id}`);
+  const currentMemberIds = roomData ? roomData.members.map(m => m.id) : [];
+  renderRoomModalUsers(allUsersForRoom, currentMemberIds);
+  document.getElementById('roomModal').classList.add('open');
+  document.getElementById('roomModalName').focus();
+}
+
+function renderRoomModalUsers(users, checkedIds) {
+  document.getElementById('roomModalUserList').innerHTML = users.map(u => `
+    <label style="display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-2);cursor:pointer;">
+      <input type="checkbox" data-uid="${u.id}" ${checkedIds.includes(u.id) ? 'checked' : ''}>
+      <span>${u.display_name || u.username}</span>
+      <span class="u-dim" style="font-size:var(--font-xs)">@${u.username}</span>
+    </label>
+  `).join('');
+}
+
+function filterRoomModalUsers() {
+  const q = document.getElementById('roomModalMemberSearch').value.toLowerCase();
+  const filtered = allUsersForRoom.filter(u =>
+    (u.display_name || u.username).toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+  );
+  const checkedIds = [...document.querySelectorAll('#roomModalUserList input[type=checkbox]:checked')].map(c => parseInt(c.dataset.uid));
+  renderRoomModalUsers(filtered, checkedIds);
+}
+
+async function saveRoom() {
+  const name = document.getElementById('roomModalName').value.trim();
+  const desc = document.getElementById('roomModalDesc').value.trim();
+  const memberIds = [...document.querySelectorAll('#roomModalUserList input[type=checkbox]:checked')].map(c => parseInt(c.dataset.uid));
+  const errEl = document.getElementById('roomModalError');
+
+  if (!name) { errEl.textContent = 'Name required.'; errEl.style.display = ''; return; }
+  errEl.style.display = 'none';
+
+  if (roomModalId) {
+    // Edit: update name/desc, then reconcile members
+    const d = await Auth.api(`/api/rooms/${roomModalId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: desc || null }),
+    });
+    if (!d) return;
+    // Get current members and add/remove as needed
+    const roomData = await Auth.api(`/api/rooms/${roomModalId}`);
+    if (roomData) {
+      const currentIds = roomData.members.map(m => m.id);
+      const toAdd = memberIds.filter(id => !currentIds.includes(id));
+      const toRemove = currentIds.filter(id => !memberIds.includes(id));
+      for (const uid of toAdd) {
+        await Auth.api(`/api/rooms/${roomModalId}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: uid }) });
+      }
+      for (const uid of toRemove) {
+        await Auth.api(`/api/rooms/${roomModalId}/members/${uid}`, { method: 'DELETE' });
+      }
+    }
+    toast('Channel updated');
+  } else {
+    // Create
+    const d = await Auth.api('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: desc || undefined, type: 'group', member_ids: memberIds }),
+    });
+    if (!d || d.error) { errEl.textContent = d?.error || 'Error creating channel.'; errEl.style.display = ''; return; }
+    toast('Channel created');
+  }
+  closeRoomModal();
+  loadRooms();
+}
+
+function closeRoomModal() {
+  document.getElementById('roomModal').classList.remove('open');
+  roomModalId = null;
+}
+
+// ── Members Panel ─────────────────────────────────
+let membersPanelRoomId = null;
+let allUsersForMembers = [];
+
+async function openMembersPanel(roomId, name) {
+  membersPanelRoomId = roomId;
+  document.getElementById('membersPanelTitle').textContent = `Members — ${name}`;
+  document.getElementById('membersPanelBody').innerHTML = '<div class="u-dim">Loading...</div>';
+  document.getElementById('membersPanel').classList.add('open');
+  document.getElementById('membersOverlay').classList.add('open');
+  document.getElementById('addMemberSearch').value = '';
+  document.getElementById('addMemberDropdown').style.display = 'none';
+
+  if (allUsersForMembers.length === 0) {
+    const d = await Auth.api('/api/rooms/users/list');
+    if (d) allUsersForMembers = d.users;
+  }
+
+  await renderMembersPanel();
+}
+
+async function renderMembersPanel() {
+  const data = await Auth.api(`/api/rooms/${membersPanelRoomId}`);
+  if (!data) return;
+  const roleLabel = { owner: 'owner', member: 'member', agent: 'agent' };
+  document.getElementById('membersPanelBody').innerHTML = data.members.length === 0
+    ? '<div class="u-dim">No members.</div>'
+    : data.members.map(m => `
+      <div class="perm-row">
+        <span class="perm-row__label">
+          ${m.display_name || m.username}
+          <span class="u-dim" style="font-size:var(--font-xs);margin-left:var(--sp-1)">${roleLabel[m.room_role] || m.room_role}</span>
+        </span>
+        <button class="t-btn t-btn--sm t-btn--reject" onclick="removeRoomMember(${m.id})" title="Remove">✕</button>
+      </div>
     `).join('');
 }
 
-async function approveRequest(id, memberIds) {
-  const data = await Auth.api(`/api/admin/room-requests/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: 'approved', member_ids: memberIds }),
-  });
-  if (data) { toast('Room created and approved'); loadRoomRequests(); }
+async function removeRoomMember(userId) {
+  const d = await Auth.api(`/api/rooms/${membersPanelRoomId}/members/${userId}`, { method: 'DELETE' });
+  if (d) { await renderMembersPanel(); loadRooms(); }
 }
 
-async function rejectRequest(id) {
-  const data = await Auth.api(`/api/admin/room-requests/${id}`, {
-    method: 'PUT',
+function filterAddMemberList() {
+  const q = document.getElementById('addMemberSearch').value.toLowerCase().trim();
+  const dd = document.getElementById('addMemberDropdown');
+  if (!q) { dd.style.display = 'none'; return; }
+  const filtered = allUsersForMembers.filter(u =>
+    (u.display_name || u.username).toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+  );
+  if (filtered.length === 0) { dd.style.display = 'none'; return; }
+  dd.style.display = '';
+  dd.innerHTML = filtered.slice(0, 8).map(u => `
+    <div class="perm-row" style="cursor:pointer;padding:var(--sp-2);" onclick="addRoomMember(${u.id})">
+      ${u.display_name || u.username} <span class="u-dim" style="font-size:var(--font-xs)">@${u.username}</span>
+    </div>
+  `).join('');
+}
+
+async function addRoomMember(userId) {
+  document.getElementById('addMemberDropdown').style.display = 'none';
+  document.getElementById('addMemberSearch').value = '';
+  const d = await Auth.api(`/api/rooms/${membersPanelRoomId}/members`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: 'rejected' }),
+    body: JSON.stringify({ user_id: userId }),
   });
-  if (data) { toast('Request rejected'); loadRoomRequests(); }
+  if (d) { await renderMembersPanel(); loadRooms(); }
+}
+
+function closeMembersPanel() {
+  document.getElementById('membersPanel').classList.remove('open');
+  document.getElementById('membersOverlay').classList.remove('open');
+  membersPanelRoomId = null;
+}
+
+async function deleteRoom(id, name) {
+  if (!confirm(`Delete channel "${name}"? This cannot be undone.`)) return;
+  const d = await Auth.api(`/api/rooms/${id}`, { method: 'DELETE' });
+  if (d) { toast(`Channel "${name}" deleted`); loadRooms(); }
 }
 
 // ── Neural Search ────────────────────────────────
