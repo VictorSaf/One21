@@ -98,7 +98,7 @@
     }
   });
 
-  if (localStorage.getItem('one21_token')) {
+  if (window.self === window.top && localStorage.getItem('one21_token')) {
     window.location.href = '/chat.html';
   }
 </script>
