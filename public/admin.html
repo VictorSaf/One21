@@ -93,6 +93,14 @@
         </div>
       </div>
 
+      <div class="admin-section hub-section" id="hubSection">
+        <div class="admin-section__header">
+          <span class="admin-section__title">Hub</span>
+        </div>
+        <div class="hub-cards-grid" id="hubCardsGrid"></div>
+        <div class="hub-cards-empty u-dim" id="hubCardsEmpty" style="display:none;">No hub cards yet. Add them in Hub.</div>
+      </div>
+
       <div class="admin-section">
         <div class="admin-section__header">
           <span class="admin-section__title">Recent_Activity</span>
@@ -603,6 +611,43 @@ async function loadOverview() {
       <td class="td-meta">${formatTime(u.last_seen)}</td>
       <td class="td-mono">${u.message_count}</td>
     </tr>`).join('');
+
+  loadHubCards();
+}
+
+async function loadHubCards() {
+  const data = await Auth.api('/api/admin/hub-cards');
+  const grid = document.getElementById('hubCardsGrid');
+  const empty = document.getElementById('hubCardsEmpty');
+  if (!grid || !empty) return;
+  if (!data || !data.cards || data.cards.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = data.cards.map(card => {
+    const accent = card.accent_color && card.accent_color.startsWith('#') ? card.accent_color : (card.accent_color ? `var(--${card.accent_color}, var(--accent))` : 'var(--accent)');
+    const styleAttr = card.accent_color && card.accent_color.startsWith('#') ? ` style="--hub-card-accent: ${card.accent_color}"` : (card.accent_color ? ` style="--hub-card-accent: var(--${card.accent_color})"` : '');
+    const thumb = card.image_url
+      ? `<img class="hub-card__img" src="${card.image_url.replace(/"/g, '&quot;')}" alt="" loading="lazy">`
+      : (card.icon ? `<span class="hub-card__icon">${card.icon}</span>` : '');
+    return `<button type="button" class="hub-card" data-action-type="${card.action_type}" data-action-payload="${(card.action_payload || '').replace(/"/g, '&quot;')}"${styleAttr}>
+      <div class="hub-card__thumb">${thumb}</div>
+      <div class="hub-card__title">${(card.title || '').replace(/</g, '&lt;')}</div>
+      ${card.description ? `<div class="hub-card__desc">${(card.description || '').replace(/</g, '&lt;')}</div>` : ''}
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('.hub-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.actionType;
+      const payload = btn.dataset.actionPayload || '';
+      if (type === 'url') window.open(payload, '_blank');
+      else if (type === 'room') window.location.href = '/chat.html?room=' + payload;
+      else if (type === 'internal_app') window.location.href = payload.startsWith('/') ? payload : '/' + payload;
+      else if (type === 'script') toast('Script action not implemented yet');
+    });
+  });
 }
 
 // ── Users ─────────────────────────────────────────
