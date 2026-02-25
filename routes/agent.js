@@ -5,12 +5,9 @@ const { agentMiddleware } = require('../middleware/agent');
 const router = express.Router();
 router.use(agentMiddleware);
 
-// GET /api/agent/rooms — list all rooms where Claude agent is member
+// GET /api/agent/rooms — list all rooms where this agent is member
 router.get('/rooms', (req, res) => {
   const db = getDb();
-  const agent = db.prepare("SELECT id FROM users WHERE username = 'claude' AND role = 'agent'").get();
-  if (!agent) return res.status(404).json({ error: 'Agent user not found' });
-
   const rooms = db.prepare(`
     SELECT r.*, rm.role as my_role,
       (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
@@ -20,9 +17,9 @@ router.get('/rooms', (req, res) => {
     JOIN room_members rm ON r.id = rm.room_id AND rm.user_id = ?
     WHERE r.is_archived = 0
     ORDER BY last_message_at DESC NULLS LAST
-  `).all(agent.id);
+  `).all(req.agentUser.id);
 
-  res.json({ rooms, agent_id: agent.id });
+  res.json({ rooms, agent_id: req.agentUser.id });
 });
 
 // GET /api/agent/messages?room=ID&since=MSG_ID&limit=50
@@ -34,6 +31,9 @@ router.get('/messages', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
   if (!roomId) return res.status(400).json({ error: 'room parameter required' });
+
+  const membership = db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.agentUser.id);
+  if (!membership) return res.status(403).json({ error: 'Agent not member of this room' });
 
   const messages = db.prepare(`
     SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
@@ -47,7 +47,7 @@ router.get('/messages', (req, res) => {
   res.json({ messages, last_id: lastId, has_more: messages.length === limit });
 });
 
-// POST /api/agent/send — send message as Claude agent
+// POST /api/agent/send — send message as this agent
 router.post('/send', (req, res) => {
   const db = getDb();
   const { room_id, text, reply_to } = req.body;
@@ -57,18 +57,14 @@ router.post('/send', (req, res) => {
     return res.status(400).json({ error: 'Invalid text' });
   }
 
-  const agent = db.prepare("SELECT id FROM users WHERE username = 'claude' AND role = 'agent'").get();
-  if (!agent) return res.status(404).json({ error: 'Agent user not found' });
-
-  // Verify agent is member of the room
   const membership = db.prepare(
-    'SELECT * FROM room_members WHERE room_id = ? AND user_id = ?'
-  ).get(room_id, agent.id);
+    'SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?'
+  ).get(room_id, req.agentUser.id);
   if (!membership) return res.status(403).json({ error: 'Agent not member of this room' });
 
   const result = db.prepare(
     'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
-  ).run(room_id, agent.id, text.trim(), 'text', reply_to || null);
+  ).run(room_id, req.agentUser.id, text.trim(), 'text', reply_to || null);
 
   const message = db.prepare(`
     SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
