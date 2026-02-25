@@ -100,11 +100,13 @@ router.post('/invites', (req, res) => {
 
 // DELETE /api/admin/invites/:id — revoke unused invite
 router.delete('/invites/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid invite id' });
   const db = getDb();
-  const invite = db.prepare('SELECT * FROM invitations WHERE id = ?').get(req.params.id);
+  const invite = db.prepare('SELECT * FROM invitations WHERE id = ?').get(id);
   if (!invite) return res.status(404).json({ error: 'Not found' });
   if (invite.used_by) return res.status(400).json({ error: 'Already used — cannot revoke' });
-  db.prepare('DELETE FROM invitations WHERE id = ?').run(req.params.id);
+  db.prepare('DELETE FROM invitations WHERE id = ?').run(id);
   res.json({ ok: true });
 });
 
@@ -221,6 +223,101 @@ router.get('/search', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Search failed', detail: err.message });
   }
+});
+
+const HUB_ACTION_TYPES = ['url', 'room', 'script', 'internal_app'];
+
+// GET /api/admin/hub-cards
+router.get('/hub-cards', (req, res) => {
+  const db = getDb();
+  const cards = db.prepare('SELECT * FROM hub_cards ORDER BY sort_order ASC, id ASC').all();
+  res.json({ cards });
+});
+
+// POST /api/admin/hub-cards
+router.post('/hub-cards', (req, res) => {
+  const db = getDb();
+  const { title, description, icon, image_url, accent_color, action_type, action_payload, sort_order } = req.body;
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'title required' });
+  }
+  if (!action_type || !HUB_ACTION_TYPES.includes(action_type)) {
+    return res.status(400).json({ error: 'action_type must be one of: url, room, script, internal_app' });
+  }
+  if (action_payload === undefined || action_payload === null || String(action_payload).trim() === '') {
+    return res.status(400).json({ error: 'action_payload required' });
+  }
+  const payload = String(action_payload).trim();
+  if (action_type === 'room' && !/^\d+$/.test(payload)) {
+    return res.status(400).json({ error: 'action_payload for room must be a numeric id' });
+  }
+  const nextOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 as n FROM hub_cards').get().n;
+  const order = typeof sort_order === 'number' && Number.isInteger(sort_order) ? sort_order : nextOrder;
+  const result = db.prepare(`
+    INSERT INTO hub_cards (title, description, icon, image_url, accent_color, action_type, action_payload, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    title.trim(),
+    description && typeof description === 'string' ? description.trim() || null : null,
+    icon && typeof icon === 'string' ? icon.trim() || null : null,
+    image_url && typeof image_url === 'string' ? image_url.trim() || null : null,
+    accent_color && typeof accent_color === 'string' ? accent_color.trim() || null : null,
+    action_type,
+    payload,
+    order
+  );
+  const card = db.prepare('SELECT * FROM hub_cards WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json({ card });
+});
+
+// PUT /api/admin/hub-cards/:id
+router.put('/hub-cards/:id', (req, res) => {
+  const db = getDb();
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  const card = db.prepare('SELECT * FROM hub_cards WHERE id = ?').get(id);
+  if (!card) return res.status(404).json({ error: 'Card not found' });
+  const { title, description, icon, image_url, accent_color, action_type, action_payload, sort_order } = req.body;
+  const updates = [];
+  const values = [];
+  if (title !== undefined) {
+    if (typeof title !== 'string' || !title.trim()) return res.status(400).json({ error: 'title must be non-empty string' });
+    updates.push('title = ?'); values.push(title.trim());
+  }
+  if (description !== undefined) { updates.push('description = ?'); values.push(description && String(description).trim() || null); }
+  if (icon !== undefined) { updates.push('icon = ?'); values.push(icon && String(icon).trim() || null); }
+  if (image_url !== undefined) { updates.push('image_url = ?'); values.push(image_url && String(image_url).trim() || null); }
+  if (accent_color !== undefined) { updates.push('accent_color = ?'); values.push(accent_color && String(accent_color).trim() || null); }
+  if (action_type !== undefined) {
+    if (!HUB_ACTION_TYPES.includes(action_type)) return res.status(400).json({ error: 'action_type must be one of: url, room, script, internal_app' });
+    updates.push('action_type = ?'); values.push(action_type);
+  }
+  if (action_payload !== undefined) {
+    const payload = String(action_payload).trim();
+    if (payload === '') return res.status(400).json({ error: 'action_payload cannot be empty' });
+    const type = action_type !== undefined ? action_type : card.action_type;
+    if (type === 'room' && !/^\d+$/.test(payload)) return res.status(400).json({ error: 'action_payload for room must be a numeric id' });
+    updates.push('action_payload = ?'); values.push(payload);
+  }
+  if (sort_order !== undefined && typeof sort_order === 'number' && Number.isInteger(sort_order)) {
+    updates.push('sort_order = ?'); values.push(sort_order);
+  }
+  if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+  values.push(id);
+  db.prepare(`UPDATE hub_cards SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  const updated = db.prepare('SELECT * FROM hub_cards WHERE id = ?').get(id);
+  res.json({ card: updated });
+});
+
+// DELETE /api/admin/hub-cards/:id
+router.delete('/hub-cards/:id', (req, res) => {
+  const db = getDb();
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  const card = db.prepare('SELECT id FROM hub_cards WHERE id = ?').get(id);
+  if (!card) return res.status(404).json({ error: 'Card not found' });
+  db.prepare('DELETE FROM hub_cards WHERE id = ?').run(id);
+  res.json({ ok: true });
 });
 
 module.exports = router;
