@@ -31,6 +31,10 @@
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Overview
     </button>
+    <button class="admin-nav__item" data-page="hub">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Hub
+    </button>
     <button class="admin-nav__item" data-page="users">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Node_Registry
@@ -122,6 +126,22 @@
         </table>
       </div>
 
+    </div>
+
+
+    <!-- ── HUB ── -->
+    <div class="admin-page" id="page-hub">
+      <div class="admin-page-header">
+        <div class="admin-page-label">Portal</div>
+        <div class="admin-page-title">Hub</div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section__header">
+          <span class="admin-section__title">Cards</span>
+          <button class="btn btn--primary btn--sm" type="button" onclick="openHubCardForm()">Add card</button>
+        </div>
+        <div id="hubCardsList"></div>
+      </div>
     </div>
 
 
@@ -502,6 +522,55 @@
   </div>
   <div class="perms-overlay" id="membersOverlay" onclick="closeMembersPanel()"></div>
 
+  <!-- ── HUB CARD MODAL ── -->
+  <div class="modal-overlay" id="hubCardModalOverlay" style="display:none;" onclick="if(event.target===this)hideHubCardForm()">
+    <div class="modal">
+      <div class="modal__header">
+        <span class="modal__title" id="hubCardModalTitle">Add card</span>
+        <button type="button" class="modal__close" onclick="hideHubCardForm()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__field">
+          <label class="modal__label">Title</label>
+          <input type="text" id="hubCardTitle" class="input" placeholder="Card title" required>
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Description (optional)</label>
+          <input type="text" id="hubCardDesc" class="input" placeholder="Short description">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Icon (emoji or URL)</label>
+          <input type="text" id="hubCardIcon" class="input" placeholder="e.g. 📁 or https://...">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Image URL (optional, overrides icon)</label>
+          <input type="text" id="hubCardImageUrl" class="input" placeholder="https://...">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Accent color (hex or token name)</label>
+          <input type="text" id="hubCardAccent" class="input" placeholder="e.g. #3b82f6 or accent">
+        </div>
+        <div class="modal__field">
+          <label class="modal__label">Action type</label>
+          <select id="hubCardActionType" class="input">
+            <option value="url">URL (open link)</option>
+            <option value="room">Room (chat)</option>
+            <option value="script">Script</option>
+            <option value="internal_app">Internal app</option>
+          </select>
+        </div>
+        <div class="modal__field">
+          <label class="modal__label" id="hubCardPayloadLabel">URL / path / id</label>
+          <input type="text" id="hubCardPayload" class="input" placeholder="e.g. https://... or room id">
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--primary" onclick="saveHubCard()">Save</button>
+        <button type="button" class="btn btn--ghost" onclick="hideHubCardForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -537,7 +606,7 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
 
-    const loaders = { overview: loadOverview, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'search': () => {}, settings: () => { loadSettings(); loadThemes(); } };
+    const loaders = { overview: loadOverview, hub: loadHubCardsList, users: loadUsers, invites: loadInvites, rooms: loadRooms, export: loadExport, 'search': () => {}, settings: () => { loadSettings(); loadThemes(); } };
     loaders[btn.dataset.page] && loaders[btn.dataset.page]();
   });
 });
@@ -648,6 +717,108 @@ async function loadHubCards() {
       else if (type === 'script') toast('Script action not implemented yet');
     });
   });
+}
+
+let hubCardEditId = null;
+
+async function loadHubCardsList() {
+  const data = await Auth.api('/api/admin/hub-cards');
+  const list = document.getElementById('hubCardsList');
+  if (!list) return;
+  if (!data || !data.cards || data.cards.length === 0) {
+    list.innerHTML = '<div class="u-dim">No cards. Click Add card to create one.</div>';
+    return;
+  }
+  list.innerHTML = `
+    <table class="admin-table">
+      <thead>
+        <tr><th>Title</th><th>Action</th><th>Order</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${data.cards.map(c => `
+          <tr>
+            <td><span class="td-primary">${(c.title || '').replace(/</g, '&lt;')}</span></td>
+            <td class="td-mono">${c.action_type} → ${(String(c.action_payload).slice(0, 40)).replace(/</g, '&lt;')}${c.action_payload.length > 40 ? '…' : ''}</td>
+            <td class="td-mono">${c.sort_order}</td>
+            <td>
+              <button type="button" class="btn btn--ghost btn--sm" onclick="openHubCardForm(${c.id})">Edit</button>
+              <button type="button" class="btn btn--danger btn--sm" data-hub-card-id="${c.id}" data-hub-card-title="${(c.title || '').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" onclick="deleteHubCard(this)">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openHubCardForm(editId) {
+  hubCardEditId = editId ?? null;
+  document.getElementById('hubCardModalTitle').textContent = hubCardEditId ? 'Edit card' : 'Add card';
+  document.getElementById('hubCardTitle').value = '';
+  document.getElementById('hubCardDesc').value = '';
+  document.getElementById('hubCardIcon').value = '';
+  document.getElementById('hubCardImageUrl').value = '';
+  document.getElementById('hubCardAccent').value = '';
+  document.getElementById('hubCardActionType').value = 'url';
+  document.getElementById('hubCardPayload').value = '';
+  if (hubCardEditId) {
+    Auth.api('/api/admin/hub-cards').then(data => {
+      const card = data && data.cards && data.cards.find(c => c.id === hubCardEditId);
+      if (card) {
+        document.getElementById('hubCardTitle').value = card.title || '';
+        document.getElementById('hubCardDesc').value = card.description || '';
+        document.getElementById('hubCardIcon').value = card.icon || '';
+        document.getElementById('hubCardImageUrl').value = card.image_url || '';
+        document.getElementById('hubCardAccent').value = card.accent_color || '';
+        document.getElementById('hubCardActionType').value = card.action_type || 'url';
+        document.getElementById('hubCardPayload').value = card.action_payload || '';
+      }
+    });
+  }
+  document.getElementById('hubCardModalOverlay').style.display = 'flex';
+}
+
+function hideHubCardForm() {
+  document.getElementById('hubCardModalOverlay').style.display = 'none';
+  hubCardEditId = null;
+}
+
+async function saveHubCard() {
+  const title = document.getElementById('hubCardTitle').value.trim();
+  const payload = document.getElementById('hubCardPayload').value.trim();
+  if (!title) { toast('Title required'); return; }
+  if (!payload) { toast('Action payload required'); return; }
+  const body = {
+    title,
+    description: document.getElementById('hubCardDesc').value.trim() || null,
+    icon: document.getElementById('hubCardIcon').value.trim() || null,
+    image_url: document.getElementById('hubCardImageUrl').value.trim() || null,
+    accent_color: document.getElementById('hubCardAccent').value.trim() || null,
+    action_type: document.getElementById('hubCardActionType').value,
+    action_payload: payload,
+  };
+  const token = Auth.getToken();
+  const url = hubCardEditId ? `/api/admin/hub-cards/${hubCardEditId}` : '/api/admin/hub-cards';
+  const method = hubCardEditId ? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { toast(data.error || 'Save failed'); return; }
+  hideHubCardForm();
+  loadHubCardsList();
+  loadHubCards();
+  toast('Saved');
+}
+
+async function deleteHubCard(btn) {
+  const id = btn && btn.dataset && btn.dataset.hubCardId;
+  const title = (btn && btn.dataset && btn.dataset.hubCardTitle) || 'this card';
+  if (!id) return;
+  if (!(await showConfirm('Delete card "' + title + '"?', { destructive: true, okLabel: 'Delete' }))) return;
+  const token = Auth.getToken();
+  const res = await fetch(`/api/admin/hub-cards/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+  if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Delete failed'); return; }
+  loadHubCardsList();
+  loadHubCards();
+  toast('Deleted');
 }
 
 // ── Users ─────────────────────────────────────────
