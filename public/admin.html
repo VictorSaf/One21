@@ -523,7 +523,7 @@
   <div class="perms-overlay" id="membersOverlay" onclick="closeMembersPanel()"></div>
 
   <!-- ── HUB CARD MODAL ── -->
-  <div class="modal-overlay" id="hubCardModalOverlay" style="display:none;" onclick="if(event.target===this)hideHubCardForm()">
+  <div class="modal-overlay" id="hubCardModalOverlay" onclick="if(event.target===this)hideHubCardForm()">
     <div class="modal">
       <div class="modal__header">
         <span class="modal__title" id="hubCardModalTitle">Add card</span>
@@ -774,11 +774,11 @@ function openHubCardForm(editId) {
       }
     });
   }
-  document.getElementById('hubCardModalOverlay').style.display = 'flex';
+  document.getElementById('hubCardModalOverlay').classList.add('open');
 }
 
 function hideHubCardForm() {
-  document.getElementById('hubCardModalOverlay').style.display = 'none';
+  document.getElementById('hubCardModalOverlay').classList.remove('open');
   hubCardEditId = null;
 }
 
