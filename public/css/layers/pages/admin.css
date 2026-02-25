@@ -223,7 +223,8 @@
     margin-left: var(--sidebar-width);
     flex: 1;
     padding: var(--sp-8);
-    max-width: 1200px;
+    width: 100%;
+    min-width: 0;
   }
 
   .admin-page { display: none; }
@@ -338,6 +339,71 @@
   .stat-card--warn .stat-card__icon    { stroke: var(--warning); }
   .stat-card--live .stat-card__value   { color: var(--accent); }
   .stat-card--live .stat-card__icon    { stroke: var(--accent); }
+
+  /* -- Hub cards (Overview) -- */
+  .hub-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--sp-4);
+    padding: var(--sp-4);
+  }
+
+  .hub-card {
+    --hub-card-accent: var(--accent);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    padding: var(--sp-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-left-width: 4px;
+    border-left-color: var(--hub-card-accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .hub-card:hover {
+    border-color: var(--hub-card-accent);
+    background: var(--bg-active);
+  }
+
+  .hub-card__thumb {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--sp-2);
+  }
+
+  .hub-card__icon {
+    font-size: 2rem;
+  }
+
+  .hub-card__img {
+    max-width: 100%;
+    max-height: 64px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+  }
+
+  .hub-card__title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+  }
+
+  .hub-card__desc {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin-top: var(--sp-1);
+  }
+
+  .hub-cards-empty {
+    padding: var(--sp-4);
+    font-size: var(--font-sm);
+  }
 
   /* -- Section block -- */
   .admin-section {
@@ -727,6 +793,8 @@
     align-items: center; justify-content: center;
   }
   .modal-overlay.open { display: flex; }
+  /* system-dialogs.js uses .hidden; show when not hidden */
+  #sys-dialog-overlay:not(.hidden) { display: flex; }
   .modal {
     background: var(--bg-surface); border: 1px solid var(--border-mid);
     border-radius: var(--radius-sm); width: 440px; max-width: 95vw;
@@ -795,6 +863,7 @@
 
   /* ── Search input that should grow to fill toolbar ── */
   .admin-toolbar__input--grow { flex: 1; }
+  .admin-toolbar__input--node-id { max-width: 180px; }
 
   /* ── Room-request action buttons ── */
   .t-btn--approve { margin-right: 4px; }
@@ -991,6 +1060,23 @@
     overflow: hidden;
   }
 
+  .theme-editor__apply-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--accent-muted);
+    border-bottom: 1px solid var(--border-accent);
+    flex-shrink: 0;
+  }
+
+  .theme-editor__apply-bar-text {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+  }
+
   .theme-editor__chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -1030,6 +1116,24 @@
     align-self: flex-start;
   }
 
+  .theme-chat-msg--hint {
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+    border-style: dashed;
+  }
+
+  .theme-chat-msg__body {
+    margin-bottom: 0;
+  }
+
+  .theme-chat-msg__actions {
+    margin-top: var(--sp-3);
+  }
+
+  .theme-chat-msg__actions .btn {
+    white-space: nowrap;
+  }
+
   .theme-editor__chat-input {
     display: flex;
     gap: var(--sp-2);
@@ -1057,9 +1161,40 @@
 
   .theme-editor__preview {
     display: grid;
-    grid-template-rows: auto 1fr auto minmax(0, 200px);
+    grid-template-rows: auto 1fr auto minmax(120px, var(--theme-tokens-height, 200px));
     overflow: hidden;
     background: var(--bg-base);
+  }
+
+  .theme-editor__tokens-block {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .theme-editor__tokens-resize {
+    height: 6px;
+    flex-shrink: 0;
+    cursor: ns-resize;
+    background: var(--border-dim);
+    transition: background var(--transition-fast);
+  }
+
+  .theme-editor__tokens-resize:hover,
+  .theme-editor__tokens-resize:active {
+    background: var(--border-accent);
+  }
+
+  .theme-editor__preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    border-bottom: 1px solid var(--border-dim);
+    background: var(--bg-surface);
+    flex-shrink: 0;
   }
 
   .theme-editor__preview-label,
@@ -1070,6 +1205,19 @@
     color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.12em;
+  }
+
+  .theme-editor__preview-header .theme-editor__preview-label {
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .theme-editor__preview-fullscreen {
+    flex-shrink: 0;
+  }
+
+  .theme-editor__tokens-label {
     padding: var(--sp-2) var(--sp-4);
     border-bottom: 1px solid var(--border-dim);
     background: var(--bg-surface);
@@ -1089,12 +1237,14 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-height: 0;
   }
 
   .token-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: var(--sp-2);
     font-family: var(--font-mono);
     font-size: 10px;
     padding: 2px 0;
@@ -1104,7 +1254,16 @@
   .token-row__key {
     color: var(--text-secondary);
     flex-shrink: 0;
-    margin-right: var(--sp-2);
+    min-width: 0;
+  }
+
+  .token-row__swatch {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-mid);
+    border-radius: 2px;
+    background: var(--bg-elevated);
   }
 
   .token-row__value {
@@ -1113,7 +1272,35 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 55%;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .token-row__contrast-warn {
+    flex-shrink: 0;
+    color: var(--warning);
+    cursor: help;
+  }
+
+  .token-row__contrast-warn svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Room modal (Node_Map): archived field — hidden for create, shown for edit */
+  .room-modal-archived-wrap {
+    display: none;
+  }
+
+  .room-modal-archived-wrap.room-modal-archived-wrap--visible {
+    display: block;
+  }
+
+  .room-modal-archived-label {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
   }
 
 }
