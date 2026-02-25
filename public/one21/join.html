@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ONE21 — Join</title>
+  <link rel="stylesheet" href="/css/design-system.css">
+  <link rel="stylesheet" href="/api/theme/active.css">
+  <link rel="stylesheet" href="/css/layers/pages/join.css">
+</head>
+<body class="join-page">
+
+  <div class="join-vignette" aria-hidden="true"></div>
+
+  <header class="join-header">
+    <span class="join-brand join-brand--flip">ONE</span>
+    <span class="join-brand-sep" aria-hidden="true">2</span>
+    <span class="join-brand">ONE</span>
+  </header>
+
+  <main class="join-main">
+    <!-- Step: Upload QR — doar iconița elegantă -->
+    <div id="stepUpload" class="join-step">
+      <label class="join-qr-zone" id="uploadLabel">
+        <input type="file" id="qrFile" accept="image/*">
+        <span class="join-qr-zone__icon" aria-hidden="true">
+          <svg class="join-qr-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.1">
+            <!-- Finder pattern: top-left -->
+            <rect x="4" y="4" width="14" height="14" rx="2"/>
+            <rect x="8" y="8" width="6" height="6" rx="1"/>
+
+            <!-- Finder pattern: top-right -->
+            <rect x="30" y="4" width="14" height="14" rx="2"/>
+            <rect x="34" y="8" width="6" height="6" rx="1"/>
+
+            <!-- Finder pattern: bottom-left -->
+            <rect x="4" y="30" width="14" height="14" rx="2"/>
+            <rect x="8" y="34" width="6" height="6" rx="1"/>
+
+            <!-- Data modules -->
+            <rect x="24" y="22" width="4" height="4" rx="0.8"/>
+            <rect x="30" y="22" width="4" height="4" rx="0.8"/>
+            <rect x="36" y="22" width="4" height="4" rx="0.8"/>
+            <rect x="22" y="28" width="4" height="4" rx="0.8"/>
+            <rect x="28" y="28" width="4" height="4" rx="0.8"/>
+            <rect x="34" y="28" width="4" height="4" rx="0.8"/>
+            <rect x="22" y="34" width="4" height="4" rx="0.8"/>
+            <rect x="30" y="34" width="4" height="4" rx="0.8"/>
+            <rect x="38" y="34" width="4" height="4" rx="0.8"/>
+          </svg>
+        </span>
+      </label>
+      <p id="uploadError" class="join-error" aria-live="polite"></p>
+    </div>
+
+    <!-- Step: Who are you? -->
+    <div id="stepWho" class="join-step">
+      <div class="join-step-inner">
+        <h1 class="join-step__title">Cine ești?</h1>
+        <p class="join-step__subtitle">Prenumele (ONE / nume) de pe invitație.</p>
+        <form id="formWho">
+          <div class="join-field">
+            <label for="answer">Prenume</label>
+            <input type="text" id="answer" class="input" placeholder="Prenume" autocomplete="off" required>
+          </div>
+          <div class="join-actions">
+            <button type="submit" class="btn btn--primary" id="btnWho">Continuă</button>
+          </div>
+        </form>
+        <p id="whoError" class="join-error" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <!-- Step: Register -->
+    <div id="stepRegister" class="join-step">
+      <div class="join-step-inner">
+        <h1 class="join-step__title">Cont nou</h1>
+        <p class="join-step__subtitle">Alege username și parolă.</p>
+        <form id="formRegister">
+          <div class="join-field">
+            <label for="username">Username</label>
+            <input type="text" id="username" class="input" placeholder="Username" autocomplete="username" required>
+          </div>
+          <div class="join-field">
+            <label for="password">Parolă</label>
+            <input type="password" id="password" class="input" placeholder="••••••••" autocomplete="new-password" required>
+          </div>
+          <div class="join-actions">
+            <button type="submit" class="btn btn--primary" id="btnRegister">Creează cont</button>
+          </div>
+        </form>
+        <p id="regError" class="join-error" aria-live="polite"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="join-footer">
+    <span class="join-footer__text">fuelled by</span>
+    <span class="join-footer__logo" aria-hidden="true">ONE/AIgency</span>
+  </footer>
+
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+(function () {
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const tokenFromPath = pathParts[pathParts.length - 1] !== 'join' ? pathParts[pathParts.length - 1] : null;
+
+  const stepUpload = document.getElementById('stepUpload');
+  const stepWho = document.getElementById('stepWho');
+  const stepRegister = document.getElementById('stepRegister');
+  const uploadLabel = document.getElementById('uploadLabel');
+  const qrFile = document.getElementById('qrFile');
+  const uploadError = document.getElementById('uploadError');
+  const formWho = document.getElementById('formWho');
+  const answer = document.getElementById('answer');
+  const whoError = document.getElementById('whoError');
+  const formRegister = document.getElementById('formRegister');
+  const username = document.getElementById('username');
+  const password = document.getElementById('password');
+  const regError = document.getElementById('regError');
+
+  function showStep(step) {
+    stepUpload.classList.remove('is-active');
+    stepWho.classList.remove('is-active');
+    stepRegister.classList.remove('is-active');
+    step.classList.add('is-active');
+  }
+
+  function setError(el, msg) {
+    el.textContent = msg || '';
+  }
+
+  if (!tokenFromPath) {
+    showStep(stepUpload);
+    qrFile.addEventListener('change', function () {
+      setError(uploadError, '');
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const fr = new FileReader();
+      fr.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const data = ctx.getImageData(0, 0, img.width, img.height);
+          const code = typeof jsQR !== 'undefined' && jsQR(data.data, data.width, data.height);
+          if (!code || !code.data) {
+            setError(uploadError, 'Nu s-a putut citi codul QR. Încearcă o imagine mai clară.');
+            return;
+          }
+          const dataStr = code.data.trim();
+          let token = null;
+          const urlMatch = dataStr.match(/\/join\/([a-zA-Z0-9_-]+)/);
+          if (urlMatch) token = urlMatch[1];
+          else if (/^[a-zA-Z0-9_-]+$/.test(dataStr)) token = dataStr;
+          if (!token) {
+            setError(uploadError, 'Cod invalid în QR.');
+            return;
+          }
+          const base = window.location.pathname.replace(/\/?$/, '');
+          window.location.href = (base.indexOf('/one21/join') !== -1 ? base.replace(/\/?$/, '') : '/one21/join') + '/' + token;
+        };
+        img.onerror = function () { setError(uploadError, 'Imagine invalidă.'); };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+    return;
+  }
+
+  const token = tokenFromPath;
+  let invite = { nume: '', prenume: '' };
+  let verified = false;
+
+  fetch('/api/join/' + encodeURIComponent(token))
+    .then(function (r) {
+      if (!r.ok) throw new Error('Invitația nu există sau a fost folosită.');
+      return r.json();
+    })
+    .then(function (data) {
+      invite = data;
+      showStep(verified ? stepRegister : stepWho);
+    })
+    .catch(function () {
+      showStep(stepWho);
+      whoError.textContent = 'Invitația nu există sau a fost folosită.';
+    });
+
+  formWho.addEventListener('submit', function (e) {
+    e.preventDefault();
+    setError(whoError, '');
+    const ans = answer.value.trim();
+    if (!ans) return;
+    fetch('/api/join/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token, answer: ans })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Răspuns incorect.');
+        verified = true;
+        showStep(stepRegister);
+      })
+      .catch(function () {
+        whoError.textContent = 'Răspuns incorect. Încearcă din nou.';
+      });
+  });
+
+  formRegister.addEventListener('submit', function (e) {
+    e.preventDefault();
+    setError(regError, '');
+    const body = { token: token, username: username.value.trim(), password: password.value };
+    fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Eroare'); });
+        return r.json();
+      })
+      .then(function () {
+        var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
+        window.location.href = base + (base ? '/login' : '/login.html');
+      })
+      .catch(function (err) {
+        regError.textContent = err.message || 'Eroare la înregistrare.';
+      });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+/* ============================================================
+   ONE21 — Join Page (/one21/join)
+   ONE/ONE (simetrie), fuelled by ONE/AIgency, fundal animat + degradeuri
+   @layer pages
+   ============================================================ */
+
+@layer pages {
+
+  .join-page {
+    min-height: 100vh;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fundal: degradeuri + animație dreapta → stânga (fără întoarcere) */
+  .join-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(135deg, var(--bg-base) 0%, var(--bg-surface) 40%, var(--accent-anim-bg-08) 70%, var(--bg-base) 100%);
+    background-size: 200% 200%;
+    animation: join-bg-shift 14s linear infinite;
+    opacity: 0.6;
+  }
+
+  .join-page::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(ellipse 100% 80% at 70% 20%, var(--accent-anim-bg-06) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 100% at 20% 80%, var(--bg-elevated) 0%, transparent 45%);
+    opacity: 0.4;
+    animation: join-bg-pulse 8s ease-in-out infinite;
+  }
+
+  @keyframes join-bg-shift {
+    0%   { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes join-bg-pulse {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.35; }
+  }
+
+  .join-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, var(--bg-base) 70%);
+    opacity: 0.6;
+  }
+
+  /* ----- Header ONE / ONE (primul ONE rotit 180°) ----- */
+  .join-header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: var(--sp-8) var(--sp-4) var(--sp-4);
+    animation: join-fade-in 0.6s ease-out;
+  }
+
+  .join-brand {
+    font-family: var(--font-mono);
+    font-size: var(--font-2xl);
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--online);
+    opacity: 0.8;
+  }
+
+  .join-brand--flip {
+    display: inline-block;
+    transform: rotate(180deg);
+  }
+
+  .join-brand-sep {
+    display: inline-block;
+    margin: 0 var(--sp-3);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 7.5em;
+    font-weight: 200;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+    vertical-align: middle;
+    text-shadow: 0 0 24px var(--accent-glow);
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+  }
+
+  .join-header:hover .join-brand-sep {
+    opacity: 0.65;
+    color: var(--text-secondary);
+  }
+
+  /* ----- Main (fără card) ----- */
+  .join-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-4);
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes join-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ----- Step 1: doar iconița QR (fără text, fără container) ----- */
+  .join-qr-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-6);
+    cursor: pointer;
+    transition: transform var(--transition-normal), color var(--transition-fast);
+    animation: join-qr-pulse 3s ease-in-out infinite;
+    border: none;
+    background: transparent;
+  }
+
+  .join-qr-zone:hover {
+    transform: scale(1.08);
+  }
+
+  .join-qr-zone:focus-within {
+    outline: none;
+  }
+
+  .join-qr-zone input[type="file"] {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
+
+  .join-qr-zone__icon {
+    width: 72px;
+    height: 72px;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+  }
+
+  .join-qr-zone:hover .join-qr-zone__icon {
+    color: var(--accent);
+  }
+
+  .join-qr-zone__icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  @keyframes join-qr-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.8; }
+  }
+
+  /* ----- Steps: Who / Register (wrapper minimal, fără card) ----- */
+  .join-step-inner {
+    max-width: 360px;
+    width: 100%;
+    animation: join-fade-in 0.35s ease-out;
+  }
+
+  .join-step__title {
+    font-size: var(--font-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--sp-2);
+  }
+
+  .join-step__subtitle {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-4);
+  }
+
+  .join-field {
+    margin-bottom: var(--sp-3);
+  }
+
+  .join-field label {
+    display: block;
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-1);
+  }
+
+  .join-field .input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .join-actions {
+    margin-top: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .join-error {
+    font-size: var(--font-sm);
+    color: var(--danger);
+    margin-top: var(--sp-2);
+  }
+
+  .join-step {
+    display: none;
+  }
+
+  .join-step.is-active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: join-fade-in 0.35s ease-out;
+  }
+
+  /* ----- Footer: fuelled by ONE/AIgency (fără link) ----- */
+  .join-footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    padding: var(--sp-6) var(--sp-4);
+    animation: join-fade-in 0.6s ease-out 0.25s both;
+  }
+
+  .join-footer__text {
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--text-tertiary);
+    text-transform: lowercase;
+    letter-spacing: 0.06em;
+  }
+
+  .join-footer__logo {
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+  }
+}
