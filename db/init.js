@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, 'chat.db');
 
@@ -124,6 +125,19 @@ function getDb() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS hub_cards (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      title          TEXT NOT NULL,
+      description    TEXT,
+      icon           TEXT,
+      image_url      TEXT,
+      accent_color   TEXT,
+      action_type    TEXT NOT NULL CHECK(action_type IN ('url','room','script','internal_app')),
+      action_payload TEXT NOT NULL,
+      sort_order     INTEGER NOT NULL DEFAULT 0,
+      created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(code);
@@ -132,6 +146,7 @@ function getDb() {
     CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
     CREATE INDEX IF NOT EXISTS idx_room_requests_status  ON room_requests(status);
     CREATE INDEX IF NOT EXISTS idx_themes_active ON themes(is_active);
+    CREATE INDEX IF NOT EXISTS idx_hub_cards_sort ON hub_cards(sort_order);
   `);
 
   // Run migrations for existing DBs
@@ -182,6 +197,33 @@ function migrate(db) {
       const defaultTokens = {"--bg-base":"#040404","--bg-surface":"#0d0d0d","--bg-elevated":"#141414","--bg-active":"#1a1a1a","--bg-hover":"rgba(255,255,255,0.04)","--border-dim":"#1c1c1c","--border-mid":"#272727","--border-bright":"#383838","--border-accent":"rgba(0,230,118,0.2)","--border-accent-strong":"rgba(0,230,118,0.5)","--accent":"#00e676","--accent-dim":"#00b856","--accent-muted":"rgba(0,230,118,0.07)","--accent-glow":"rgba(0,230,118,0.15)","--text-primary":"#c4c4c4","--text-secondary":"#545454","--text-tertiary":"#2c2c2c","--text-accent":"#00e676","--text-inverse":"#070707","--online":"#00e676","--offline":"#333333","--busy":"#ff9c00","--error":"#ff3d3d","--warning":"#ffb300","--info":"#00b4d8","--danger":"#ff3d3d","--danger-muted":"rgba(255,61,61,0.08)","--danger-border":"rgba(255,61,61,0.2)","--danger-border-mid":"rgba(255,61,61,0.35)","--danger-hover":"rgba(255,61,61,0.07)","--danger-focus":"rgba(255,61,61,0.4)","--danger-focus-shadow":"rgba(255,61,61,0.08)","--danger-border-25":"rgba(255,61,61,0.25)","--danger-border-50":"rgba(255,61,61,0.5)","--danger-bg":"rgba(255,61,61,0.06)","--purple":"#8888ff","--purple-muted":"rgba(100,100,220,0.12)","--purple-light":"#a78bfa","--purple-border":"rgba(167,139,250,0.25)","--purple-bg":"rgba(167,139,250,0.06)","--info-muted":"rgba(0,180,216,0.12)","--info-border":"rgba(0,180,216,0.25)","--info-bg":"rgba(0,180,216,0.05)","--overlay-bg":"rgba(0,0,0,0.75)","--shadow-overlay":"rgba(0,0,0,0.6)","--overlay-bg-50":"rgba(0,0,0,0.5)","--accent-anim-glow-0":"rgba(0,230,118,0)","--accent-anim-glow-35":"rgba(0,230,118,0.35)","--accent-anim-bg-05":"rgba(0,230,118,0.05)","--accent-anim-bg-06":"rgba(0,230,118,0.06)","--accent-anim-bg-08":"rgba(0,230,118,0.08)","--accent-anim-bg-12":"rgba(0,230,118,0.12)","--accent-anim-bg-30":"rgba(0,230,118,0.3)","--accent-border-25":"rgba(0,230,118,0.25)","--accent-border-40":"rgba(0,230,118,0.4)","--accent-border-60":"rgba(0,230,118,0.6)","--accent-bg-gradient-1":"rgba(0,230,118,0.025)","--accent-bg-gradient-2":"rgba(0,230,118,0.014)","--shadow-sm":"0 1px 4px rgba(0,0,0,0.6)","--shadow-md":"0 4px 16px rgba(0,0,0,0.7)","--shadow-lg":"0 12px 40px rgba(0,0,0,0.85)","--warning-muted":"rgba(255,179,0,0.08)","--scanline-color":"rgba(0,0,0,0.025)","--selection-bg":"rgba(0,230,118,0.18)"};
       db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 1)").run('Neural Dark', JSON.stringify(defaultTokens));
     }
+    /* Theme "test3": professional, sophisticated, diversified; animated bg/borders via existing keyframes */
+    const test3Exists = db.prepare("SELECT 1 FROM themes WHERE name = 'test3'").get();
+    if (!test3Exists) {
+      try {
+        const test3Path = path.join(__dirname, '..', 'public', 'themes', 'test3-tokens.json');
+        const test3Tokens = JSON.parse(fs.readFileSync(test3Path, 'utf8'));
+        db.prepare("INSERT INTO themes (name, tokens, is_active) VALUES (?, ?, 0)").run('test3', JSON.stringify(test3Tokens));
+        console.log('[DB] Theme "test3" inserted.');
+      } catch (e) {
+        console.warn('[DB] Could not insert theme test3:', e.message);
+      }
+    }
+  } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS hub_cards (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      title          TEXT NOT NULL,
+      description    TEXT,
+      icon           TEXT,
+      image_url      TEXT,
+      accent_color   TEXT,
+      action_type    TEXT NOT NULL CHECK(action_type IN ('url','room','script','internal_app')),
+      action_payload TEXT NOT NULL,
+      sort_order     INTEGER NOT NULL DEFAULT 0,
+      created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_hub_cards_sort ON hub_cards(sort_order)');
   } catch {}
 }
 
