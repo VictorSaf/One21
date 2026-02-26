@@ -1,6 +1,7 @@
 const { getDb } = require('../db/init');
 
-const AGENT_API_KEY = process.env.AGENT_API_KEY || 'agent-dev-key-change-in-prod';
+const { agent } = require('../config');
+const AGENT_API_KEY = agent.apiKey;
 
 function agentMiddleware(req, res, next) {
   const key = req.headers['x-agent-key'];
