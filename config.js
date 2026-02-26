@@ -4,7 +4,7 @@ require('dotenv').config();
 const isProd = process.env.NODE_ENV === 'production';
 
 const config = {
-  port: parseInt(process.env.PORT) || 3737,
+  port: parseInt(process.env.PORT, 10) || 3737,
   nodeEnv: process.env.NODE_ENV || 'development',
   isProd,
 
@@ -39,6 +39,7 @@ if (isProd) {
     warnings.push('AGENT_API_KEY folosește valoarea default — schimbă-o!');
   if (warnings.length) {
     warnings.forEach(w => console.error(`[CONFIG] ⚠️  ${w}`));
+    process.exit(1);
   }
 }
 
