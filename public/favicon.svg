@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e676" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#040404" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#040404"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <rect x="110" y="184" width="180" height="72" fill="none" stroke="#00e676" stroke-width="2.5"/>
+  <text x="200" y="237"
+    font-family="monospace,Courier New,Courier"
+    font-size="52"
+    font-weight="700"
+    fill="#00e676"
+    text-anchor="middle"
+    letter-spacing="6">ONE</text>
+  <text x="300" y="248"
+    font-family="monospace,Courier New,Courier"
+    font-size="32"
+    font-weight="400"
+    fill="#555555"
+    text-anchor="start"
+    letter-spacing="2">_21</text>
+  <text x="256" y="304"
+    font-family="monospace,Courier New,Courier"
+    font-size="18"
+    fill="#333333"
+    text-anchor="middle"
+    letter-spacing="4">NEURAL LINK</text>
+  <path d="M40 40 L40 80 M40 40 L80 40" stroke="#00e676" stroke-width="2" fill="none" opacity="0.35"/>
+  <path d="M472 472 L472 432 M472 472 L432 472" stroke="#00e676" stroke-width="2" fill="none" opacity="0.35"/>
+</svg>
