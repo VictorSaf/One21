@@ -110,7 +110,7 @@
 (function () {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   const last = pathParts[pathParts.length - 1];
-  const tokenFromPath = (last && last !== 'one21') ? last : null;
+  const tokenFromPath = (last && last !== 'one21' && last !== 'join') ? last : null;
 
   const stepUpload = document.getElementById('stepUpload');
   const stepWho = document.getElementById('stepWho');
@@ -149,7 +149,7 @@
   }
 
   function goToJoinToken(token) {
-    window.location.href = '/one21/' + token;
+    window.location.href = '/one21/join/' + token;
   }
 
   async function ensureJsQrLoaded() {
