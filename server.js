@@ -42,6 +42,7 @@ app.get('/one21/hey',         (req, res) => res.sendFile(path.join(__dirname, 'p
 app.get('/one21/login',       (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 app.get('/one21',             (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/',                  (req, res) => res.redirect('/one21/'));
+app.get('/favicon.ico',       (req, res) => res.redirect('/favicon.svg'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/one21', express.static(path.join(__dirname, 'public')));
