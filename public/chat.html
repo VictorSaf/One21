@@ -32,8 +32,8 @@
       </button>
     </div>
 
-    <!-- Search -->
-    <div class="sidebar__search">
+    <!-- Search — admin only -->
+    <div class="sidebar__search u-hidden" id="sidebarSearch">
       <div class="input-group">
         <svg class="input-group__icon icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="input" type="text" placeholder="SYSTEM_QUERY...">
@@ -395,6 +395,8 @@ function toggleInfoPanel() {
         if (networkBtn) networkBtn.style.display = 'flex';
         if (adminActions) adminActions.classList.remove('u-hidden');
         if (addMemberBtn) addMemberBtn.classList.remove('u-hidden');
+        const searchBox = document.getElementById('sidebarSearch');
+        if (searchBox) searchBox.classList.remove('u-hidden');
       }
     }
   } catch(e) {}
