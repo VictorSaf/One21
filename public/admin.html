@@ -1616,7 +1616,7 @@ async function generateInviteWithPerms() {
         const blob = await r.blob();
         document.getElementById('inviteQrImg').src = URL.createObjectURL(blob);
       }
-      const base = (data.join_link || (typeof ONE21_BASE !== 'undefined' && ONE21_BASE ? ONE21_BASE + '/join' : '/one21/join')).replace(/\/$/, '');
+      const base = (data.join_link || (typeof ONE21_BASE !== 'undefined' && ONE21_BASE ? ONE21_BASE : '/one21')).replace(/\/$/, '');
       document.getElementById('inviteQrUrl').textContent = data.token ? base + '/' + data.token : base;
       document.getElementById('inviteQrBlock').style.display = 'block';
       toast('Code + QR generated');

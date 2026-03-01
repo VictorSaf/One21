@@ -1,13 +1,26 @@
 const express = require('express');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const QRCode = require('qrcode');
 const { getDb } = require('../db/init');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
+const { setRevocationEpoch } = require('../lib/jwt-revoke');
 const { getAllPermissions } = require('../middleware/permissions');
 const { logEvent } = require('../lib/events');
-const { search } = require('../lib/vectorstore');
+const { search, listAgentMemoryStats, pruneAgentMemory } = require('../lib/vectorstore');
+
+const JOIN_BASE_URL = process.env.JOIN_BASE_URL || 'http://platonos.mooo.com:3737/one21';
 
 const router = express.Router();
 router.use(authMiddleware, requireAdmin);
+
+// POST /api/admin/logout-all — revoke all JWTs; users must log in again
+router.post('/logout-all', (req, res) => {
+  const db = getDb();
+  setRevocationEpoch();
+  db.prepare("UPDATE users SET is_online = 0").run();
+  res.json({ ok: true, message: 'All users logged out' });
+});
 
 // GET /api/admin/stats
 router.get('/stats', (req, res) => {
@@ -66,18 +79,118 @@ router.put('/users/:id', (req, res) => {
   res.json({ user: updated });
 });
 
+// PUT /api/admin/users/:id/password — admin resets user password
+router.put('/users/:id/password', (req, res) => {
+  const db = getDb();
+  const userId = Number.parseInt(req.params.id, 10);
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ error: 'Invalid user id' });
+  }
+  if (userId === req.user.id) {
+    return res.status(400).json({ error: 'Use profile flow to change your own password' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const passwordHash = bcrypt.hashSync(password, 12);
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, userId);
+
+  logEvent('admin_user_password_reset', `Admin ${req.user.username} reset password for @${user.username}`, {
+    admin_id: req.user.id,
+    target_user_id: userId,
+  });
+  res.json({ ok: true });
+});
+
+// DELETE /api/admin/users/:id — remove user from DB
+router.delete('/users/:id', (req, res) => {
+  const db = getDb();
+  const userId = Number.parseInt(req.params.id, 10);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ error: 'Invalid user id' });
+  }
+  if (userId === req.user.id) {
+    return res.status(400).json({ error: 'Cannot delete your own account' });
+  }
+
+  const user = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  if (user.role === 'admin') {
+    const admins = db.prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin'").get().n;
+    if (admins <= 1) return res.status(400).json({ error: 'Cannot delete the last admin account' });
+  }
+
+  const deleteUserTx = db.transaction((targetUserId, actingAdminId) => {
+    db.prepare('UPDATE users SET invited_by = NULL WHERE invited_by = ?').run(targetUserId);
+    db.prepare('UPDATE rooms SET created_by = ? WHERE created_by = ?').run(actingAdminId, targetUserId);
+    db.prepare('UPDATE invitations SET created_by = ? WHERE created_by = ?').run(actingAdminId, targetUserId);
+    db.prepare('UPDATE invitations SET used_by = NULL WHERE used_by = ?').run(targetUserId);
+    db.prepare('UPDATE user_permissions SET granted_by = NULL WHERE granted_by = ?').run(targetUserId);
+
+    db.prepare('UPDATE messages SET reply_to = NULL WHERE reply_to IN (SELECT id FROM messages WHERE sender_id = ?)').run(targetUserId);
+    db.prepare('DELETE FROM message_reads WHERE message_id IN (SELECT id FROM messages WHERE sender_id = ?)').run(targetUserId);
+    db.prepare('DELETE FROM messages WHERE sender_id = ?').run(targetUserId);
+    db.prepare('DELETE FROM message_reads WHERE user_id = ?').run(targetUserId);
+    db.prepare('DELETE FROM room_members WHERE user_id = ?').run(targetUserId);
+
+    db.prepare('DELETE FROM users WHERE id = ?').run(targetUserId);
+  });
+
+  deleteUserTx(userId, req.user.id);
+  logEvent('admin_user_deleted', `Admin ${req.user.username} deleted @${user.username}`, {
+    admin_id: req.user.id,
+    target_user_id: userId,
+  });
+  res.json({ ok: true });
+});
+
+// GET /api/admin/invites/qr?token=XXX — returns PNG QR with the token only (unique code for identification at signup)
+router.get('/invites/qr', async (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(400).json({ error: 'token required' });
+  const db = getDb();
+  const invite = db.prepare('SELECT id FROM invitations WHERE token = ?').get(token);
+  if (!invite) return res.status(404).json({ error: 'Invite not found' });
+  try {
+    const buf = await QRCode.toBuffer(token, { type: 'png', width: 256, margin: 2 });
+    res.set('Content-Type', 'image/png');
+    res.send(buf);
+  } catch (err) {
+    res.status(500).json({ error: 'QR generation failed' });
+  }
+});
+
 // GET /api/admin/invites
 router.get('/invites', (req, res) => {
   const db = getDb();
-  const invites = db.prepare(`
+  const rows = db.prepare(`
     SELECT i.*, u.username as created_by_name, u2.username as used_by_name, u2.display_name as used_by_display
     FROM invitations i
     LEFT JOIN users u ON i.created_by = u.id
     LEFT JOIN users u2 ON i.used_by = u2.id
     ORDER BY i.created_at DESC
   `).all();
-  res.json({ invites });
+  const invites = rows.map(inv => ({
+    ...inv,
+    join_link: inv.token ? JOIN_BASE_URL : null
+  }));
+  res.json({ invites, join_base_link: JOIN_BASE_URL });
 });
+
+function generateJoinToken() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let s = '';
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 
 // POST /api/admin/invites
 router.post('/invites', (req, res) => {
@@ -85,17 +198,57 @@ router.post('/invites', (req, res) => {
   const code = crypto.randomUUID().slice(0, 8).toUpperCase();
   const expiresAt = req.body.expires_at || null;
   const note = req.body.note || null;
+  const nume = req.body.nume && typeof req.body.nume === 'string' ? req.body.nume.trim() || null : null;
+  const prenume = req.body.prenume && typeof req.body.prenume === 'string' ? req.body.prenume.trim() || null : null;
+  let token = null;
+  if (nume || prenume) {
+    const existingForUser = db.prepare(`
+      SELECT id, code, token, used_by
+      FROM invitations
+      WHERE lower(trim(COALESCE(nume, ''))) = lower(trim(?))
+        AND lower(trim(COALESCE(prenume, ''))) = lower(trim(?))
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(nume || '', prenume || '');
+    if (existingForUser) {
+      return res.status(400).json({
+        error: 'Există deja un cod QR pentru acest user. Nu se poate genera altul.',
+        existing_invite: {
+          code: existingForUser.code,
+          token: existingForUser.token || undefined,
+          used: !!existingForUser.used_by,
+        },
+      });
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const t = generateJoinToken();
+      const exists = db.prepare('SELECT 1 FROM invitations WHERE token = ?').get(t);
+      if (!exists) { token = t; break; }
+    }
+    if (!token) token = generateJoinToken() + Date.now().toString(36).slice(-4);
+  }
   const defaultPermissions = req.body.default_permissions
     ? JSON.stringify(req.body.default_permissions)
     : '{}';
-  db.prepare('INSERT INTO invitations (code, created_by, expires_at, note, default_permissions) VALUES (?, ?, ?, ?, ?)')
-    .run(code, req.user.id, expiresAt, note, defaultPermissions);
+  db.prepare(
+    'INSERT INTO invitations (code, created_by, expires_at, note, default_permissions, token, nume, prenume) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(code, req.user.id, expiresAt, note, defaultPermissions, token, nume, prenume);
   logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
     admin_id: req.user.id,
     code,
     note,
   });
-  res.json({ code, expires_at: expiresAt, note, default_permissions: req.body.default_permissions || {} });
+  res.json({
+    code,
+    token: token || undefined,
+    join_link: token ? JOIN_BASE_URL : undefined,
+    nume: nume || undefined,
+    prenume: prenume || undefined,
+    expires_at: expiresAt,
+    note,
+    default_permissions: req.body.default_permissions || {},
+  });
 });
 
 // DELETE /api/admin/invites/:id — revoke unused invite
@@ -222,6 +375,42 @@ router.get('/search', async (req, res) => {
     res.json({ results: results.slice(0, 10) });
   } catch (err) {
     res.status(500).json({ error: 'Search failed', detail: err.message });
+  }
+});
+
+// GET /api/admin/agent-memory/stats
+router.get('/agent-memory/stats', (req, res) => {
+  try {
+    const stats = listAgentMemoryStats();
+    res.json({
+      collections: stats,
+      total_collections: stats.length,
+      total_docs: stats.reduce((acc, item) => acc + (item.doc_count || 0), 0),
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Agent memory stats failed', detail: err.message });
+  }
+});
+
+// POST /api/admin/agent-memory/prune
+router.post('/agent-memory/prune', async (req, res) => {
+  const ttlDays = Math.min(Math.max(parseInt(req.body.ttl_days, 10) || 30, 1), 3650);
+  const maxDocs = Math.min(Math.max(parseInt(req.body.max_docs_per_agent, 10) || 5000, 100), 100000);
+  const dryRun = !!req.body.dry_run;
+  const agentUsername = req.body.agent_username && String(req.body.agent_username).trim()
+    ? String(req.body.agent_username).trim()
+    : null;
+
+  try {
+    const result = await pruneAgentMemory({
+      agent_username: agentUsername,
+      ttl_days: ttlDays,
+      max_docs_per_agent: maxDocs,
+      dry_run: dryRun,
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: 'Agent memory prune failed', detail: err.message });
   }
 });
 

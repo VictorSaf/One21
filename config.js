@@ -21,7 +21,7 @@ const config = {
   },
 
   join: {
-    baseUrl: process.env.JOIN_BASE_URL || `http://localhost:3737/one21/join`,
+    baseUrl: process.env.JOIN_BASE_URL || `http://localhost:3737/one21`,
   },
 
   vapid: {

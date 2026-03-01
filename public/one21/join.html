@@ -36,6 +36,13 @@
             <path d="M11 9v4M35 9v4M11 35v4"/>
           </svg>
         </span>
+        <span class="join-qr-zone__icon join-qr-zone__enter" aria-hidden="true">
+          <svg class="join-qr-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="38" y1="9" x2="38" y2="39"/>
+            <line x1="9" y1="24" x2="33" y2="24"/>
+            <polyline points="27,18 33,24 27,30"/>
+          </svg>
+        </span>
       </label>
       <p id="uploadError" class="join-error" aria-live="polite"></p>
     </div>
@@ -89,7 +96,8 @@
 <script>
 (function () {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
-  const tokenFromPath = pathParts[pathParts.length - 1] !== 'join' ? pathParts[pathParts.length - 1] : null;
+  const last = pathParts[pathParts.length - 1];
+  const tokenFromPath = (last && last !== 'one21') ? last : null;
 
   const stepUpload = document.getElementById('stepUpload');
   const stepWho = document.getElementById('stepWho');
@@ -119,7 +127,7 @@
   function extractToken(dataStr) {
     const value = String(dataStr || '').trim();
     if (!value) return null;
-    const urlMatch = value.match(/\/join\/([a-zA-Z0-9_-]+)/);
+    const urlMatch = value.match(/\/(?:join|one21)\/([a-zA-Z0-9_-]+)/);
     const queryMatch = value.match(/[?&]token=([a-zA-Z0-9_-]+)/);
     if (urlMatch) return urlMatch[1];
     if (queryMatch) return queryMatch[1];
@@ -128,8 +136,7 @@
   }
 
   function goToJoinToken(token) {
-    const base = window.location.pathname.replace(/\/?$/, '');
-    window.location.href = (base.indexOf('/one21/join') !== -1 ? base.replace(/\/?$/, '') : '/one21/join') + '/' + token;
+    window.location.href = '/one21/' + token;
   }
 
   async function ensureJsQrLoaded() {
@@ -310,8 +317,7 @@
         return r.json();
       })
       .then(function () {
-        var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
-        window.location.href = base + (base ? '/login' : '/login.html');
+        window.location.href = '/one21/login';
       })
       .catch(function (err) {
         regError.textContent = err.message || 'Eroare la înregistrare.';
