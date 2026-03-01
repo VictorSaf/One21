@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Access Terminal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#00e676">
 <link rel="stylesheet" href="/css/design-system.css">
 <link rel="stylesheet" href="/api/theme/active.css">
 <link rel="stylesheet" href="/css/layers/pages/login.css">
@@ -61,6 +63,12 @@
   </div>
 </div>
 
+<p class="login-signoff">
+  fuelled
+  <span class="login-signoff__brand">
+    <span class="login-signoff__strong">ONE</span><span class="login-signoff__slash">/</span><span class="login-signoff__strong">AI</span>gency
+  </span>
+</p>
 
 <script>
   function showError(msg) {
@@ -91,7 +99,8 @@
 
       localStorage.setItem('one21_token', data.token);
       localStorage.setItem('one21_user', JSON.stringify(data.user));
-      window.location.href = '/chat.html';
+      var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
+      window.location.href = base + (base ? '/hey' : '/chat.html');
     } catch (err) {
       showError('Connection error');
       btn.disabled = false;
@@ -99,8 +108,10 @@
   });
 
   if (window.self === window.top && localStorage.getItem('one21_token')) {
-    window.location.href = '/chat.html';
+    var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
+    window.location.href = base + (base ? '/hey' : '/chat.html');
   }
 </script>
+<script src="/js/install-banner.js"></script>
 </body>
 </html>

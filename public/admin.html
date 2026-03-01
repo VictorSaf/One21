@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Command Console</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#00e676">
 <link rel="stylesheet" href="/css/design-system.css">
 <link rel="stylesheet" href="/api/theme/active.css">
 <link rel="stylesheet" href="/css/layers/pages/admin.css">
@@ -64,6 +66,11 @@
       Settings
     </button>
 
+    <button class="admin-nav__item" id="agentToggleBtn" onclick="toggleAgentPanel()">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6"/><path d="M9 2v7M15 2v7M9 15v7M15 15v7M2 9h7M2 15h7M15 9h7M15 15h7"/></svg>
+      RAG_Agent
+    </button>
+
     <div class="admin-nav__footer">
       <button class="admin-nav__footer-btn" onclick="goToChat()">
         <svg viewBox="0 0 24 24"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
@@ -97,14 +104,6 @@
         </div>
       </div>
 
-      <div class="admin-section hub-section" id="hubSection">
-        <div class="admin-section__header">
-          <span class="admin-section__title">Hub</span>
-        </div>
-        <div class="hub-cards-grid" id="hubCardsGrid"></div>
-        <div class="hub-cards-empty u-dim" id="hubCardsEmpty" style="display:none;">No hub cards yet. Add them in Hub.</div>
-      </div>
-
       <div class="admin-section">
         <div class="admin-section__header">
           <span class="admin-section__title">Recent_Activity</span>
@@ -124,6 +123,14 @@
           </thead>
           <tbody id="recentBody"></tbody>
         </table>
+      </div>
+
+      <div class="admin-section hub-section" id="hubSection">
+        <div class="admin-section__header">
+          <span class="admin-section__title">Hub</span>
+        </div>
+        <div class="hub-cards-grid" id="hubCardsGrid"></div>
+        <div class="hub-cards-empty u-dim u-hidden" id="hubCardsEmpty">No hub cards yet. Add them in Hub.</div>
       </div>
 
     </div>
@@ -202,6 +209,7 @@
               <th>Claimed_By</th>
               <th>Expires</th>
               <th>Status</th>
+              <th>QR</th>
               <th></th>
             </tr>
           </thead>
@@ -211,7 +219,35 @@
 
     </div>
 
-
+    <!-- Modal: Detalii cod acces (click pe cod sau QR) -->
+    <div class="modal-overlay" id="inviteDetailOverlay" onclick="if(event.target===this)closeInviteDetailView()">
+      <div class="modal" id="inviteDetailModal">
+        <div class="modal__header">
+          <h3 class="modal__title">Detalii_Cod_Acces</h3>
+          <button type="button" class="modal__close" onclick="closeInviteDetailView()" aria-label="Închide">✕</button>
+        </div>
+        <div class="modal__body">
+          <div class="invite-detail-grid">
+            <div class="invite-detail-row"><span class="perm-row__label">Code</span><span class="td-mono" id="inviteDetailCode">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Nume</span><span id="inviteDetailNume">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Prenume</span><span id="inviteDetailPrenume">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Note</span><span id="inviteDetailNote">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Issued_By</span><span id="inviteDetailIssuedBy">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Created</span><span id="inviteDetailCreated">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Claimed_By</span><span id="inviteDetailClaimedBy">—</span></div>
+            <div class="invite-detail-row"><span class="perm-row__label">Expires</span><span id="inviteDetailExpires">—</span></div>
+          </div>
+          <div class="invite-qr-view-wrap u-mt-3" id="inviteDetailQrSection">
+            <p class="perm-row__label">Link pentru noul user</p>
+            <p class="invite-qr-view-hint">Noul user deschide acest link (sau scanează QR) pentru a crea cont.</p>
+            <p class="invite-qr-view-url" id="inviteDetailUrl"></p>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="copyInviteDetailUrl()">Copiază link</button>
+            <p class="perm-row__label u-mt-2">Cod unic (QR) — identificare la creare cont</p>
+            <img id="inviteDetailQrImg" class="invite-qr-view-img" alt="QR cod unic" src="">
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ── NEURAL SEARCH ── -->
     <div class="admin-page" id="page-search">
@@ -375,7 +411,7 @@
               <span class="theme-editor__preview-label">PREVIEW</span>
               <button type="button" class="btn btn--ghost btn--sm theme-editor__preview-fullscreen" onclick="themeEditorFullscreenPreview()" title="Open preview in new window">Fullscreen</button>
             </div>
-            <iframe class="theme-editor__iframe" id="themePreviewFrame" src="/login.html" sandbox="allow-same-origin allow-scripts" tabindex="-1"></iframe>
+            <iframe class="theme-editor__iframe" id="themePreviewFrame" src="" sandbox="allow-same-origin allow-scripts" tabindex="-1"></iframe>
             <div class="theme-editor__tokens-label">TOKENS</div>
             <div class="theme-editor__tokens-block" id="themeTokensBlock">
               <div class="theme-editor__tokens-resize" id="themeTokensResize" title="Drag to resize" aria-label="Resize tokens panel"></div>
@@ -408,6 +444,18 @@
   </div>
 
   </main>
+
+  <!-- ── RAG Agent Floating Panel ── -->
+  <div class="agent-float" id="agentFloat">
+    <div class="agent-float__header" id="agentFloatHeader">
+      <span class="agent-float__title">
+        <svg viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="6" height="6"/><path d="M9 2v7M15 2v7M9 15v7M15 15v7M2 9h7M2 15h7M15 9h7M15 15h7"/></svg>
+        RAG_Agent
+      </span>
+      <button class="agent-float__close" onclick="toggleAgentPanel()">✕</button>
+    </div>
+    <iframe id="agentFrame" class="agent-float__frame" src="about:blank"></iframe>
+  </div>
 
   <!-- ── USER PERMISSIONS PANEL ── -->
   <div class="perms-panel" id="permsPanel">
@@ -453,6 +501,20 @@
           <div class="perm-row__label invite-note-label">Note (optional)</div>
           <input type="text" id="inviteNote" placeholder="e.g. For marketing team" class="admin-toolbar__input invite-note-input">
         </div>
+        <div class="invite-join-block">
+          <div class="perm-row__label">Link pentru invitat</div>
+          <div class="invite-join-row">
+            <input type="text" id="invNume" class="admin-toolbar__input invite-join-input" placeholder="Nume">
+            <input type="text" id="invPrenume" class="admin-toolbar__input invite-join-input" placeholder="Prenume">
+          </div>
+          <p class="invite-join-hint">Completează nume + prenume pentru a genera QR; invitatul răspunde cu prenumele la „Who are you?”</p>
+        </div>
+        <div id="inviteQrBlock" class="invite-qr-block u-hidden">
+          <div class="perm-row__label">Link pentru invitat (trimite acest link)</div>
+          <p class="invite-join-hint" id="inviteQrUrl"></p>
+          <div class="perm-row__label u-mt-2">Cod unic (QR) — pentru identificare la creare cont</div>
+          <img id="inviteQrImg" alt="QR cod unic" class="invite-qr-img">
+        </div>
       </div>
       <div class="modal__footer">
         <button class="t-btn t-btn--accent" onclick="generateInviteWithPerms()">Generate_Code</button>
@@ -493,9 +555,9 @@
         <div class="modal__field">
           <label class="modal__label">Members</label>
           <input class="input" type="text" id="roomModalMemberSearch" placeholder="Search users..." oninput="filterRoomModalUsers()">
-          <div id="roomModalUserList" style="margin-top:var(--sp-2);max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:var(--sp-1);"></div>
+          <div id="roomModalUserList" class="room-modal-user-list"></div>
         </div>
-        <div id="roomModalError" class="u-error" style="display:none;"></div>
+        <div id="roomModalError" class="u-error u-hidden"></div>
       </div>
       <div class="modal__footer">
         <button class="t-btn t-btn--accent" onclick="saveRoom()">Save_Node</button>
@@ -514,9 +576,9 @@
       <div class="u-dim">Select a channel to view members.</div>
     </div>
     <div class="perms-panel__footer">
-      <div style="display:flex;gap:var(--sp-2);width:100%;">
-        <input class="input" type="text" id="addMemberSearch" placeholder="Add member..." oninput="filterAddMemberList()" style="flex:1;">
-        <div id="addMemberDropdown" style="display:none;position:absolute;bottom:calc(var(--sp-12) + var(--sp-4));left:var(--sp-4);right:var(--sp-4);background:var(--bg-elevated);border:1px solid var(--border-mid);border-radius:4px;max-height:150px;overflow-y:auto;z-index:var(--z-dropdown);"></div>
+      <div class="add-member-row">
+        <input class="input add-member-input" type="text" id="addMemberSearch" placeholder="Add member..." oninput="filterAddMemberList()">
+        <div id="addMemberDropdown" class="add-member-dropdown u-hidden"></div>
       </div>
     </div>
   </div>
@@ -571,6 +633,99 @@
     </div>
   </div>
 
+  <!-- ── AGENT CONTROL MODAL ── -->
+  <div class="modal-overlay" id="agentControlModalOverlay" onclick="if(event.target===this)closeAgentControlModal()">
+    <div class="modal agent-control-modal">
+      <div class="modal__header">
+        <span class="modal__title">Agent_Control_Center</span>
+        <button type="button" class="modal__close" onclick="closeAgentControlModal()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="agent-control-grid">
+          <div class="agent-control-block">
+            <div class="agent-control-block__title">Config</div>
+            <div class="modal__field">
+              <label class="modal__label">Control Plane URL</label>
+              <input type="text" id="agentControlPlaneUrl" class="input" placeholder="http://localhost:8010">
+            </div>
+            <div class="modal__field">
+              <label class="modal__label">Ollama URL</label>
+              <input type="text" id="agentOllamaUrl" class="input" placeholder="http://127.0.0.1:11434">
+            </div>
+            <div class="modal__field">
+              <label class="modal__label">Agent Embed URL</label>
+              <input type="text" id="agentEmbedUrl" class="input" placeholder="http://127.0.0.1:8420/embed">
+            </div>
+            <div class="modal__field">
+              <label class="modal__label">Memory TTL Days</label>
+              <input type="number" id="agentMemoryTtlDays" class="input" min="1" max="3650" value="30">
+            </div>
+            <div class="modal__field">
+              <label class="modal__label">Prune Target Agent (optional)</label>
+              <input type="text" id="agentPruneTarget" class="input" placeholder="e.g. claude">
+            </div>
+            <div class="agent-control-actions">
+              <button type="button" class="btn btn--primary btn--sm" onclick="saveAgentControlConfig()">Save</button>
+              <button type="button" class="btn btn--ghost btn--sm" onclick="testAgentControlEndpoints()">Test URLs</button>
+              <button type="button" class="btn btn--ghost btn--sm" onclick="runAgentMemoryPrune(true)">Dry Prune</button>
+              <button type="button" class="btn btn--ghost btn--sm" onclick="runAgentMemoryPrune(false)">Run Prune</button>
+            </div>
+            <div class="u-dim u-font-xs" id="agentControlConfigStatus">—</div>
+          </div>
+
+          <div class="agent-control-block">
+            <div class="agent-control-block__title">Monitoring</div>
+            <div class="agent-monitor-row">
+              <span class="perm-row__label">Agent_Nodes</span>
+              <span class="td-mono" id="agentNodeCount">0</span>
+            </div>
+            <div class="agent-monitor-row">
+              <span class="perm-row__label">Agents_Online</span>
+              <span class="td-mono" id="agentOnlineCount">0</span>
+            </div>
+            <div class="agent-monitor-row">
+              <span class="perm-row__label">Memory_Collections</span>
+              <span class="td-mono" id="agentMemoryCollections">0</span>
+            </div>
+            <div class="agent-monitor-row">
+              <span class="perm-row__label">Memory_Documents</span>
+              <span class="td-mono" id="agentMemoryDocs">0</span>
+            </div>
+            <div class="agent-monitor-list" id="agentMonitorList">
+              <div class="u-dim">Loading...</div>
+            </div>
+          </div>
+
+          <div class="agent-control-block">
+            <div class="agent-control-block__title">Stats</div>
+            <div class="agent-stats-grid">
+              <div class="agent-stat">
+                <span class="agent-stat__label">Active_Channels</span>
+                <span class="agent-stat__value" id="agentStatChannels">0</span>
+              </div>
+              <div class="agent-stat">
+                <span class="agent-stat__label">Msg_Today</span>
+                <span class="agent-stat__value" id="agentStatMsgToday">0</span>
+              </div>
+              <div class="agent-stat">
+                <span class="agent-stat__label">Total_Messages</span>
+                <span class="agent-stat__value" id="agentStatMessages">0</span>
+              </div>
+              <div class="agent-stat">
+                <span class="agent-stat__label">Active_Today</span>
+                <span class="agent-stat__value" id="agentStatActiveToday">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--primary btn--sm" onclick="refreshAgentControlModal()">Refresh</button>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="closeAgentControlModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -578,11 +733,13 @@
 <script src="/js/auth.js"></script>
 <script src="/js/system-dialogs.js"></script>
 <script>
+var ONE21_BASE = window.location.pathname.indexOf('/one21') !== -1 ? '/one21' : '';
+(function () { var f = document.getElementById('themePreviewFrame'); if (f) f.src = ONE21_BASE ? ONE21_BASE + '/login' : '/login.html'; })();
 // ── Auth guard ──────────────────────────────────
 if (!Auth.requireAuth()) {
   const u = Auth.getUser();
   if (u && u.role !== 'admin') {
-    showAlert('Acces restricționat — doar administratori.').then(function () { window.location.href = '/chat.html'; });
+    showAlert('Acces restricționat — doar administratori.').then(function () { window.location.href = ONE21_BASE ? ONE21_BASE + '/hey' : '/chat.html'; });
   }
 }
 
@@ -597,6 +754,7 @@ if (!Auth.requireAuth()) {
 
 let allUsers = [];
 let allRooms = [];
+const AGENT_CONTROL_STORAGE_KEY = 'one21_agent_control_config';
 
 // ── Navigation ────────────────────────────────────
 document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
@@ -611,7 +769,42 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
   });
 });
 
-function goToChat() { window.location.href = '/chat.html'; }
+function goToChat() { window.location.href = ONE21_BASE ? ONE21_BASE + '/hey' : '/chat.html'; }
+
+// ── RAG Agent floating panel ──────────────────────
+function toggleAgentPanel() {
+  const panel = document.getElementById('agentFloat');
+  const btn = document.getElementById('agentToggleBtn');
+  const isOpen = panel.classList.toggle('agent-float--open');
+  btn.classList.toggle('active', isOpen);
+  if (isOpen) {
+    const frame = document.getElementById('agentFrame');
+    if (frame.src === 'about:blank') frame.src = 'http://127.0.0.1:8420/embed';
+  }
+}
+
+// drag
+(function() {
+  let drag = null;
+  document.addEventListener('mousedown', e => {
+    const header = e.target.closest('#agentFloatHeader');
+    if (!header) return;
+    const panel = document.getElementById('agentFloat');
+    const rect = panel.getBoundingClientRect();
+    drag = { ox: e.clientX - rect.left, oy: e.clientY - rect.top };
+    panel.style.transition = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    const panel = document.getElementById('agentFloat');
+    panel.style.left = (e.clientX - drag.ox) + 'px';
+    panel.style.top  = (e.clientY - drag.oy) + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  });
+  document.addEventListener('mouseup', () => { drag = null; });
+})();
 
 // ── Toast ─────────────────────────────────────────
 function toast(msg, duration = 2500) {
@@ -676,7 +869,7 @@ async function loadOverview() {
         <span class="td-primary">${u.display_name}</span>
         <span class="td-secondary">@${u.username}</span>
       </td>
-      <td><span class="t-badge t-badge--${u.role}">${u.role}</span></td>
+      <td><span class="t-badge t-badge--${u.role}">${u.role === 'admin' ? 'Admin' : u.role}</span></td>
       <td class="td-meta">${formatTime(u.last_seen)}</td>
       <td class="td-mono">${u.message_count}</td>
     </tr>`).join('');
@@ -689,34 +882,203 @@ async function loadHubCards() {
   const grid = document.getElementById('hubCardsGrid');
   const empty = document.getElementById('hubCardsEmpty');
   if (!grid || !empty) return;
-  if (!data || !data.cards || data.cards.length === 0) {
+  const apiCards = (data && data.cards) ? data.cards : [];
+  const systemCard = {
+    id: 'system-agent-control',
+    title: 'Agent Control Center',
+    description: 'Config • Monitoring • Stats',
+    icon: '🤖',
+    image_url: null,
+    accent_color: 'info',
+    action_type: 'internal_app',
+    action_payload: '#agent_control_center'
+  };
+  const cards = [systemCard, ...apiCards];
+  if (cards.length === 0) {
     grid.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
-  grid.innerHTML = data.cards.map(card => {
-    const accent = card.accent_color && card.accent_color.startsWith('#') ? card.accent_color : (card.accent_color ? `var(--${card.accent_color}, var(--accent))` : 'var(--accent)');
-    const styleAttr = card.accent_color && card.accent_color.startsWith('#') ? ` style="--hub-card-accent: ${card.accent_color}"` : (card.accent_color ? ` style="--hub-card-accent: var(--${card.accent_color})"` : '');
+  grid.innerHTML = cards.map(card => {
+    const accentVal = card.accent_color && card.accent_color.startsWith('#') ? card.accent_color : (card.accent_color ? `var(--${card.accent_color})` : '');
     const thumb = card.image_url
       ? `<img class="hub-card__img" src="${card.image_url.replace(/"/g, '&quot;')}" alt="" loading="lazy">`
       : (card.icon ? `<span class="hub-card__icon">${card.icon}</span>` : '');
-    return `<button type="button" class="hub-card" data-action-type="${card.action_type}" data-action-payload="${(card.action_payload || '').replace(/"/g, '&quot;')}"${styleAttr}>
+    return `<button type="button" class="hub-card" data-action-type="${card.action_type}" data-action-payload="${(card.action_payload || '').replace(/"/g, '&quot;')}"${accentVal ? ` data-accent="${accentVal.replace(/"/g, '&quot;')}"` : ''}>
       <div class="hub-card__thumb">${thumb}</div>
       <div class="hub-card__title">${(card.title || '').replace(/</g, '&lt;')}</div>
       ${card.description ? `<div class="hub-card__desc">${(card.description || '').replace(/</g, '&lt;')}</div>` : ''}
     </button>`;
   }).join('');
   grid.querySelectorAll('.hub-card').forEach(btn => {
+    const acc = btn.dataset.accent;
+    if (acc) btn.style.setProperty('--hub-card-accent', acc);
+  });
+  grid.querySelectorAll('.hub-card').forEach(btn => {
     btn.addEventListener('click', () => {
       const type = btn.dataset.actionType;
       const payload = btn.dataset.actionPayload || '';
       if (type === 'url') window.open(payload, '_blank');
-      else if (type === 'room') window.location.href = '/chat.html?room=' + payload;
-      else if (type === 'internal_app') window.location.href = payload.startsWith('/') ? payload : '/' + payload;
+      else if (type === 'room') window.location.href = (ONE21_BASE ? ONE21_BASE + '/hey' : '/chat.html') + '?room=' + payload;
+      else if (type === 'internal_app') {
+        if (payload === '#agent') {
+          const panel = document.getElementById('agentFloat');
+          if (!panel.classList.contains('agent-float--open')) toggleAgentPanel();
+        } else if (payload === '#agent_control_center') {
+          openAgentControlModal();
+        } else if (payload.startsWith('#')) {
+          const navBtn = document.querySelector(`[data-page="${payload.slice(1)}"]`);
+          if (navBtn) navBtn.click();
+        } else {
+          window.location.href = payload.startsWith('/') ? payload : '/' + payload;
+        }
+      }
       else if (type === 'script') toast('Script action not implemented yet');
     });
   });
+}
+
+function getAgentControlDefaults() {
+  return {
+    control_plane_url: 'http://localhost:8010',
+    ollama_url: 'http://127.0.0.1:11434',
+    agent_embed_url: 'http://127.0.0.1:8420/embed',
+    memory_ttl_days: 30,
+  };
+}
+
+function getAgentControlConfig() {
+  try {
+    const raw = localStorage.getItem(AGENT_CONTROL_STORAGE_KEY);
+    if (!raw) return getAgentControlDefaults();
+    const parsed = JSON.parse(raw);
+    return { ...getAgentControlDefaults(), ...parsed };
+  } catch (_) {
+    return getAgentControlDefaults();
+  }
+}
+
+function openAgentControlModal() {
+  const cfg = getAgentControlConfig();
+  document.getElementById('agentControlPlaneUrl').value = cfg.control_plane_url;
+  document.getElementById('agentOllamaUrl').value = cfg.ollama_url;
+  document.getElementById('agentEmbedUrl').value = cfg.agent_embed_url;
+  document.getElementById('agentMemoryTtlDays').value = String(cfg.memory_ttl_days || 30);
+  document.getElementById('agentPruneTarget').value = '';
+  document.getElementById('agentControlModalOverlay').classList.add('open');
+  refreshAgentControlModal();
+}
+
+function closeAgentControlModal() {
+  document.getElementById('agentControlModalOverlay').classList.remove('open');
+}
+
+function saveAgentControlConfig() {
+  const cfg = {
+    control_plane_url: document.getElementById('agentControlPlaneUrl').value.trim() || getAgentControlDefaults().control_plane_url,
+    ollama_url: document.getElementById('agentOllamaUrl').value.trim() || getAgentControlDefaults().ollama_url,
+    agent_embed_url: document.getElementById('agentEmbedUrl').value.trim() || getAgentControlDefaults().agent_embed_url,
+    memory_ttl_days: Math.min(Math.max(parseInt(document.getElementById('agentMemoryTtlDays').value, 10) || 30, 1), 3650),
+  };
+  localStorage.setItem(AGENT_CONTROL_STORAGE_KEY, JSON.stringify(cfg));
+  const status = document.getElementById('agentControlConfigStatus');
+  status.textContent = 'Saved locally ✓';
+  status.style.color = 'var(--online)';
+}
+
+async function testAgentControlEndpoints() {
+  const cfg = getAgentControlConfig();
+  const targets = [
+    { key: 'Control Plane', url: cfg.control_plane_url + '/health' },
+    { key: 'Ollama', url: cfg.ollama_url + '/api/tags' },
+  ];
+  const checks = await Promise.all(targets.map(async t => {
+    try {
+      const r = await fetch(t.url, { method: 'GET' });
+      return `${t.key}: ${r.ok ? 'OK' : 'ERR ' + r.status}`;
+    } catch (_) {
+      return `${t.key}: OFFLINE`;
+    }
+  }));
+  const status = document.getElementById('agentControlConfigStatus');
+  status.textContent = checks.join(' | ');
+  status.style.color = 'var(--text-secondary)';
+}
+
+async function runAgentMemoryPrune(dryRun) {
+  const ttlDays = Math.min(Math.max(parseInt(document.getElementById('agentMemoryTtlDays').value, 10) || 30, 1), 3650);
+  const target = document.getElementById('agentPruneTarget').value.trim();
+  const payload = {
+    ttl_days: ttlDays,
+    max_docs_per_agent: 5000,
+    dry_run: !!dryRun,
+  };
+  if (target) payload.agent_username = target;
+
+  const data = await Auth.api('/api/admin/agent-memory/prune', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const status = document.getElementById('agentControlConfigStatus');
+  if (!data || data.error) {
+    status.textContent = (data && data.error) ? data.error : 'Prune failed';
+    status.style.color = 'var(--error)';
+    return;
+  }
+  status.textContent = `${dryRun ? 'Dry' : 'Run'} prune: removed ${data.removed_docs_total || 0} docs across ${data.targets || 0} collections`;
+  status.style.color = 'var(--text-secondary)';
+  refreshAgentControlModal();
+}
+
+async function refreshAgentControlModal() {
+  const [statsData, usersData, memoryData] = await Promise.all([
+    Auth.api('/api/admin/stats'),
+    Auth.api('/api/admin/users'),
+    Auth.api('/api/admin/agent-memory/stats'),
+  ]);
+  if (!statsData || !usersData) return;
+  const stats = statsData.stats || {};
+  const agents = (usersData.users || []).filter(u => u.role === 'agent');
+  const onlineAgents = agents.filter(a => !!a.is_online);
+  const memoryCollections = (memoryData && memoryData.collections) ? memoryData.collections : [];
+
+  document.getElementById('agentNodeCount').textContent = String(agents.length);
+  document.getElementById('agentOnlineCount').textContent = String(onlineAgents.length);
+  document.getElementById('agentMemoryCollections').textContent = String(memoryData && memoryData.total_collections ? memoryData.total_collections : 0);
+  document.getElementById('agentMemoryDocs').textContent = String(memoryData && memoryData.total_docs ? memoryData.total_docs : 0);
+  document.getElementById('agentStatChannels').textContent = String(stats.rooms || 0);
+  document.getElementById('agentStatMsgToday').textContent = String(stats.msg_today || 0);
+  document.getElementById('agentStatMessages').textContent = String(stats.messages || 0);
+  document.getElementById('agentStatActiveToday').textContent = String(stats.active_today || 0);
+
+  const monitor = document.getElementById('agentMonitorList');
+  if (agents.length === 0) {
+    monitor.innerHTML = '<div class="u-dim">No agent nodes found.</div>';
+    return;
+  }
+  monitor.innerHTML = agents.map(a => `
+    ${(() => {
+      const agentCollection = memoryCollections.find(c => c.agent_username === String(a.username).toLowerCase());
+      const memoryLabel = agentCollection ? `${agentCollection.doc_count || 0} mem` : '0 mem';
+      return `
+    <div class="agent-monitor-item">
+      <div>
+        <span class="td-primary">${a.display_name || a.username}</span>
+        <span class="td-secondary">@${a.username}</span>
+      </div>
+      <div class="agent-monitor-meta">
+        <span class="t-status t-status--${a.is_online ? 'online' : 'offline'}">
+          <span class="t-status__dot"></span>${a.is_online ? 'Online' : 'Offline'}
+        </span>
+        <span class="td-mono">${a.message_count || 0} msgs</span>
+        <span class="td-mono">${memoryLabel}</span>
+      </div>
+    </div>
+  `;
+    })()}
+  `).join('');
 }
 
 let hubCardEditId = null;
@@ -841,11 +1203,11 @@ function renderUsers(users) {
       </td>
       <td>
         ${u.id === me.id
-          ? `<span class="t-badge t-badge--${u.role}">${u.role}</span>`
+          ? `<span class="t-badge t-badge--${u.role}">${u.role === 'admin' ? 'Admin' : u.role}</span>`
           : `<select class="inline-select" onchange="changeRole(${u.id}, this.value)">
-              <option value="admin"  ${u.role==='admin'  ? 'selected':''}>ADMIN</option>
-              <option value="user"   ${u.role==='user'   ? 'selected':''}>USER</option>
-              <option value="agent"  ${u.role==='agent'  ? 'selected':''}>AGENT</option>
+              <option value="admin"  ${u.role==='admin'  ? 'selected':''}>Admin</option>
+              <option value="user"   ${u.role==='user'   ? 'selected':''}>user</option>
+              <option value="agent"  ${u.role==='agent'  ? 'selected':''}>agent</option>
             </select>`
         }
       </td>
@@ -858,7 +1220,11 @@ function renderUsers(users) {
       <td class="td-mono">${u.message_count}</td>
       <td class="td-meta">${formatDate(u.created_at)}</td>
       <td>
-        ${u.id !== me.id ? `<button class="t-btn t-btn--accent" onclick="editDisplayName(${u.id}, '${u.display_name.replace(/'/g, "\\'")}')">Edit_Name</button>` : '—'}
+        ${u.id !== me.id ? `
+          <button class="t-btn t-btn--accent" onclick="event.stopPropagation(); editDisplayName(${u.id}, '${String(u.display_name || '').replace(/'/g, "\\'")}')">Edit_Name</button>
+          <button class="t-btn" onclick="event.stopPropagation(); resetUserPassword(${u.id}, '@${u.username}')">Reset_Pass</button>
+          <button class="t-btn t-btn--danger" onclick="event.stopPropagation(); deleteUser(${u.id}, '@${u.username}')">Delete_Node</button>
+        ` : '—'}
       </td>
     </tr>`).join('');
 }
@@ -870,7 +1236,7 @@ function filterUsers() {
 
 async function changeRole(userId, newRole) {
   const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ role: newRole }) });
-  if (data && !data.error) toast(`Role updated: ${data.user.username} → ${newRole}`);
+  if (data && !data.error) toast(`Role updated: ${data.user.username} → ${newRole === 'admin' ? 'Admin' : newRole}`);
   else toast('Update failed');
 }
 
@@ -881,16 +1247,42 @@ async function editDisplayName(userId, currentName) {
   if (data && !data.error) { toast('Name updated'); loadUsers(); }
 }
 
+async function resetUserPassword(userId, userLabel) {
+  const pwd = await showPrompt('New password (min 6 chars):', '', { title: `Reset_Pass ${userLabel}` });
+  if (!pwd) return;
+  const next = pwd.trim();
+  if (next.length < 6) {
+    toast('Password too short (min 6)');
+    return;
+  }
+  const data = await Auth.api(`/api/admin/users/${userId}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ password: next })
+  });
+  if (data && !data.error) toast(`Password reset for ${userLabel}`);
+}
+
+async function deleteUser(userId, userLabel) {
+  if (!(await showConfirm(`Delete ${userLabel} from database?`, { destructive: true, okLabel: 'Delete' }))) return;
+  const data = await Auth.api(`/api/admin/users/${userId}`, { method: 'DELETE' });
+  if (data && !data.error) {
+    toast(`Deleted ${userLabel}`);
+    loadUsers();
+  }
+}
+
 // ── Invites ───────────────────────────────────────
 async function loadInvites() {
   const data = await Auth.api('/api/admin/invites');
   if (!data) return;
 
   document.getElementById('invitesBody').innerHTML = data.invites.length === 0
-    ? '<tr><td colspan="7" class="empty-state">No access codes found</td></tr>'
-    : data.invites.map(inv => `
-    <tr>
-      <td><span class="invite-code" onclick="copyCode('${inv.code}')" title="Click to copy">${inv.code}</span></td>
+    ? '<tr><td colspan="8" class="empty-state">No access codes found</td></tr>'
+    : data.invites.map(inv => {
+        const esc = (s) => (s == null || s === '' ? '' : String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'));
+        const claimedBy = inv.used_by_name ? `${inv.used_by_display || ''} @${inv.used_by_name}` : '';
+        return `<tr data-inv-code="${esc(inv.code)}" data-inv-token="${esc(inv.token)}" data-inv-join-link="${esc(inv.join_link)}" data-inv-nume="${esc(inv.nume)}" data-inv-prenume="${esc(inv.prenume)}" data-inv-note="${esc(inv.note)}" data-inv-issued-by="${esc(inv.created_by_name)}" data-inv-created="${esc(inv.created_at)}" data-inv-claimed-by="${esc(claimedBy)}" data-inv-expires="${esc(inv.expires_at)}">
+      <td><span class="invite-code invite-code--clickable" onclick="showInviteDetailView(this.closest('tr'))" title="Vezi detalii">${inv.code}</span></td>
       <td class="td-meta">${inv.created_by_name || '—'}</td>
       <td class="td-meta" title="${inv.created_at || ''}">${inv.created_at ? formatDate(inv.created_at) : '—'}</td>
       <td>${inv.used_by_name
@@ -900,8 +1292,10 @@ async function loadInvites() {
       <td>${inv.used_by
         ? '<span class="t-badge t-badge--used">✓ Claimed</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
+      <td>${inv.token && !inv.used_by ? `<button type="button" class="t-btn t-btn--accent t-btn--sm" onclick="showInviteDetailView(this.closest('tr'))" title="Afișează detalii + cod QR">QR</button>` : inv.token ? `<button type="button" class="t-btn t-btn--ghost t-btn--sm" onclick="showInviteDetailView(this.closest('tr'))" title="Vezi detalii">Detalii</button>` : '<span class="td-empty">—</span>'}</td>
       <td>${!inv.used_by ? `<button type="button" class="t-btn t-btn--danger" onclick="revokeInvite(${inv.id})">Revoke</button>` : ''}</td>
-    </tr>`).join('');
+    </tr>`;
+      }).join('');
 }
 
 async function generateInvite() {
@@ -934,6 +1328,59 @@ async function revokeInvite(id) {
     if (res.status === 401) Auth.logout();
   } catch (e) {
     toast('Failed to revoke');
+  }
+}
+
+let inviteDetailUrl = '';
+async function showInviteDetailView(tr) {
+  if (!tr || !tr.dataset) return;
+  const d = tr.dataset;
+  document.getElementById('inviteDetailCode').textContent = d.invCode || '—';
+  document.getElementById('inviteDetailNume').textContent = d.invNume || '—';
+  document.getElementById('inviteDetailPrenume').textContent = d.invPrenume || '—';
+  document.getElementById('inviteDetailNote').textContent = d.invNote || '—';
+  document.getElementById('inviteDetailIssuedBy').textContent = d.invIssuedBy || '—';
+  document.getElementById('inviteDetailCreated').textContent = d.invCreated ? formatDate(d.invCreated) : '—';
+  document.getElementById('inviteDetailClaimedBy').textContent = d.invClaimedBy || '—';
+  document.getElementById('inviteDetailExpires').textContent = d.invExpires ? formatDate(d.invExpires) : 'No_Expiry';
+  const qrSection = document.getElementById('inviteDetailQrSection');
+  const img = document.getElementById('inviteDetailQrImg');
+  const urlEl = document.getElementById('inviteDetailUrl');
+  const token = d.invToken;
+  const joinBase = (d.invJoinLink || '').replace(/\/$/, '');
+  const fullJoinUrl = token && joinBase ? joinBase + '/' + token : joinBase || '';
+  inviteDetailUrl = fullJoinUrl;
+  if (token && joinBase) {
+    qrSection.classList.remove('u-hidden');
+    urlEl.textContent = fullJoinUrl;
+    const authToken = Auth.getToken();
+    try {
+      const r = await fetch('/api/admin/invites/qr?token=' + encodeURIComponent(token), { headers: authToken ? { Authorization: 'Bearer ' + authToken } : {} });
+      if (r.ok) {
+        const blob = await r.blob();
+        img.src = URL.createObjectURL(blob);
+      } else { img.removeAttribute('src'); }
+    } catch (e) {
+      img.removeAttribute('src');
+    }
+  } else {
+    qrSection.classList.add('u-hidden');
+    img.removeAttribute('src');
+    urlEl.textContent = '';
+  }
+  document.getElementById('inviteDetailOverlay').classList.add('open');
+}
+
+function closeInviteDetailView() {
+  document.getElementById('inviteDetailOverlay').classList.remove('open');
+  const img = document.getElementById('inviteDetailQrImg');
+  if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.removeAttribute('src');
+}
+
+function copyInviteDetailUrl() {
+  if (inviteDetailUrl) {
+    navigator.clipboard.writeText(inviteDetailUrl).then(() => toast('Link copiat')).catch(() => toast('Nu s-a putut copia'));
   }
 }
 
@@ -975,7 +1422,7 @@ function renderRooms(rooms) {
         const nameAttr = escape(r.name);
         const descAttr = escape(r.description || '');
         return `
-    <tr data-room-id="${r.id}" data-room-name="${nameAttr}" data-room-desc="${descAttr}" data-room-type="${r.type || 'group'}"${r.is_archived ? ' style="opacity:0.55"' : ''}>
+    <tr data-room-id="${r.id}" data-room-name="${nameAttr}" data-room-desc="${descAttr}" data-room-type="${r.type || 'group'}"${r.is_archived ? ' class="u-archived"' : ''}>
       <td>
         <span class="td-primary">${escape(r.name)}</span>
         ${r.description ? `<span class="td-secondary">${escape(r.description)}</span>` : ''}
@@ -987,7 +1434,7 @@ function renderRooms(rooms) {
       <td>${r.is_archived
         ? '<span class="t-badge t-badge--archived">Archived</span>'
         : '<span class="t-badge t-badge--active">● Active</span>'}</td>
-      <td style="white-space:nowrap">
+      <td class="u-nowrap">
         <button type="button" class="t-btn t-btn--sm" data-room-action="edit">Edit</button>
         <button type="button" class="t-btn t-btn--sm" data-room-action="members">Members</button>
         ${r.type !== 'direct' ? '<button type="button" class="t-btn t-btn--sm t-btn--reject" data-room-action="delete">Delete</button>' : ''}
@@ -1121,6 +1568,9 @@ function openInviteModal() {
         </div>
       `).join('');
   document.getElementById('inviteNote').value = '';
+  document.getElementById('invNume').value = '';
+  document.getElementById('invPrenume').value = '';
+  document.getElementById('inviteQrBlock').style.display = 'none';
   document.getElementById('inviteModal').classList.add('open');
   applyInvitePreset('standard');
 }
@@ -1142,18 +1592,36 @@ async function generateInviteWithPerms() {
   const agentCheckboxes = document.querySelectorAll('.inv-agent');
   const allowedAgents = [...agentCheckboxes].filter(c => c.checked).map(c => parseInt(c.dataset.agentId));
   const note = document.getElementById('inviteNote').value.trim();
+  const nume = document.getElementById('invNume').value.trim() || null;
+  const prenume = document.getElementById('invPrenume').value.trim() || null;
 
   const data = await Auth.api('/api/admin/invites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       note: note || null,
+      nume,
+      prenume,
       default_permissions: { can_send_files: canSendFiles, allowed_agents: allowedAgents },
     }),
   });
   if (data) {
-    closeInviteModal();
-    toast(`Code generated: ${data.code}`);
+    if (data.token) {
+      const token = Auth.getToken();
+      const qrUrl = '/api/admin/invites/qr?token=' + encodeURIComponent(data.token);
+      const r = await fetch(qrUrl, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      if (r.ok) {
+        const blob = await r.blob();
+        document.getElementById('inviteQrImg').src = URL.createObjectURL(blob);
+      }
+      const base = (data.join_link || (typeof ONE21_BASE !== 'undefined' && ONE21_BASE ? ONE21_BASE + '/join' : '/one21/join')).replace(/\/$/, '');
+      document.getElementById('inviteQrUrl').textContent = data.token ? base + '/' + data.token : base;
+      document.getElementById('inviteQrBlock').style.display = 'block';
+      toast('Code + QR generated');
+    } else {
+      closeInviteModal();
+      toast('Code generated: ' + data.code);
+    }
     loadInvites();
   }
 }
@@ -1161,6 +1629,7 @@ async function generateInviteWithPerms() {
 // ── Channel Management ────────────────────────────
 let roomModalId = null;    // null = create, number = edit
 let allUsersForRoom = [];  // cached user list for room modal
+let roomModalAccessByUserId = {};
 
 async function openCreateRoom() {
   roomModalId = null;
@@ -1172,11 +1641,12 @@ async function openCreateRoom() {
   document.getElementById('roomModalType').value = 'channel';
   document.getElementById('roomModalError').style.display = 'none';
   document.getElementById('roomModalMemberSearch').value = '';
+  roomModalAccessByUserId = {};
   if (allUsersForRoom.length === 0) {
     const d = await Auth.api('/api/rooms/users/list');
     if (d) allUsersForRoom = d.users;
   }
-  renderRoomModalUsers(allUsersForRoom, []);
+  renderRoomModalUsers(allUsersForRoom, [], roomModalAccessByUserId);
   document.getElementById('roomModal').classList.add('open');
   document.getElementById('roomModalName').focus();
 }
@@ -1201,36 +1671,70 @@ async function openEditRoom(id, name, desc, type) {
     toast(roomData && roomData.error ? roomData.error : 'Could not load channel.');
     return;
   }
-  const currentMemberIds = roomData.members ? roomData.members.map(m => m.id) : [];
+  const currentMembers = roomData.members || [];
+  const currentMemberIds = currentMembers.map(m => m.id);
+  roomModalAccessByUserId = {};
+  currentMembers.forEach((m) => {
+    roomModalAccessByUserId[m.id] = m.access_level || 'readandwrite';
+  });
   document.getElementById('roomModalArchived').checked = !!(roomData.room && roomData.room.is_archived);
-  renderRoomModalUsers(allUsersForRoom, currentMemberIds);
+  renderRoomModalUsers(allUsersForRoom, currentMemberIds, roomModalAccessByUserId);
   document.getElementById('roomModal').classList.add('open');
   document.getElementById('roomModalName').focus();
 }
 
-function renderRoomModalUsers(users, checkedIds) {
+function renderRoomModalUsers(users, checkedIds, accessByUserId) {
   document.getElementById('roomModalUserList').innerHTML = users.map(u => `
-    <label style="display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-2);cursor:pointer;">
-      <input type="checkbox" data-uid="${u.id}" ${checkedIds.includes(u.id) ? 'checked' : ''}>
+    <label class="perm-label-row">
+      <input type="checkbox" data-uid="${u.id}" ${checkedIds.includes(u.id) ? 'checked' : ''} onchange="toggleRoomModalAccess(this)">
       <span>${u.display_name || u.username}</span>
-      <span class="u-dim" style="font-size:var(--font-xs)">@${u.username}</span>
+      <span class="u-dim u-font-xs">@${u.username}</span>
+      <select class="inline-select" data-access-uid="${u.id}" ${checkedIds.includes(u.id) ? '' : 'disabled'}>
+        <option value="readonly" ${(accessByUserId[u.id] || 'readandwrite') === 'readonly' ? 'selected' : ''}>readonly</option>
+        <option value="readandwrite" ${(accessByUserId[u.id] || 'readandwrite') === 'readandwrite' ? 'selected' : ''}>readandwrite</option>
+        <option value="post_docs" ${(accessByUserId[u.id] || 'readandwrite') === 'post_docs' ? 'selected' : ''}>post docs</option>
+      </select>
     </label>
   `).join('');
 }
 
+function collectRoomModalState() {
+  const checks = [...document.querySelectorAll('#roomModalUserList input[type=checkbox][data-uid]')];
+  const checkedIds = checks.filter(c => c.checked).map(c => parseInt(c.dataset.uid, 10));
+  const accessByUserId = { ...roomModalAccessByUserId };
+  const selects = [...document.querySelectorAll('#roomModalUserList select[data-access-uid]')];
+  selects.forEach((s) => {
+    const uid = parseInt(s.dataset.accessUid, 10);
+    accessByUserId[uid] = s.value || 'readandwrite';
+  });
+  return { checkedIds, accessByUserId };
+}
+
+function toggleRoomModalAccess(checkbox) {
+  const row = checkbox.closest('.perm-label-row');
+  if (!row) return;
+  const select = row.querySelector('select[data-access-uid]');
+  if (select) select.disabled = !checkbox.checked;
+}
+
 function filterRoomModalUsers() {
   const q = document.getElementById('roomModalMemberSearch').value.toLowerCase();
+  const state = collectRoomModalState();
+  roomModalAccessByUserId = state.accessByUserId;
   const filtered = allUsersForRoom.filter(u =>
     (u.display_name || u.username).toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
   );
-  const checkedIds = [...document.querySelectorAll('#roomModalUserList input[type=checkbox]:checked')].map(c => parseInt(c.dataset.uid));
-  renderRoomModalUsers(filtered, checkedIds);
+  renderRoomModalUsers(filtered, state.checkedIds, roomModalAccessByUserId);
 }
 
 async function saveRoom() {
   const name = document.getElementById('roomModalName').value.trim();
   const desc = document.getElementById('roomModalDesc').value.trim();
-  const memberIds = [...document.querySelectorAll('#roomModalUserList input[type=checkbox]:checked')].map(c => parseInt(c.dataset.uid));
+  const state = collectRoomModalState();
+  roomModalAccessByUserId = state.accessByUserId;
+  const memberIds = state.checkedIds;
+  const memberAccess = {};
+  memberIds.forEach((id) => { memberAccess[id] = roomModalAccessByUserId[id] || 'readandwrite'; });
   const errEl = document.getElementById('roomModalError');
 
   if (!name) { errEl.textContent = 'Name required.'; errEl.style.display = ''; return; }
@@ -1252,7 +1756,19 @@ async function saveRoom() {
       const toAdd = memberIds.filter(id => !currentIds.includes(id));
       const toRemove = currentIds.filter(id => !memberIds.includes(id));
       for (const uid of toAdd) {
-        await Auth.api(`/api/rooms/${roomModalId}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: uid }) });
+        await Auth.api(`/api/rooms/${roomModalId}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: uid, access_level: memberAccess[uid] || 'readandwrite' })
+        });
+      }
+      const kept = memberIds.filter(id => currentIds.includes(id));
+      for (const uid of kept) {
+        await Auth.api(`/api/rooms/${roomModalId}/members/${uid}/access-level`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_level: memberAccess[uid] || 'readandwrite' })
+        });
       }
       for (const uid of toRemove) {
         await Auth.api(`/api/rooms/${roomModalId}/members/${uid}`, { method: 'DELETE' });
@@ -1264,7 +1780,13 @@ async function saveRoom() {
     const d = await Auth.api('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description: desc || undefined, type: document.getElementById('roomModalType').value, member_ids: memberIds }),
+      body: JSON.stringify({
+        name,
+        description: desc || undefined,
+        type: document.getElementById('roomModalType').value,
+        member_ids: memberIds,
+        member_access: memberAccess,
+      }),
     });
     if (!d || d.error) { errEl.textContent = d?.error || 'Error creating node.'; errEl.style.display = ''; return; }
     toast('Node created');
@@ -1314,7 +1836,7 @@ async function renderMembersPanel() {
       <div class="perm-row">
         <span class="perm-row__label">
           ${m.display_name || m.username}
-          <span class="u-dim" style="font-size:var(--font-xs);margin-left:var(--sp-1)">${roleLabel[m.room_role] || m.room_role}</span>
+          <span class="u-dim u-font-xs u-ml-1">${roleLabel[m.room_role] || m.room_role}</span>
         </span>
         <button class="t-btn t-btn--sm t-btn--reject" onclick="removeRoomMember(${m.id})" title="Remove">✕</button>
       </div>
@@ -1336,8 +1858,8 @@ function filterAddMemberList() {
   if (filtered.length === 0) { dd.style.display = 'none'; return; }
   dd.style.display = '';
   dd.innerHTML = filtered.slice(0, 8).map(u => `
-    <div class="perm-row" style="cursor:pointer;padding:var(--sp-2);" onclick="addRoomMember(${u.id})">
-      ${u.display_name || u.username} <span class="u-dim" style="font-size:var(--font-xs)">@${u.username}</span>
+    <div class="perm-row perm-row--clickable" onclick="addRoomMember(${u.id})">
+      ${u.display_name || u.username} <span class="u-dim u-font-xs">@${u.username}</span>
     </div>
   `).join('');
 }
@@ -1486,7 +2008,7 @@ async function loadThemes() {
   try {
     const data = await apiGet('/api/admin/themes');
     if (!data.themes || !data.themes.length) {
-      container.innerHTML = '<div style="color:var(--text-secondary);font-family:var(--font-mono);font-size:var(--font-sm);padding:var(--sp-4)">No themes</div>';
+      container.innerHTML = '<div class="theme-empty-msg">No themes</div>';
       return;
     }
     container.innerHTML = data.themes.map(t => `
@@ -1503,7 +2025,7 @@ async function loadThemes() {
       </div>
     `).join('');
   } catch(e) {
-    container.innerHTML = '<div style="color:var(--error);font-family:var(--font-mono);font-size:var(--font-sm);padding:var(--sp-4)">Failed to load</div>';
+    container.innerHTML = '<div class="theme-error-msg">Failed to load</div>';
   }
 }
 
@@ -1599,7 +2121,7 @@ function themeEditorExport() {
 }
 
 function themeEditorFullscreenPreview() {
-  const w = window.open('/login.html', 'themePreview', 'noopener,resizable,scrollbars');
+  const w = window.open((typeof ONE21_BASE !== 'undefined' && ONE21_BASE ? ONE21_BASE + '/login' : '/login.html'), 'themePreview', 'noopener,resizable,scrollbars');
   if (!w) return;
   const vars = Object.entries(editorTokens).map(([k, v]) => k + ':' + v).join(';');
   const inject = function() {
@@ -1996,5 +2518,6 @@ loadOverview();
 setupThemeTokensResize();
 setupThemePreviewIframe();
 </script>
+<script src="/js/install-banner.js"></script>
 </body>
 </html>

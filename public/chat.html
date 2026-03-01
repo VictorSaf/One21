@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Neural Terminal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#00e676">
 <link rel="stylesheet" href="/css/design-system.css">
 <link rel="stylesheet" href="/api/theme/active.css">
 <link rel="stylesheet" href="/css/layers/pages/chat.css">
@@ -23,7 +25,7 @@
         <span class="brand-logo__box">ONE</span>
         <span class="brand-logo__suffix">_21</span>
       </div>
-      <button class="sidebar__icon-btn u-hidden" title="Setări" onclick="window.location='/admin.html'" id="adminNavBtn">
+      <button class="sidebar__icon-btn u-hidden" title="Setări" onclick="window.location=(window.location.pathname.indexOf('/one21')!==-1?'/one21':'')+'/admin.html'" id="adminNavBtn">
         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -53,12 +55,12 @@
         <span>Infrastructure</span>
       </div>
 
-      <div class="sidebar__infra-item u-hidden" id="infraConsoleBtn" onclick="window.location='/admin.html'">
+      <div class="sidebar__infra-item u-hidden" id="infraConsoleBtn" onclick="window.location=(window.location.pathname.indexOf('/one21')!==-1?'/one21':'')+'/admin.html'">
         <svg class="icon-svg icon-svg--settings" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         <span>Console</span>
       </div>
 
-      <div class="sidebar__infra-item" onclick="toggleInfoPanel()">
+      <div class="sidebar__infra-item u-hidden" id="infraNetworkBtn" onclick="toggleInfoPanel()">
         <svg class="icon-svg icon-svg--settings" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>Network</span>
       </div>
@@ -180,7 +182,7 @@
     </div>
 
     <!-- ── Compose Bar ── -->
-    <div class="compose u-hidden" id="composeArea">
+    <div class="compose" id="composeArea">
       <div class="compose__row">
         <button class="btn btn--icon btn--ghost" title="Atasament" id="attachBtn">
           <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -224,14 +226,14 @@
     <div class="info-panel__section">
       <div class="info-panel__section-header">
         <h4 class="info-panel__section-title">Active_Listeners</h4>
-        <button class="btn btn--icon btn--ghost btn--sm" id="addMemberBtn" title="Adaugă nod">
+        <button class="btn btn--icon btn--ghost btn--sm u-hidden" id="addMemberBtn" title="Adaugă nod">
           <svg class="icon-svg icon-svg--sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
       <div class="stack" id="infoPanelMembers"></div>
     </div>
 
-    <div class="info-panel__section">
+    <div class="info-panel__section u-hidden" id="infoPanelAdminActions">
       <button class="btn btn--secondary btn--sm btn--full u-mb-1" id="editRoomBtn">✏ EDIT_NODE</button>
       <button class="btn btn--danger btn--sm btn--full" id="archiveRoomBtn">⊗ ARCHIVE_NODE</button>
     </div>
@@ -357,6 +359,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/system-dialogs.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/rooms.js"></script>
 <script>
@@ -382,8 +385,14 @@ function toggleInfoPanel() {
       if (user.role === 'admin') {
         const adminBtn = document.getElementById('adminNavBtn');
         const consoleBtn = document.getElementById('infraConsoleBtn');
+        const networkBtn = document.getElementById('infraNetworkBtn');
+        const adminActions = document.getElementById('infoPanelAdminActions');
+        const addMemberBtn = document.getElementById('addMemberBtn');
         if (adminBtn)  adminBtn.style.display = 'flex';
         if (consoleBtn) consoleBtn.style.display = 'flex';
+        if (networkBtn) networkBtn.style.display = 'flex';
+        if (adminActions) adminActions.classList.remove('u-hidden');
+        if (addMemberBtn) addMemberBtn.classList.remove('u-hidden');
       }
     }
   } catch(e) {}
@@ -449,5 +458,6 @@ window.showHomeScreen(true);
     .catch(() => {});
 })();
 </script>
+<script src="/js/install-banner.js"></script>
 </body>
 </html>
