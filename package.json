@@ -17,6 +17,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "devDependencies": {
+    "sharp": "0.32.6"
+  },
   "dependencies": {
     "@langchain/community": "^1.1.17",
     "@langchain/core": "^1.1.27",
@@ -31,6 +34,7 @@
     "jsonwebtoken": "^9.0.3",
     "langchain": "^1.2.25",
     "multer": "^2.0.2",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
     "web-push": "^3.6.7",
     "zod": "^4.3.6"

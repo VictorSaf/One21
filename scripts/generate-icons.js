@@ -20,10 +20,6 @@ fs.mkdirSync(ICONS_DIR, { recursive: true });
 
 // Base SVG icon design: dark bg + glowing border + ONE box + _21 suffix
 function buildSVG(size) {
-  // Scale stroke widths and font sizes proportionally from the 512 base
-  const scale = size / 512;
-  const s = (v) => (v * scale).toFixed(2);
-
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
   <defs>
     <radialGradient id="glow" cx="50%" cy="50%" r="50%">
@@ -77,8 +73,8 @@ function buildMaskableSVG(size) {
   <!-- Background fills full bleed for maskable -->
   <rect width="512" height="512" fill="#040404"/>
   <rect width="512" height="512" fill="url(#glow)"/>
-  <!-- Content group shifted inward 10% (51px) and scaled to 80% -->
-  <g transform="translate(51,51) scale(0.8)">
+  <!-- Content group scaled to 80% around canvas centre (256,256) for equal padding -->
+  <g transform="translate(256,256) scale(0.8) translate(-256,-256)">
     <rect x="110" y="184" width="180" height="72" fill="none" stroke="#00e676" stroke-width="2.5"/>
     <text x="200" y="237"
       font-family="monospace,Courier New,Courier"
