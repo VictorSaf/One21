@@ -99,8 +99,7 @@
 
       localStorage.setItem('one21_token', data.token);
       localStorage.setItem('one21_user', JSON.stringify(data.user));
-      var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
-      window.location.href = base + (base ? '/hey' : '/chat.html');
+      window.location.href = '/one21/hey';
     } catch (err) {
       showError('Connection error');
       btn.disabled = false;
@@ -108,8 +107,7 @@
   });
 
   if (window.self === window.top && localStorage.getItem('one21_token')) {
-    var base = (window.location.pathname.indexOf('/one21') !== -1) ? '/one21' : '';
-    window.location.href = base + (base ? '/hey' : '/chat.html');
+    window.location.href = '/one21/hey';
   }
 </script>
 <script src="/js/install-banner.js"></script>
