@@ -27,7 +27,7 @@
     <div id="stepUpload" class="join-step">
       <label class="join-qr-zone" id="uploadLabel">
         <input type="file" id="qrFile" accept="image/*">
-        <span class="join-qr-zone__icon" aria-hidden="true">
+        <span class="join-qr-zone__icon join-qr-zone__icon--btn" aria-hidden="true">
           <svg class="join-qr-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="5" y="5" width="12" height="12" rx="1.5"/>
             <rect x="31" y="5" width="12" height="12" rx="1.5"/>
@@ -36,6 +36,8 @@
             <path d="M11 9v4M35 9v4M11 35v4"/>
           </svg>
         </span>
+      </label>
+      <button class="join-enter-btn" type="button" id="btnEnterDirect">
         <span class="join-qr-zone__icon join-qr-zone__enter" aria-hidden="true">
           <svg class="join-qr-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
             <line x1="38" y1="9" x2="38" y2="39"/>
@@ -43,7 +45,7 @@
             <polyline points="27,18 33,24 27,30"/>
           </svg>
         </span>
-      </label>
+      </button>
       <p id="uploadError" class="join-error" aria-live="polite"></p>
     </div>
 
@@ -89,8 +91,19 @@
   </main>
 
   <footer class="join-footer">
-    <span class="join-footer__text">fuelled by</span>
-    <span class="join-footer__logo" aria-hidden="true">ONE/AIgency</span>
+    <div class="join-status" aria-label="system status">
+      <span class="join-status__dot" aria-hidden="true"></span>
+      <span class="join-status__item">LINK:STABLE</span>
+      <span class="join-status__item">TLS:1.3</span>
+      <span class="join-status__item">HSTS:1Y</span>
+      <span class="join-status__item">JWT:HS256</span>
+      <span class="join-status__item">BCRYPT:R12</span>
+      <span class="join-status__item">ONE21_V2.0</span>
+    </div>
+    <div class="join-footer__brand">
+      <span class="join-footer__text">fuelled by</span>
+      <span class="join-footer__logo" aria-hidden="true">ONE/AIgency</span>
+    </div>
   </footer>
 
 <script>
