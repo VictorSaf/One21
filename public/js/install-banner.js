@@ -32,7 +32,7 @@
       // iOS Safari: nu există beforeinstallprompt, instrucțiuni manuale
       el.innerHTML =
         '<p class="pwa-install-banner__text">' +
-          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>' +
+          '<svg class="pwa-install-banner__share-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>' +
           'Apasă <strong>Share</strong> → <strong>Add to Home Screen</strong>' +
         '</p>' +
         '<button type="button" class="btn btn--ghost btn--icon btn--sm pwa-install-banner__dismiss" aria-label="Închide">' +
@@ -57,6 +57,7 @@
         if (deferredPrompt) {
           deferredPrompt.prompt();
           deferredPrompt.userChoice.then(function (choice) {
+            deferredPrompt = null;
             if (choice.outcome === 'accepted') el.remove();
           });
         } else if (isAndroid) {

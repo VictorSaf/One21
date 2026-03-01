@@ -1733,4 +1733,9 @@ textarea.input {
   min-height: 44px;
 }
 
+.pwa-install-banner__share-icon {
+  vertical-align: middle;
+  margin-right: var(--sp-1);
+}
+
 } /* end @layer components */
