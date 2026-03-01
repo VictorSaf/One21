@@ -1533,6 +1533,13 @@ textarea.input {
 }
 .modal__error.hidden { display: none; }
 
+.sys-dialog__message {
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  margin: 0;
+}
+.sys-dialog__message--with-input { margin-bottom: var(--sp-3); }
+
 
 /* === 19. USER PICKER === */
 .user-picker {
@@ -1575,17 +1582,38 @@ textarea.input {
    MOBILE RESPONSIVE — same breakpoints as before
    ══════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .info-panel { display: none; }
+  .info-panel {
+    width: min(360px, 90vw);
+    min-width: unset;
+  }
 }
 
+/* Hidden on desktop; shown only in 640px breakpoint below */
+.mobile-back-btn { display: none; }
+
 @media (max-width: 640px) {
+  /* Compose fixed at bottom — always visible (incl. when keyboard opens) */
+  .compose {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-sticky);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Reserve space so last messages aren't hidden behind compose */
+  .messages-area {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0));
+  }
+
   /* Bottom status bar */
   .compose__statusbar { display: none; }
 
   /* Sidebar: full-screen overlay */
   .sidebar {
     position: fixed;
-    inset: 0 0 56px 0;
+    inset: 0;
     width: 100%;
     z-index: var(--z-sticky);
     transform: translateX(-100%);
@@ -1597,46 +1625,61 @@ textarea.input {
   /* Main fills screen */
   .main { flex: 1; width: 100%; }
 
-  /* Bottom nav bar (injected by JS) */
-  .mobile-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 56px;
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border-mid);
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    z-index: var(--z-sticky);
-    padding: 0 var(--sp-2);
-  }
-
-  .app { padding-bottom: 56px; }
-
   /* Panel header adjustments */
   .panel-header { padding: 0 var(--sp-3); gap: var(--sp-2); }
   .compose .compose__row { padding: var(--sp-2) var(--sp-3); }
 
-  /* Back button */
+  /* Back button — ghost style to match theme, only visible in this breakpoint */
   .mobile-back-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
+    border: none;
     border-radius: var(--radius-sm);
     background: transparent;
-    border: 1px solid var(--border-mid);
     cursor: pointer;
     color: var(--text-secondary);
     flex-shrink: 0;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
   }
-  .mobile-back-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+  .mobile-back-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+  }
+
+  /* Tap targets min 44×44px (WCAG) */
+  .chat-item {
+    min-height: 52px;
+    padding: var(--sp-2) var(--sp-3);
+  }
+
+  .mobile-back-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--sp-2);
+  }
+
+  .panel-header .btn--icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .compose__send,
+  #attachBtn,
+  .compose .btn--icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .sidebar__section-label button {
+    min-width: 44px;
+    min-height: 44px;
+  }
 
   .home-screen { padding: var(--sp-5); }
+  .home-screen__stats { grid-template-columns: repeat(2, 1fr); }
   .home-screen__stats { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -1649,5 +1692,45 @@ textarea.input {
 .u-hidden { display: none; }
 .u-accent { color: var(--accent); }
 .u-mt-2 { margin-top: var(--sp-2); }
+
+
+/* === 21. PWA INSTALL BANNER === */
+.pwa-install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-dim);
+  z-index: var(--z-sticky);
+  box-shadow: 0 -4px 12px var(--shadow-overlay);
+}
+
+.pwa-install-banner__text {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+}
+
+.pwa-install-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pwa-install-banner__install,
+.pwa-install-banner__dismiss {
+  flex-shrink: 0;
+}
+
+.pwa-install-banner__dismiss {
+  min-width: 44px;
+  min-height: 44px;
+}
 
 } /* end @layer components */
