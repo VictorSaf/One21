@@ -1390,12 +1390,13 @@ async function showInviteDetailView(tr) {
   try { detailPerms = JSON.parse(tr.dataset.invPerms || '{}'); } catch {}
   if (detailPerms.rooms && detailPerms.rooms.length > 0) {
     roomsSec.style.display = '';
+    const escHtml = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     roomsList.innerHTML = detailPerms.rooms.map(rm => {
       const found = (window._adminRooms || []).find(r => r.id === rm.id);
       const roomName = found ? found.name : 'room #' + rm.id;
       return `<div class="invite-room-row">
-        <span class="invite-room-row__name"># ${roomName}</span>
-        <span class="invite-room-row__level">${rm.access_level}</span>
+        <span class="invite-room-row__name"># ${escHtml(roomName)}</span>
+        <span class="invite-room-row__level">${escHtml(rm.access_level)}</span>
       </div>`;
     }).join('');
   } else {
