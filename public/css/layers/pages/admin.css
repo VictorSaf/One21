@@ -1622,4 +1622,39 @@
     opacity: 0.35;
   }
 
+  /* Overview sub-tabs */
+  .overview-tabs {
+    display: flex;
+    gap: var(--sp-1);
+    margin-bottom: var(--sp-4);
+  }
+  .overview-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    padding: var(--sp-1) var(--sp-2);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+  .overview-tab.active {
+    color: var(--text-accent);
+    border-bottom-color: var(--accent);
+  }
+  .overview-tab::before { content: '▶ '; }
+
+  /* Overview panels */
+  .overview-panel { display: none; }
+  .overview-panel.active { display: block; }
+
+  /* RECENT_ACTIVITY stat card (clickable) */
+  .stat-card--activity {
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+  }
+  .stat-card--activity:hover { border-color: var(--border-accent); }
+  .stat-card--activity .stat-card__value { color: var(--purple); }
+
 }

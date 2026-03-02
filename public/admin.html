@@ -96,43 +96,52 @@
     <div class="admin-page active" id="page-overview">
 
       <div class="admin-page-header">
-        <div class="admin-page-label">System_Status</div>
+        <div class="overview-tabs">
+          <button class="overview-tab active" data-overview-tab="status">SYSTEM_STATUS</button>
+          <button class="overview-tab" data-overview-tab="activity">RECENT_ACTIVITY</button>
+        </div>
         <div class="admin-page-title">Overview</div>
       </div>
 
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card">
-          <div class="stat-card__label">Loading...</div>
+      <!-- SYSTEM_STATUS panel -->
+      <div class="overview-panel active" id="overview-panel-status">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card"><div class="stat-card__label">Loading...</div></div>
+        </div>
+        <div class="admin-section hub-section" id="hubSection">
+          <div class="admin-section__header">
+            <span class="admin-section__title">Hub</span>
+          </div>
+          <div class="hub-cards-grid" id="hubCardsGrid"></div>
+          <div class="hub-cards-empty u-dim u-hidden" id="hubCardsEmpty">No hub cards yet. Add them in Hub.</div>
         </div>
       </div>
 
-      <div class="admin-section">
-        <div class="admin-section__header">
-          <span class="admin-section__title">Recent_Activity</span>
-          <button class="t-btn t-btn--accent" onclick="loadOverview()">
-            <svg class="icon-svg icon-svg--xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Refresh
-          </button>
+      <!-- RECENT_ACTIVITY panel -->
+      <div class="overview-panel" id="overview-panel-activity">
+        <div class="admin-section">
+          <div class="admin-section__header">
+            <span class="admin-section__title">Recent_Activity</span>
+            <button class="t-btn t-btn--accent" onclick="loadOverview()">
+              <svg class="icon-svg icon-svg--xs" viewBox="0 0 24 24">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+          <table id="recentTable">
+            <thead>
+              <tr>
+                <th>Node_ID</th>
+                <th>Access_Level</th>
+                <th>Last_Transmission</th>
+                <th>Msg_Count</th>
+              </tr>
+            </thead>
+            <tbody id="recentBody"></tbody>
+          </table>
         </div>
-        <table id="recentTable">
-          <thead>
-            <tr>
-              <th>Node_ID</th>
-              <th>Access_Level</th>
-              <th>Last_Transmission</th>
-              <th>Msg_Count</th>
-            </tr>
-          </thead>
-          <tbody id="recentBody"></tbody>
-        </table>
-      </div>
-
-      <div class="admin-section hub-section" id="hubSection">
-        <div class="admin-section__header">
-          <span class="admin-section__title">Hub</span>
-        </div>
-        <div class="hub-cards-grid" id="hubCardsGrid"></div>
-        <div class="hub-cards-empty u-dim u-hidden" id="hubCardsEmpty">No hub cards yet. Add them in Hub.</div>
       </div>
 
     </div>
@@ -783,7 +792,17 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
   });
 });
 
-function goToChat() { window.location.href = ONE21_BASE ? ONE21_BASE + '/login' : '/chat.html'; }
+// ── Overview sub-tab switching ─────────────────────
+document.querySelectorAll('[data-overview-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-overview-tab]').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.overview-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('overview-panel-' + tab.dataset.overviewTab).classList.add('active');
+  });
+});
+
+function goToChat() { window.location.href = ONE21_BASE ? ONE21_BASE + '/chat' : '/chat.html'; }
 
 // ── RAG Agent floating panel ──────────────────────
 function toggleAgentPanel() {
@@ -874,7 +893,17 @@ async function loadOverview() {
       <div class="stat-card__value">${s.active_today}</div>
       <div class="stat-card__label">Active_Today</div>
       <div class="stat-card__sub">${s.invites_pending} invites pending</div>
+    </div>
+    <div class="stat-card stat-card--activity" id="activityCard">
+      <svg class="stat-card__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="stat-card__value">${usersData.users.length}</div>
+      <div class="stat-card__label">Recent_Activity</div>
+      <div class="stat-card__sub">click to view</div>
     </div>`;
+
+  document.getElementById('activityCard').addEventListener('click', () => {
+    document.querySelector('[data-overview-tab="activity"]').click();
+  });
 
   const tbody = document.getElementById('recentBody');
   tbody.innerHTML = usersData.users.map(u => `
@@ -934,7 +963,7 @@ async function loadHubCards() {
       const type = btn.dataset.actionType;
       const payload = btn.dataset.actionPayload || '';
       if (type === 'url') window.open(payload, '_blank');
-      else if (type === 'room') window.location.href = (ONE21_BASE ? ONE21_BASE + '/login' : '/chat.html') + '?room=' + payload;
+      else if (type === 'room') window.location.href = (ONE21_BASE ? ONE21_BASE + '/chat' : '/chat.html') + '?room=' + payload;
       else if (type === 'internal_app') {
         if (payload === '#agent') {
           const panel = document.getElementById('agentFloat');
