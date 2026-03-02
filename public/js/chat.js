@@ -46,6 +46,7 @@
   async function init() {
     connectSocket();
     await loadRooms();
+    loadPendingPrivateRequests();
     buildSearchUI();
     initFileUpload();
     initMobileLayout();
@@ -119,6 +120,26 @@
     socket.on('upload_progress', (data) => {
       if (data.room_id !== currentRoomId) return;
       showUploadProgress(data.username, data.filename, data.percent);
+    });
+
+    // Private room created (accepted request) — add to sidebar without full reload
+    socket.on('room_added', ({ room }) => {
+      if (!rooms.find(r => r.id === room.id)) {
+        rooms.unshift(room);
+        renderSidebar();
+      }
+      selectRoom(room.id);
+    });
+
+    // Private request declined — show alert to sender
+    socket.on('private_declined', ({ from_display_name }) => {
+      if (typeof showAlert === 'function') {
+        showAlert(`${from_display_name} a refuzat conversația privată.`);
+      }
+    });
+
+    socket.on('private_request', (req) => {
+      showPrivateRequestToast(req);
     });
   }
 
@@ -960,6 +981,9 @@
     infoPanelMembers.innerHTML = members.map(m => {
       const isOnline = m.is_online || onlineUsers.has(m.id);
       const roleLabel = m.room_role === 'owner' ? 'Owner' : (m.role === 'agent' ? 'Agent' : 'Member');
+      const privateBtn = m.id !== user.id
+        ? `<button class="btn btn--ghost btn--sm member-private-btn" data-user-id="${m.id}" data-display-name="${esc(m.display_name || m.username)}" title="Start private chat">🔒</button>`
+        : '';
       return `
         <div class="member-row" data-user-id="${m.id}">
           <div class="avatar avatar--sm">${(m.display_name || m.username || '?').charAt(0).toUpperCase()}
@@ -967,8 +991,15 @@
           </div>
           <span class="member-row__name">${esc(m.display_name || m.username)}</span>
           <span class="member-row__role">${roleLabel}</span>
+          ${privateBtn}
         </div>`;
     }).join('');
+
+    infoPanelMembers.querySelectorAll('.member-private-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        showPrivateRequestDialog(parseInt(btn.dataset.userId), btn.dataset.displayName);
+      });
+    });
   }
 
   function updateMemberStatus(userId, isOnline) {
@@ -1135,6 +1166,97 @@
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+  }
+
+  // ═══════════════════════════════════════
+  // PRIVATE REQUESTS
+  // ═══════════════════════════════════════
+  async function loadPendingPrivateRequests() {
+    const data = await Auth.api('/api/private/requests/pending');
+    if (!data || !data.requests) return;
+    for (const req of data.requests) {
+      showPrivateRequestToast(req);
+    }
+  }
+
+  function showPrivateRequestDialog(toUserId, toDisplayName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal__header">
+          <span class="modal__title">Private chat cu ${esc(toDisplayName)}</span>
+          <button class="btn btn--ghost btn--icon modal__close" id="privReqClose">\u2715</button>
+        </div>
+        <div class="modal__body">
+          <div class="modal__field">
+            <label class="modal__label">Mesaj initial</label>
+            <textarea id="privReqMsg" class="input" rows="3" maxlength="500" placeholder="Scrie primul mesaj..."></textarea>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="privReqCancel">Anulare</button>
+          <button class="btn btn--primary" id="privReqSend">Trimite cerere</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector('#privReqClose').addEventListener('click', close);
+    overlay.querySelector('#privReqCancel').addEventListener('click', close);
+    overlay.querySelector('#privReqSend').addEventListener('click', async () => {
+      const msg = overlay.querySelector('#privReqMsg').value.trim();
+      if (!msg) return;
+      const data = await Auth.api('/api/private/request', {
+        method: 'POST',
+        body: JSON.stringify({ to_user_id: toUserId, initial_message: msg }),
+      });
+      close();
+      if (data?.exists) {
+        selectRoom(data.room.id);
+      } else if (data?.ok) {
+        if (typeof showAlert === 'function') showAlert(`Cerere trimisa catre ${toDisplayName}.`);
+      }
+    });
+  }
+
+  function showPrivateRequestToast(req) {
+    const toastId = `priv-req-${req.id || req.request_id}`;
+    if (document.getElementById(toastId)) return;
+
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = 'private-req-toast';
+    toast.innerHTML = `
+      <div class="private-req-toast__header">🔒 Chat privat — <strong>${esc(req.from_display_name || req.from_username || '')}</strong></div>
+      <div class="private-req-toast__preview">${esc((req.initial_message || '').slice(0, 80))}</div>
+      <div class="private-req-toast__actions">
+        <button class="btn btn--primary btn--sm" id="${toastId}-accept">Accepta</button>
+        <button class="btn btn--secondary btn--sm" id="${toastId}-decline">Refuza</button>
+      </div>`;
+    document.body.appendChild(toast);
+
+    const reqId = req.id || req.request_id;
+
+    document.getElementById(`${toastId}-accept`).addEventListener('click', async () => {
+      toast.remove();
+      const data = await Auth.api(`/api/private/request/${reqId}/accept`, { method: 'POST' });
+      if (data?.room) {
+        if (!rooms.find(r => r.id === data.room.id)) {
+          rooms.unshift(data.room);
+          renderSidebar();
+        }
+        selectRoom(data.room.id);
+      }
+    });
+
+    document.getElementById(`${toastId}-decline`).addEventListener('click', async () => {
+      toast.remove();
+      await Auth.api(`/api/private/request/${reqId}/decline`, { method: 'POST' });
+    });
+
+    // Auto-dismiss after 30s
+    setTimeout(() => { if (document.getElementById(toastId)) toast.remove(); }, 30000);
   }
 
   // ═══════════════════════════════════════
