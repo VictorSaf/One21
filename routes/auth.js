@@ -83,7 +83,9 @@ router.post('/register', (req, res) => {
     // Parse default_permissions from invite
     let perms = {};
     if (invite.default_permissions && invite.default_permissions !== '{}') {
-      try { perms = JSON.parse(invite.default_permissions); } catch {}
+      try { perms = JSON.parse(invite.default_permissions); } catch (e) {
+        console.error('[register] Failed to parse invite permissions:', e.message);
+      }
       const upsert = db.prepare(`
         INSERT INTO user_permissions (user_id, permission, value, granted_by)
         VALUES (?, ?, ?, ?)
@@ -106,8 +108,10 @@ router.post('/register', (req, res) => {
     const addMember = db.prepare(
       'INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)'
     );
+    const VALID_ACCESS = new Set(['readonly', 'readandwrite', 'post_docs']);
     for (const rm of roomAssignments) {
-      addMember.run(rm.id, newUserId, 'member', rm.access_level || 'readandwrite');
+      const level = VALID_ACCESS.has(rm.access_level) ? rm.access_level : 'readandwrite';
+      addMember.run(rm.id, newUserId, 'member', level);
     }
     return newUserId;
     })();
