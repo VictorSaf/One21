@@ -222,6 +222,21 @@
   }
   .msg__dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 
+  /* ── Whisper (private message) ─────────────────── */
+  .msg--whisper {
+    border-left: 2px dashed var(--border-accent);
+    opacity: 0.92;
+  }
+  .msg__whisper-label {
+    display: inline-block;
+    font-size: var(--font-xs);
+    color: var(--text-accent);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--sp-1);
+    opacity: 0.8;
+  }
+
+
   /* ── Reaction chips below bubble ───────────────────── */
   .msg__reactions {
     display: flex;
@@ -318,5 +333,41 @@
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     border-radius: 3px;
     padding: 0 3px;
+  }
+
+  /* ── Private Request Toast ──────────────────────────── */
+  .private-req-toast {
+    position: fixed;
+    bottom: calc(var(--statusbar-h) + var(--sp-4));
+    right: var(--sp-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--warning);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--bg-base) 40%, transparent);
+    padding: var(--sp-3) var(--sp-4);
+    min-width: 280px;
+    max-width: 340px;
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .private-req-toast__header {
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+  }
+  .private-req-toast__preview {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .private-req-toast__actions {
+    display: flex;
+    gap: var(--sp-2);
+    justify-content: flex-end;
   }
 }
