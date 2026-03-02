@@ -288,6 +288,16 @@
   // ═══════════════════════════════════════
   // MESSAGES — Build + Append
   // ═══════════════════════════════════════
+  function buildReplyQuoteHtml(msg) {
+    if (!msg.reply_to) return '';
+    const sender = esc(msg.reply_to_sender || 'utilizator');
+    const text = esc((msg.reply_to_text || 'mesaj șters').substring(0, 80));
+    return `<div class="msg__reply-quote" data-ref-id="${msg.reply_to}">
+      <span class="msg__reply-quote__sender">${sender}</span>
+      <span class="msg__reply-quote__text">${text}</span>
+    </div>`;
+  }
+
   function buildMessageEl(msg) {
     const el = document.createElement('div');
     const isMine = msg.sender_id === user.id;
@@ -316,6 +326,7 @@
       el.className = 'msg msg--sent' + colorClass;
       el.innerHTML = `
         ${senderHtml}
+        ${buildReplyQuoteHtml(msg)}
         ${contentHtml}
         <div class="msg__meta">
           ${msg.is_edited ? '<span class="msg__edited">editat</span>' : ''}
@@ -330,6 +341,7 @@
       el.className = 'msg msg--received' + colorClass;
       el.innerHTML = `
         ${senderHtml}
+        ${buildReplyQuoteHtml(msg)}
         ${contentHtml}
         <div class="msg__meta">
           ${msg.is_edited ? '<span class="msg__edited">editat</span>' : ''}
@@ -359,6 +371,20 @@
           senderName: msg.sender_name || msg.sender_username || '',
           text: msg.text || ''
         });
+      });
+    }
+
+    const quoteEl = el.querySelector('.msg__reply-quote');
+    if (quoteEl) {
+      quoteEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const refId = quoteEl.dataset.refId;
+        const target = document.querySelector(`[data-msg-id="${refId}"]`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('msg--highlight');
+          target.addEventListener('animationend', () => target.classList.remove('msg--highlight'), { once: true });
+        }
       });
     }
 
