@@ -8,7 +8,6 @@ const { authMiddleware } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 
 const router = express.Router();
-router.use(authMiddleware);
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -48,7 +47,7 @@ const upload = multer({
 });
 
 // POST /api/rooms/:id/upload
-router.post('/:id/upload', checkPermission('can_send_files'), upload.single('file'), (req, res) => {
+router.post('/:id/upload', authMiddleware, checkPermission('can_send_files'), upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const db = getDb();
