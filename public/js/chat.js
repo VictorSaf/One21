@@ -64,14 +64,16 @@
 
   msgMenuReply.addEventListener('click', () => {
     if (!menuTargetMsg) return;
+    const { id, senderName, text, fileUrl, fileName } = menuTargetMsg;
     closeMsgMenu();
-    startReply(menuTargetMsg.id, menuTargetMsg.senderName, menuTargetMsg.text, menuTargetMsg.fileUrl, menuTargetMsg.fileName);
+    startReply(id, senderName, text, fileUrl, fileName);
   });
 
   msgMenuDm.addEventListener('click', () => {
     if (!menuTargetMsg) return;
+    const { senderId } = menuTargetMsg;
     closeMsgMenu();
-    openPrivateChat(menuTargetMsg.senderId);
+    openPrivateChat(senderId);
   });
 
   // --- Init ---
@@ -530,7 +532,8 @@
       bar = document.createElement('div');
       bar.id = 'replyBar';
       bar.className = 'reply-bar';
-      composeInput.parentElement.insertBefore(bar, composeInput);
+      const composeRow = composeInput.parentElement;
+      composeRow.parentElement.insertBefore(bar, composeRow);
       bar.addEventListener('click', e => {
         if (e.target.closest('.reply-bar__cancel')) cancelReply();
       });
