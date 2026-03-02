@@ -233,6 +233,7 @@
 
   /* ── @mention picker ─────────────────────────────── */
   .mention-picker {
+    display: none;
     position: absolute;
     bottom: calc(100% + 4px);
     left: var(--sp-3);
@@ -244,6 +245,7 @@
     z-index: var(--z-dropdown);
     box-shadow: 0 4px 16px var(--overlay-bg);
   }
+  .mention-picker--visible { display: block; }
   .mention-option {
     display: flex;
     align-items: center;

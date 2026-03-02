@@ -584,12 +584,12 @@
       });
     });
 
-    picker.style.display = 'block';
+    picker.classList.add('mention-picker--visible');
   }
 
   function hideMentionPicker() {
     const picker = document.getElementById('mentionPicker');
-    if (picker) picker.style.display = 'none';
+    if (picker) picker.classList.remove('mention-picker--visible');
     mentionStart = -1;
   }
 
@@ -721,19 +721,20 @@
     if (e.key === 'Escape') { hideMentionPicker(); if (editingMsgId) cancelEdit(); else if (replyingToId) cancelReply(); }
   });
 
+  // ═══════════════════════════════════════
+  // COMPOSE INPUT — typing indicator + @mention autocomplete
+  // ═══════════════════════════════════════
   composeInput.addEventListener('input', () => {
-    if (!currentRoomId) return;
-    const now = Date.now();
-    if (now - lastTypingEmit > 2000) {
-      socket.emit('typing', { room_id: currentRoomId });
-      lastTypingEmit = now;
+    // Typing indicator
+    if (currentRoomId) {
+      const now = Date.now();
+      if (now - lastTypingEmit > 2000) {
+        socket.emit('typing', { room_id: currentRoomId });
+        lastTypingEmit = now;
+      }
     }
-  });
 
-  // ═══════════════════════════════════════
-  // @MENTION AUTOCOMPLETE
-  // ═══════════════════════════════════════
-  composeInput.addEventListener('input', () => {
+    // @mention detection
     const val = composeInput.value;
     const pos = composeInput.selectionStart;
     const before = val.slice(0, pos);
