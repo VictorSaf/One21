@@ -50,15 +50,21 @@ router.get('/:id/messages', (req, res) => {
   ).get(roomId, req.user.id);
   if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
 
+  const BASE_SELECT = `
+    SELECT m.*,
+      u.username as sender_username, u.display_name as sender_name,
+      u.role as sender_role, u.chat_color_index as sender_color_index,
+      rm.text as reply_to_text,
+      ru.display_name as reply_to_sender
+    FROM messages m
+    JOIN users u ON m.sender_id = u.id
+    LEFT JOIN messages rm ON rm.id = m.reply_to
+    LEFT JOIN users ru ON ru.id = rm.sender_id
+  `;
+
   const query = before
-    ? `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
-       FROM messages m JOIN users u ON m.sender_id = u.id
-       WHERE m.room_id = ? AND m.id < ?
-       ORDER BY m.created_at DESC LIMIT ?`
-    : `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
-       FROM messages m JOIN users u ON m.sender_id = u.id
-       WHERE m.room_id = ?
-       ORDER BY m.created_at DESC LIMIT ?`;
+    ? `${BASE_SELECT} WHERE m.room_id = ? AND m.id < ? ORDER BY m.created_at DESC LIMIT ?`
+    : `${BASE_SELECT} WHERE m.room_id = ? ORDER BY m.created_at DESC LIMIT ?`;
 
   const args = before ? [roomId, before, limit] : [roomId, limit];
   const messages = db.prepare(query).all(...args).reverse();
