@@ -21,6 +21,7 @@ const agentRoutes    = require('./routes/agent');
 const pushRoutes     = require('./routes/push');
 const settingsRoutes = require('./routes/settings');
 const themeRoutes    = require('./routes/theme');
+const privateRouter  = require('./routes/private');
 
 // Init DB
 getDb();
@@ -89,6 +90,7 @@ app.use('/api/rooms',          roomRoutes);
 app.use('/api/rooms',          messageRoutes);  // GET/POST /:id/messages, GET /:id/search
 app.use('/api/messages',       messageRoutes);  // PUT/DELETE /messages/:id
 app.use('/api/rooms',          fileRoutes);     // POST /:id/upload
+app.use('/api/private',        privateRouter);
 
 // --- Error Handler ---
 app.use((err, req, res, next) => {
