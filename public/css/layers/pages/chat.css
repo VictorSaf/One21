@@ -87,26 +87,49 @@
     color: var(--text-primary);
   }
 
-  /* ── Reply bar (above compose) ────────────────────── */
+  /* ── Reply compose bubble (above compose) ────────── */
   .reply-bar {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-1) var(--sp-3);
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border-dim);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-accent);
+    border-radius: 8px 8px 0 0;
+    padding: var(--sp-2) var(--sp-3);
+    margin-bottom: -1px;
+  }
+  .reply-bar__accent {
+    width: 3px;
+    align-self: stretch;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .reply-bar__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .reply-bar__sender {
+    font-size: var(--font-xs);
+    font-family: var(--font-mono);
+    color: var(--text-accent);
+    font-weight: 600;
+  }
+  .reply-bar__preview {
     font-size: var(--font-xs);
     color: var(--text-secondary);
-    font-family: var(--font-mono);
-  }
-  .reply-bar__label {
-    flex: 1;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
-  .reply-bar__label strong {
-    color: var(--text-accent);
+  .reply-bar__thumb {
+    height: 36px;
+    width: auto;
+    border-radius: 4px;
+    object-fit: cover;
   }
   .reply-bar__cancel {
     background: none;
@@ -114,7 +137,8 @@
     color: var(--text-tertiary);
     cursor: pointer;
     font-size: var(--font-sm);
-    padding: 0 var(--sp-1);
+    padding: var(--sp-1);
+    flex-shrink: 0;
     line-height: 1;
   }
   .reply-bar__cancel:hover { color: var(--text-primary); }

@@ -63,7 +63,7 @@
   msgMenuReply.addEventListener('click', () => {
     if (!menuTargetMsg) return;
     closeMsgMenu();
-    startReply(menuTargetMsg.id, menuTargetMsg.senderName, menuTargetMsg.text);
+    startReply(menuTargetMsg.id, menuTargetMsg.senderName, menuTargetMsg.text, menuTargetMsg.fileUrl, menuTargetMsg.fileName);
   });
 
   msgMenuDm.addEventListener('click', () => {
@@ -375,7 +375,9 @@
           id: msg.id,
           senderId: msg.sender_id,
           senderName: msg.sender_name || msg.sender_username || '',
-          text: msg.text || ''
+          text: msg.text || '',
+          fileUrl: msg.file_url || '',
+          fileName: msg.file_name || '',
         });
       });
     }
@@ -474,23 +476,33 @@
   // ═══════════════════════════════════════
   // REPLY MESSAGE
   // ═══════════════════════════════════════
-  function startReply(msgId, senderName, text) {
+  function startReply(msgId, senderName, text, fileUrl, fileName) {
     replyingToId = msgId;
-    const preview = text.length > 60 ? text.substring(0, 60) + '\u2026' : text;
 
     let bar = document.getElementById('replyBar');
     if (!bar) {
       bar = document.createElement('div');
       bar.id = 'replyBar';
       bar.className = 'reply-bar';
-      bar.innerHTML = `
-        <span class="reply-bar__label">\u21A9 <strong></strong>: <span class="reply-bar__preview"></span></span>
-        <button class="reply-bar__cancel" id="cancelReply" title="Anuleaz\u0103">\u2715</button>`;
       composeInput.parentElement.insertBefore(bar, composeInput);
-      document.getElementById('cancelReply').addEventListener('click', cancelReply);
+      bar.addEventListener('click', e => {
+        if (e.target.closest('.reply-bar__cancel')) cancelReply();
+      });
     }
-    bar.querySelector('strong').textContent = senderName;
-    bar.querySelector('.reply-bar__preview').textContent = preview;
+
+    const isImage = fileName && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+    const previewContent = fileUrl && isImage
+      ? `<img src="${fileUrl}" class="reply-bar__thumb" alt="${esc(fileName)}">`
+      : `<span class="reply-bar__preview">${esc(text.substring(0, 80))}${text.length > 80 ? '\u2026' : ''}</span>`;
+
+    bar.innerHTML = `
+      <div class="reply-bar__accent"></div>
+      <div class="reply-bar__body">
+        <span class="reply-bar__sender">\u21A9 ${esc(senderName)}</span>
+        ${previewContent}
+      </div>
+      <button class="reply-bar__cancel" title="Anuleaz\u0103">\u2715</button>`;
+
     composeInput.focus();
   }
 
