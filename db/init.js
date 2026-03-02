@@ -306,30 +306,37 @@ function migrate(db) {
 
   // ── Migrate: expand rooms.type CHECK to include cult + private ──────────────
   try {
-    // Test if new types are already supported
-    db.pragma('foreign_keys = OFF');
+    // Test if new types are already supported (idempotent probe)
     db.exec("INSERT INTO rooms (name, type, created_by) VALUES ('__type_test', 'cult', 1)");
     db.exec("DELETE FROM rooms WHERE name = '__type_test'");
-    db.pragma('foreign_keys = ON');
   } catch {
     // Recreate rooms with updated CHECK constraint (SQLite can't ALTER CHECK inline)
-    db.exec(`
-      CREATE TABLE rooms_v2 (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        name        TEXT NOT NULL,
-        description TEXT,
-        type        TEXT NOT NULL DEFAULT 'group'
-                    CHECK(type IN ('direct','group','channel','cult','private')),
-        is_archived INTEGER NOT NULL DEFAULT 0,
-        created_by  INTEGER REFERENCES users(id),
-        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `);
-    db.exec(`INSERT INTO rooms_v2 SELECT * FROM rooms`);
-    db.exec(`DROP TABLE rooms`);
-    db.exec(`ALTER TABLE rooms_v2 RENAME TO rooms`);
-    db.pragma('foreign_keys = ON');
-    console.log('[DB] Migrated: rooms.type CHECK expanded (cult, private)');
+    db.pragma('foreign_keys = OFF');
+    try {
+      db.exec('BEGIN');
+      db.exec(`
+        CREATE TABLE rooms_v2 (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          name        TEXT NOT NULL,
+          description TEXT,
+          type        TEXT NOT NULL DEFAULT 'group'
+                      CHECK(type IN ('direct','group','channel','cult','private')),
+          is_archived INTEGER NOT NULL DEFAULT 0,
+          created_by  INTEGER REFERENCES users(id),
+          created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.exec(`INSERT INTO rooms_v2 SELECT * FROM rooms`);
+      db.exec(`DROP TABLE rooms`);
+      db.exec(`ALTER TABLE rooms_v2 RENAME TO rooms`);
+      db.exec('COMMIT');
+      console.log('[DB] Migrated: rooms.type CHECK expanded (cult, private)');
+    } catch (ddlErr) {
+      try { db.exec('ROLLBACK'); } catch {}
+      throw ddlErr;
+    } finally {
+      db.pragma('foreign_keys = ON');
+    }
   }
 
   // ── private_requests table ───────────────────────────────────────────────────
