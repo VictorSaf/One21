@@ -1614,6 +1614,9 @@ function openInviteModal() {
   Auth.api('/api/admin/rooms').then(data => {
     window._adminRooms = data && data.rooms ? data.rooms : [];
     renderInviteRooms(window._adminRooms);
+  }).catch(() => {
+    window._adminRooms = [];
+    renderInviteRooms([]);
   });
 }
 
