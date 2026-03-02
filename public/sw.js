@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'one21-v1';
+const CACHE_VERSION = 'one21-v2';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
 const ASSETS = [
