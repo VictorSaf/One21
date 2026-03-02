@@ -104,7 +104,7 @@ router.post('/direct', (req, res) => {
 // POST /api/rooms — create room
 router.post('/', (req, res) => {
   const result = createSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Users cannot create rooms directly. Submit a room request instead.' });
@@ -177,7 +177,7 @@ router.get('/:id', (req, res) => {
 // PUT /api/rooms/:id — edit room (owner or admin; admin can edit any room)
 router.put('/:id', (req, res) => {
   const result = editSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   const db = getDb();
   const roomId = req.params.id;

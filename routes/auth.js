@@ -35,7 +35,7 @@ function normalizeLoginIdentifier(value) {
 router.post('/register', (req, res) => {
   const result = registerSchema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message });
+    return res.status(400).json({ error: result.error.issues[0].message });
   }
 
   const { username, password, display_name, invite_code, token } = result.data;
@@ -130,7 +130,7 @@ router.post('/register', (req, res) => {
 router.post('/login', (req, res) => {
   const result = loginSchema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message });
+    return res.status(400).json({ error: result.error.issues[0].message });
   }
 
   const { username, password } = result.data;

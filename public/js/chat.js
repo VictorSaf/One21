@@ -68,11 +68,19 @@
 
     socket.on('message', (msg) => {
       if (msg.room_id === currentRoomId) {
+        const nearBottom = messagesArea.scrollHeight - messagesArea.scrollTop - messagesArea.clientHeight < 150;
         appendMessage(msg);
-        scrollToBottom();
+        if (nearBottom) scrollToBottom();
         if (document.hasFocus()) socket.emit('mark_read', { message_id: msg.id });
       }
       updateRoomPreview(msg);
+      // Auto-redirect to DM if message is in a direct room we're not viewing
+      if (msg.room_id !== currentRoomId && msg.sender_id !== user.id) {
+        const room = rooms.find(r => r.id === msg.room_id);
+        if (room && room.type === 'direct') {
+          selectRoom(msg.room_id);
+        }
+      }
     });
 
     socket.on('typing', (data) => {
@@ -109,6 +117,11 @@
       const bar = document.getElementById(`reactions-${message_id}`);
       if (!bar) return;
       bar.innerHTML = buildReactionChips(reactions);
+    });
+
+    socket.on('upload_progress', (data) => {
+      if (data.room_id !== currentRoomId) return;
+      showUploadProgress(data.username, data.filename, data.percent);
     });
   }
 
@@ -680,9 +693,67 @@
     });
   }
 
+  async function compressImage(file, maxDimension = 1280, quality = 0.82) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width <= maxDimension && height <= maxDimension) {
+          URL.revokeObjectURL(img.src);
+          resolve(file); // No compression needed
+          return;
+        }
+        if (width > height) {
+          height = Math.round(height * (maxDimension / width));
+          width = maxDimension;
+        } else {
+          width = Math.round(width * (maxDimension / height));
+          height = maxDimension;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(img.src);
+          console.log(`[Compress] ${file.name}: ${(file.size/1024).toFixed(0)}KB → ${(blob.size/1024).toFixed(0)}KB`);
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(img.src); resolve(file); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function showUploadProgress(username, filename, percent) {
+    let el = document.getElementById('uploadStatus');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'uploadStatus';
+      el.className = 'upload-status';
+      const compose = document.querySelector('.compose');
+      const composeRow = compose.querySelector('.compose__row');
+      compose.insertBefore(el, composeRow);
+    }
+    el.innerHTML = `<span>${esc(username)} uploading ${esc(filename)}... ${percent}%</span>` +
+      `<div class="upload-status__bar"><div class="upload-status__fill" style="width:${Math.min(100, percent)}%"></div></div>`;
+    if (percent >= 100) {
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 1000);
+    }
+  }
+
   async function uploadFile(file) {
     const MAX = 10 * 1024 * 1024;
     if (file.size > MAX) { showAlert('Fișierul depășește 10MB.'); return; }
+
+    // Client-side image compression (skip GIFs to preserve animation)
+    const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+    const isGif = /\.gif$/i.test(file.name);
+    let fileToUpload = file;
+    if (isImage && !isGif) {
+      fileToUpload = await compressImage(file);
+    }
 
     // Show uploading indicator
     const indicator = document.createElement('div');
@@ -692,22 +763,41 @@
     scrollToBottom();
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', fileToUpload);
 
-    try {
-      const res = await fetch(`/api/rooms/${currentRoomId}/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${Auth.getToken()}` },
-        body: formData,
-      });
-      const data = await res.json();
+    const roomId = currentRoomId;
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/rooms/${roomId}/upload`);
+    xhr.setRequestHeader('Authorization', `Bearer ${Auth.getToken()}`);
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        showUploadProgress(user.display_name || user.username, file.name, percent);
+        socket.emit('upload_progress', { room_id: roomId, filename: file.name, percent });
+      }
+    });
+
+    xhr.onload = () => {
       indicator.remove();
-      if (data.error) { showAlert(data.error); return; }
-      // Message will arrive via socket broadcast
-    } catch {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (data.error) { showAlert(data.error); return; }
+        // Message will arrive via socket broadcast
+      } catch {
+        showAlert('Eroare la upload.');
+      }
+      // Send final 100% progress to clear remote indicators
+      socket.emit('upload_progress', { room_id: roomId, filename: file.name, percent: 100 });
+    };
+
+    xhr.onerror = () => {
       indicator.remove();
       showAlert('Eroare la upload.');
-    }
+      socket.emit('upload_progress', { room_id: roomId, filename: file.name, percent: 100 });
+    };
+
+    xhr.send(formData);
   }
 
   // ═══════════════════════════════════════

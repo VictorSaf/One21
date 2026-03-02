@@ -83,9 +83,17 @@ router.post('/:id/upload', authMiddleware, checkPermission('can_send_files'), up
   );
 
   const message = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
-    FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
+    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
+           COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index
+    FROM messages m
+    JOIN users u ON m.sender_id = u.id
+    LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
+    WHERE m.id = ?
   `).get(result.lastInsertRowid);
+
+  // Broadcast file message to all room members via Socket.IO
+  const io = req.app.get('io');
+  io.to(`room:${roomId}`).emit('message', message);
 
   res.json({ message, file_url: fileUrl, file_name: req.file.originalname, mime: req.file.mimetype });
 });

@@ -283,6 +283,32 @@
     margin-left: auto;
   }
 
+  /* ── Upload progress status bar ────────────────────── */
+  .upload-status {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-3);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-dim);
+    font-size: var(--font-xs);
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+  .upload-status__bar {
+    flex: 1;
+    height: 3px;
+    background: var(--bg-active);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .upload-status__fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width var(--transition-fast);
+  }
+
   /* ── @mention highlight in message bubbles ────────── */
   .msg__mention {
     color: var(--text-accent);

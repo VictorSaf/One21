@@ -95,7 +95,7 @@ router.get('/:id/messages', (req, res) => {
 // POST /api/rooms/:id/messages
 router.post('/:id/messages', (req, res) => {
   const result = sendSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   const db = getDb();
   const roomId = req.params.id;
@@ -180,7 +180,7 @@ router.post('/:id/messages', (req, res) => {
 // PUT /api/messages/:id — edit own message
 router.put('/messages/:id', (req, res) => {
   const result = editSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   const db = getDb();
   const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(req.params.id);

@@ -191,6 +191,18 @@ function register(io, socket, db) {
     } catch {}
   });
 
+  socket.on('upload_progress', (data) => {
+    const { room_id, filename, percent } = data;
+    if (!room_id || !filename) return;
+    socket.to(`room:${room_id}`).emit('upload_progress', {
+      room_id,
+      user_id: socket.user.id,
+      username: socket.user.display_name || socket.user.username,
+      filename,
+      percent: Math.min(100, Math.max(0, parseInt(percent) || 0)),
+    });
+  });
+
   socket.on('react', (data) => {
     const { message_id, emoji } = data;
     if (!message_id || !emoji || typeof emoji !== 'string') return;
