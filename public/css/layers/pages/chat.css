@@ -227,4 +227,50 @@
     font-size: 11px;
     color: var(--text-secondary);
   }
+
+  /* ── Compose wrapper needs position:relative for picker positioning ── */
+  .compose { position: relative; }
+
+  /* ── @mention picker ─────────────────────────────── */
+  .mention-picker {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: var(--sp-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 180px;
+    z-index: var(--z-dropdown);
+    box-shadow: 0 4px 16px var(--overlay-bg);
+  }
+  .mention-option {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    cursor: pointer;
+  }
+  .mention-option:hover { background: var(--bg-hover); }
+  .mention-option__name {
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+  }
+  .mention-option__user {
+    font-size: var(--font-xs);
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    margin-left: auto;
+  }
+
+  /* ── @mention highlight in message bubbles ────────── */
+  .msg__mention {
+    color: var(--text-accent);
+    font-weight: 600;
+  }
+  .msg__mention--self {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
 }

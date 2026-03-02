@@ -17,6 +17,8 @@
   let oldestMsgId = null;
   let editingMsgId = null;
   let replyingToId = null;
+  let mentionQuery = '';
+  let mentionStart = -1;
   let menuTargetMsg = null; // { id, senderId, senderName, text }
 
   // --- DOM refs ---
@@ -441,6 +443,13 @@
     );
   }
 
+  function highlightMentions(text) {
+    return text.replace(/@(\w+)/g, (match, uname) => {
+      const isSelf = uname.toLowerCase() === user.username.toLowerCase();
+      return `<span class="msg__mention${isSelf ? ' msg__mention--self' : ''}">${match}</span>`;
+    });
+  }
+
   function buildContentHtml(msg) {
     if (msg.type === 'file' && msg.file_url) {
       const name = msg.file_name || msg.text;
@@ -457,7 +466,7 @@
         <span class="msg__file-dl">↓</span>
       </a>`;
     }
-    return `<p class="msg__text">${linkify(esc(msg.text))}</p>`;
+    return `<p class="msg__text">${highlightMentions(linkify(esc(msg.text)))}</p>`;
   }
 
   function fileIcon(ext) {
@@ -547,6 +556,51 @@
     replyingToId = null;
     const bar = document.getElementById('replyBar');
     if (bar) bar.remove();
+  }
+
+  // ═══════════════════════════════════════
+  // @MENTION PICKER
+  // ═══════════════════════════════════════
+  function showMentionPicker(query) {
+    const picker = document.getElementById('mentionPicker');
+    if (!picker || !currentMembers.length) return;
+
+    const matches = currentMembers
+      .filter(m => m.username.toLowerCase().includes(query) && m.id !== user.id)
+      .slice(0, 5);
+
+    if (!matches.length) { hideMentionPicker(); return; }
+
+    picker.innerHTML = matches.map(m => `
+      <div class="mention-option" data-username="${esc(m.username)}">
+        <span class="mention-option__name">${esc(m.display_name || m.username)}</span>
+        <span class="mention-option__user">@${esc(m.username)}</span>
+      </div>`).join('');
+
+    picker.querySelectorAll('.mention-option').forEach(opt => {
+      opt.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        insertMention(opt.dataset.username);
+      });
+    });
+
+    picker.style.display = 'block';
+  }
+
+  function hideMentionPicker() {
+    const picker = document.getElementById('mentionPicker');
+    if (picker) picker.style.display = 'none';
+    mentionStart = -1;
+  }
+
+  function insertMention(username) {
+    const val = composeInput.value;
+    const pos = composeInput.selectionStart;
+    const before = val.slice(0, mentionStart);
+    const after = val.slice(pos);
+    composeInput.value = before + '@' + username + ' ' + after;
+    composeInput.focus();
+    hideMentionPicker();
   }
 
   // ═══════════════════════════════════════
@@ -664,7 +718,7 @@
   sendBtn.addEventListener('click', sendMessage);
   composeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    if (e.key === 'Escape') { if (editingMsgId) cancelEdit(); else if (replyingToId) cancelReply(); }
+    if (e.key === 'Escape') { hideMentionPicker(); if (editingMsgId) cancelEdit(); else if (replyingToId) cancelReply(); }
   });
 
   composeInput.addEventListener('input', () => {
@@ -675,6 +729,28 @@
       lastTypingEmit = now;
     }
   });
+
+  // ═══════════════════════════════════════
+  // @MENTION AUTOCOMPLETE
+  // ═══════════════════════════════════════
+  composeInput.addEventListener('input', () => {
+    const val = composeInput.value;
+    const pos = composeInput.selectionStart;
+    const before = val.slice(0, pos);
+    const atIdx = before.lastIndexOf('@');
+    if (atIdx !== -1 && (atIdx === 0 || /\s/.test(before[atIdx - 1]))) {
+      const query = before.slice(atIdx + 1).toLowerCase();
+      if (!/\s/.test(query)) {
+        mentionStart = atIdx;
+        mentionQuery = query;
+        showMentionPicker(query);
+        return;
+      }
+    }
+    hideMentionPicker();
+  });
+
+  composeInput.addEventListener('blur', () => setTimeout(hideMentionPicker, 150));
 
   // ═══════════════════════════════════════
   // TYPING
