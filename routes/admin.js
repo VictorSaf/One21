@@ -263,6 +263,19 @@ router.delete('/invites/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/admin/rooms — list all non-archived channel/group rooms (admin only)
+router.get('/rooms', (req, res) => {
+  const db = getDb();
+  const rooms = db.prepare(`
+    SELECT r.id, r.name, r.type,
+      (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count
+    FROM rooms r
+    WHERE r.is_archived = 0 AND r.type IN ('channel', 'group')
+    ORDER BY r.name ASC
+  `).all();
+  res.json({ rooms });
+});
+
 // GET /api/admin/conversations — all rooms with stats
 router.get('/conversations', (req, res) => {
   const db = getDb();
