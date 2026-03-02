@@ -11,6 +11,17 @@ function normalizeAccessLevel(value) {
   return ACCESS_LEVELS.has(value) ? value : 'readandwrite';
 }
 
+function assignRoomColor(db, roomId) {
+  const used = db.prepare(
+    'SELECT color_index FROM room_members WHERE room_id = ? AND color_index IS NOT NULL'
+  ).all(roomId).map(r => r.color_index);
+  for (let i = 0; i < 8; i++) {
+    if (!used.includes(i)) return i;
+  }
+  // All 8 taken — wrap around based on member count
+  return used.length % 8;
+}
+
 const createSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(200).optional(),
@@ -80,9 +91,9 @@ router.post('/direct', (req, res) => {
       "INSERT INTO rooms (name, type, created_by) VALUES (?, 'direct', ?)"
     ).run(`dm-${req.user.id}-${participant_id}`, req.user.id);
     const id = r.lastInsertRowid;
-    const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
-    add.run(id, req.user.id, 'member', 'readandwrite');
-    add.run(id, participant_id, 'member', 'readandwrite');
+    const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
+    add.run(id, req.user.id, 'member', 'readandwrite', 0);
+    add.run(id, participant_id, 'member', 'readandwrite', 1);
     return id;
   })();
 
@@ -121,19 +132,21 @@ router.post('/', (req, res) => {
       'INSERT INTO rooms (name, description, type, created_by) VALUES (?, ?, ?, ?)'
     ).run(name, description || null, roomType, req.user.id);
     const id = r.lastInsertRowid;
-    db.prepare('INSERT INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)')
-      .run(id, req.user.id, 'owner', 'readandwrite');
+    db.prepare('INSERT INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)')
+      .run(id, req.user.id, 'owner', 'readandwrite', 0);
     if (roomType === 'channel') {
       // Canale: toți userii (fără agenți) sunt membri; admin poate scoate pe cine vrea din Members
       const nonAgents = db.prepare("SELECT id FROM users WHERE role != 'agent' AND id != ?").all(req.user.id);
-      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
-      for (const u of nonAgents) add.run(id, u.id, 'member', 'readandwrite');
+      const addMember = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
+      nonAgents.forEach((u, i) => addMember.run(id, u.id, 'member', 'readandwrite', (i + 1) % 8));
     } else if (Array.isArray(member_ids)) {
-      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
+      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
+      let colorCounter = 1; // owner already has 0
       for (const uid of member_ids) {
         if (uid !== req.user.id) {
           const accessLevel = normalizeAccessLevel(member_access && member_access[String(uid)]);
-          add.run(id, uid, 'member', accessLevel);
+          add.run(id, uid, 'member', accessLevel, colorCounter % 8);
+          colorCounter++;
         }
       }
     }

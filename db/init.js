@@ -184,6 +184,28 @@ function migrate(db) {
   } catch {}
   safeAdd('rooms', 'is_archived', 'INTEGER NOT NULL DEFAULT 0');
   safeAdd('room_members', 'access_level', "TEXT NOT NULL DEFAULT 'readandwrite'");
+  safeAdd('room_members', 'color_index', 'INTEGER');
+  // Backfill: for each room, assign colors 0,1,2... to members in join order
+  try {
+    const membersWithoutColor = db.prepare(
+      'SELECT room_id, user_id FROM room_members WHERE color_index IS NULL ORDER BY room_id, joined_at'
+    ).all();
+
+    // Group by room
+    const byRoom = {};
+    for (const row of membersWithoutColor) {
+      if (!byRoom[row.room_id]) byRoom[row.room_id] = [];
+      byRoom[row.room_id].push(row.user_id);
+    }
+
+    const update = db.prepare('UPDATE room_members SET color_index = ? WHERE room_id = ? AND user_id = ?');
+    for (const [roomId, userIds] of Object.entries(byRoom)) {
+      userIds.forEach((uid, i) => update.run(i % 8, roomId, uid));
+    }
+    if (membersWithoutColor.length > 0) {
+      console.log(`[DB] Backfilled room_members.color_index for ${membersWithoutColor.length} rows`);
+    }
+  } catch (e) { console.error('[DB] color_index backfill error:', e.message); }
   safeAdd('messages', 'file_url', 'TEXT');
   safeAdd('messages', 'file_name', 'TEXT');
   safeAdd('messages', 'is_edited', 'INTEGER NOT NULL DEFAULT 0');
