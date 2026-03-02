@@ -19,7 +19,6 @@
   let replyingToId = null;
   let mentionQuery = '';
   let mentionStart = -1;
-  let menuTargetMsg = null; // { id, senderId, senderName, text }
 
   // --- DOM refs ---
   const sidebarList      = document.getElementById('sidebarList');
@@ -33,47 +32,14 @@
   const infoPanelName    = document.getElementById('infoPanelName');
   const infoPanelDesc    = document.getElementById('infoPanelDesc');
 
-  // --- Context menu refs ---
-  const msgMenu = document.getElementById('msgMenu');
-  const msgMenuReply = document.getElementById('msgMenuReply');
-  const msgMenuDm = document.getElementById('msgMenuDm');
-
-  function openMsgMenu(e, msgData) {
-    e.stopPropagation();
-    menuTargetMsg = msgData;
-
-    // Show/hide Private chat based on ownership
-    msgMenuDm.style.display = msgData.senderId === user.id ? 'none' : '';
-
-    // Position menu near click, adjust for viewport edges
-    const x = Math.min(e.clientX, window.innerWidth - 160);
-    const y = Math.min(e.clientY, window.innerHeight - 90);
-    msgMenu.style.left = x + 'px';
-    msgMenu.style.top = y + 'px';
-    msgMenu.classList.add('is-open');
-  }
-
-  function closeMsgMenu() {
-    msgMenu.classList.remove('is-open');
-    menuTargetMsg = null;
-  }
-
-  document.addEventListener('click', closeMsgMenu);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMsgMenu(); });
-  msgMenu.addEventListener('click', e => e.stopPropagation());
-
-  msgMenuReply.addEventListener('click', () => {
-    if (!menuTargetMsg) return;
-    const { id, senderName, text, fileUrl, fileName } = menuTargetMsg;
-    closeMsgMenu();
-    startReply(id, senderName, text, fileUrl, fileName);
+  // --- Dropdown close (document-level, registered once) ---
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.msg--menu-open').forEach(m => m.classList.remove('msg--menu-open'));
   });
-
-  msgMenuDm.addEventListener('click', () => {
-    if (!menuTargetMsg) return;
-    const { senderId } = menuTargetMsg;
-    closeMsgMenu();
-    openPrivateChat(senderId);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.msg--menu-open').forEach(m => m.classList.remove('msg--menu-open'));
+    }
   });
 
   // --- Init ---
@@ -345,7 +311,22 @@
       : '';
 
     const EMOJIS = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
-    const reactionPickerHtml = `<div class="msg__reaction-picker">${EMOJIS.map(e => `<button class="msg__react-btn" data-emoji="${e}" data-msg-id="${msg.id}">${e}</button>`).join('')}</div>`;
+    const dropdownHtml = `
+      <button class="msg__menu-btn" title="Acțiuni">▾</button>
+      <div class="msg__dropdown"
+        data-msg-id="${msg.id}"
+        data-sender-id="${msg.sender_id}"
+        data-sender-name="${esc(senderName)}"
+        data-text="${esc(msg.text || '')}"
+        data-file-url="${esc(msg.file_url || '')}"
+        data-file-name="${esc(msg.file_name || '')}">
+        <div class="msg__dropdown-emojis">
+          ${EMOJIS.map(e => `<button class="msg__react-btn" data-emoji="${e}" data-msg-id="${msg.id}">${e}</button>`).join('')}
+        </div>
+        <hr class="msg__dropdown-divider">
+        <button class="msg__dropdown-item msg__dropdown-reply">↩ Reply</button>
+        ${!isMine ? `<button class="msg__dropdown-item msg__dropdown-dm">→ Private chat</button>` : ''}
+      </div>`;
     const reactionBarHtml = `<div class="msg__reactions" id="reactions-${msg.id}"></div>`;
 
     if (isMine) {
@@ -363,10 +344,11 @@
           ${msg.type !== 'file' ? `<button class="msg__action-btn" data-action="edit" data-id="${msg.id}" title="Editează">✏️</button>` : ''}
           <button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button>
         </div>
-        ${reactionPickerHtml}${reactionBarHtml}`;
+        ${reactionBarHtml}`;
     } else {
       el.className = 'msg msg--received' + colorClass;
       el.innerHTML = `
+        ${dropdownHtml}
         ${senderHtml}
         ${buildReplyQuoteHtml(msg)}
         ${contentHtml}
@@ -375,7 +357,7 @@
           <span class="msg__time">${formatTime(msg.created_at)}</span>
         </div>
         ${user.role === 'admin' ? `<div class="msg__actions"><button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button></div>` : ''}
-        ${reactionPickerHtml}${reactionBarHtml}`;
+        ${reactionBarHtml}`;
     }
 
     // Bind action buttons
@@ -389,9 +371,25 @@
       });
     });
 
+    // ── Dropdown (received messages only)
+    const menuBtn = el.querySelector('.msg__menu-btn');
+    if (menuBtn) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = el.classList.contains('msg--menu-open');
+        document.querySelectorAll('.msg--menu-open').forEach(m => m.classList.remove('msg--menu-open'));
+        if (!isOpen) el.classList.add('msg--menu-open');
+      });
+
+      // Prevent dropdown clicks from bubbling to document (which would close it)
+      el.querySelector('.msg__dropdown').addEventListener('click', e => e.stopPropagation());
+    }
+
+    // ── Emoji reactions
     el.querySelectorAll('.msg__react-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        el.classList.remove('msg--menu-open');
         socket.emit('react', {
           message_id: parseInt(btn.dataset.msgId),
           emoji: btn.dataset.emoji,
@@ -399,18 +397,31 @@
       });
     });
 
-    if (!isSystem) {
-      el.addEventListener('click', (e) => {
-        // Don't trigger menu if user clicked an action button
-        if (e.target.closest('.msg__action-btn')) return;
-        openMsgMenu(e, {
-          id: msg.id,
-          senderId: msg.sender_id,
-          senderName: msg.sender_name || msg.sender_username || '',
-          text: msg.text || '',
-          fileUrl: msg.file_url || '',
-          fileName: msg.file_name || '',
-        });
+    // ── Reply
+    const replyBtn = el.querySelector('.msg__dropdown-reply');
+    if (replyBtn) {
+      replyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.classList.remove('msg--menu-open');
+        const dd = el.querySelector('.msg__dropdown');
+        startReply(
+          parseInt(dd.dataset.msgId),
+          dd.dataset.senderName,
+          dd.dataset.text,
+          dd.dataset.fileUrl,
+          dd.dataset.fileName
+        );
+      });
+    }
+
+    // ── Private chat
+    const dmBtn = el.querySelector('.msg__dropdown-dm');
+    if (dmBtn) {
+      dmBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.classList.remove('msg--menu-open');
+        const dd = el.querySelector('.msg__dropdown');
+        openPrivateChat(parseInt(dd.dataset.senderId));
       });
     }
 

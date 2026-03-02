@@ -56,36 +56,6 @@
   .msg--sent.msg--color-6 { background: var(--accent-anim-bg-08); border-right-color: var(--accent-dim); }
   .msg--sent.msg--color-7 { background: var(--danger-muted); border-right-color: var(--error); }
 
-  /* ── Message context menu ─────────────────────────── */
-  .msg-menu {
-    position: fixed;
-    z-index: var(--z-dropdown);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-mid);
-    border-radius: var(--sp-2);
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base) 60%, transparent);
-    padding: var(--sp-1) 0;
-    min-width: 140px;
-    display: none;
-  }
-  .msg-menu.is-open { display: block; }
-  .msg-menu__item {
-    display: block;
-    width: 100%;
-    padding: var(--sp-2) var(--sp-3);
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: var(--font-sm);
-    font-family: var(--font-mono);
-    text-align: left;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .msg-menu__item:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-  }
 
   /* ── Reply compose bubble (above compose) ────────── */
   .reply-bar {
@@ -178,31 +148,79 @@
   }
   .msg--highlight { animation: msg-highlight-flash 1.2s ease-out forwards; }
 
-  /* ── Emoji reaction picker — shown on hover ────────── */
-  .msg__reaction-picker {
+  /* ── Dropdown action button ────────────────── */
+  .msg__menu-btn {
     display: none;
     position: absolute;
-    bottom: calc(100% + 4px);
-    left: 0;
+    top: 4px;
+    right: 4px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-mid);
-    border-radius: 20px;
-    padding: var(--sp-1) var(--sp-2);
-    gap: var(--sp-1);
-    z-index: var(--z-dropdown);
+    border-radius: 4px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 5px;
+    cursor: pointer;
+    z-index: 2;
   }
-  .msg:hover .msg__reaction-picker { display: flex; }
+  .msg:hover .msg__menu-btn { display: block; }
+  .msg__menu-btn:hover { color: var(--text-primary); border-color: var(--border-bright); }
+
+  /* ── Dropdown panel ────────────────────────── */
+  .msg__dropdown {
+    display: none;
+    position: absolute;
+    top: 26px;
+    right: 4px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base) 60%, transparent);
+    min-width: 160px;
+    z-index: var(--z-dropdown);
+    overflow: hidden;
+  }
+  .msg--menu-open .msg__dropdown { display: block; }
+  .msg--received .msg__dropdown { right: auto; left: 4px; }
+  .msg--received .msg__menu-btn { right: auto; left: 4px; }
+
+  .msg__dropdown-emojis {
+    display: flex;
+    gap: 2px;
+    padding: var(--sp-2) var(--sp-2) var(--sp-1);
+  }
   .msg__react-btn {
     background: none;
     border: none;
     cursor: pointer;
     font-size: 18px;
-    padding: 2px;
+    padding: 3px 4px;
     border-radius: 4px;
-    transition: transform var(--transition-fast);
     line-height: 1;
+    transition: transform var(--transition-fast);
   }
-  .msg__react-btn:hover { transform: scale(1.3); }
+  .msg__react-btn:hover { transform: scale(1.3); background: var(--bg-hover); }
+
+  .msg__dropdown-divider {
+    border: none;
+    border-top: 1px solid var(--border-dim);
+    margin: 0;
+  }
+  .msg__dropdown-item {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: var(--sp-2) var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .msg__dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 
   /* ── Reaction chips below bubble ───────────────────── */
   .msg__reactions {
