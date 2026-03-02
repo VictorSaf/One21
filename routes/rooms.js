@@ -243,8 +243,11 @@ router.post('/:id/members', (req, res) => {
   const targetUser = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(user_id);
   if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
-  db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)')
-    .run(roomId, user_id, 'member', accessLevel);
+  // Only assign a new color if the user isn't already a member
+  const existing = db.prepare('SELECT color_index FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, user_id);
+  const colorIdx = existing ? existing.color_index : assignRoomColor(db, roomId);
+  db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)')
+    .run(roomId, user_id, 'member', accessLevel, colorIdx);
   db.prepare('UPDATE room_members SET access_level = ? WHERE room_id = ? AND user_id = ?')
     .run(accessLevel, roomId, user_id);
   res.json({ ok: true, user: targetUser });

@@ -53,13 +53,15 @@ router.get('/:id/messages', (req, res) => {
   const BASE_SELECT = `
     SELECT m.*,
       u.username as sender_username, u.display_name as sender_name,
-      u.role as sender_role, u.chat_color_index as sender_color_index,
-      rm.text as reply_to_text,
+      u.role as sender_role,
+      COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
+      reply_m.text as reply_to_text,
       ru.display_name as reply_to_sender
     FROM messages m
     JOIN users u ON m.sender_id = u.id
-    LEFT JOIN messages rm ON rm.id = m.reply_to
-    LEFT JOIN users ru ON ru.id = rm.sender_id
+    LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
+    LEFT JOIN messages reply_m ON reply_m.id = m.reply_to
+    LEFT JOIN users ru ON ru.id = reply_m.sender_id
   `;
 
   const query = before
