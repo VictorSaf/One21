@@ -1625,10 +1625,16 @@ function renderInviteRooms(rooms) {
     list.innerHTML = '<div class="u-dim">Nicio cameră disponibilă.</div>';
     return;
   }
-  list.innerHTML = rooms.map(r => `
+  const nonGeneral = rooms.filter(r => !(r.type === 'channel' && r.name === 'General'));
+  const generalLocked = `
+    <div class="invite-room-row invite-room-row--locked">
+      <span class="perm-toggle--locked">✓</span>
+      <label class="invite-room-row__name">General <span class="badge badge--muted">default · readonly</span></label>
+    </div>`;
+  list.innerHTML = generalLocked + nonGeneral.map(r => `
     <div class="invite-room-row">
       <input type="checkbox" class="perm-toggle inv-room" data-room-id="${r.id}" id="inv_room_${r.id}">
-      <label class="invite-room-row__name" for="inv_room_${r.id}"># ${r.name} <span class="u-dim">(${r.member_count})</span></label>
+      <label class="invite-room-row__name" for="inv_room_${r.id}">${r.type === 'cult' ? '⬡' : '#'} ${r.name} <span class="u-dim">(${r.member_count})</span></label>
       <select class="invite-room-row__level" data-room-level="${r.id}" disabled>
         <option value="readandwrite" selected>read+write</option>
         <option value="readonly">readonly</option>
@@ -1636,7 +1642,6 @@ function renderInviteRooms(rooms) {
       </select>
     </div>
   `).join('');
-
   list.querySelectorAll('.inv-room').forEach(cb => {
     cb.addEventListener('change', () => {
       const sel = list.querySelector(`[data-room-level="${cb.dataset.roomId}"]`);

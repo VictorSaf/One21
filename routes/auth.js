@@ -102,8 +102,21 @@ router.post('/register', (req, res) => {
     if (perms.rooms && Array.isArray(perms.rooms) && perms.rooms.length > 0) {
       roomAssignments = perms.rooms;
     } else {
-      const allRooms = db.prepare("SELECT id FROM rooms WHERE type IN ('channel', 'group') AND is_archived = 0").all();
-      roomAssignments = allRooms.map(r => ({ id: r.id, access_level: 'readandwrite' }));
+      const allRooms = db.prepare(
+        "SELECT id, type FROM rooms WHERE type IN ('channel', 'group') AND is_archived = 0"
+      ).all();
+      roomAssignments = allRooms.map(r => ({
+        id: r.id,
+        access_level: r.type === 'channel' ? 'readonly' : 'readandwrite',
+      }));
+    }
+
+    // General (channel) is always included — even when invite has explicit rooms
+    const generalRoom = db.prepare(
+      "SELECT id FROM rooms WHERE name = 'General' AND type = 'channel'"
+    ).get();
+    if (generalRoom && !roomAssignments.some(r => r.id === generalRoom.id)) {
+      roomAssignments.push({ id: generalRoom.id, access_level: 'readonly' });
     }
     const validRoomIds = new Set(
       db.prepare("SELECT id FROM rooms WHERE type IN ('channel','group') AND is_archived = 0").all().map(r => r.id)

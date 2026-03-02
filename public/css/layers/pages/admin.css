@@ -1657,4 +1657,20 @@
   .stat-card--activity:hover { border-color: var(--border-accent); }
   .stat-card--activity .stat-card__value { color: var(--purple); }
 
+  /* ── Invite room row — locked (General default) ── */
+  .invite-room-row--locked {
+    opacity: 0.65;
+    pointer-events: none;
+    align-items: center;
+    display: flex;
+    gap: var(--sp-2);
+    padding: var(--sp-1) 0;
+  }
+  .perm-toggle--locked {
+    color: var(--online);
+    font-size: var(--font-sm);
+    width: 16px;
+    text-align: center;
+  }
+
 }
