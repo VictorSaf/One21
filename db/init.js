@@ -246,6 +246,18 @@ function migrate(db) {
     )`);
     db.exec('CREATE INDEX IF NOT EXISTS idx_hub_cards_sort ON hub_cards(sort_order)');
   } catch {}
+
+  // Emoji reactions table
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS message_reactions (
+        message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+        user_id    INTEGER NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+        emoji      TEXT NOT NULL,
+        PRIMARY KEY (message_id, user_id, emoji)
+      )
+    `);
+  } catch {}
 }
 
 function seed(db) {

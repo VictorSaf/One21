@@ -69,6 +69,24 @@ router.get('/:id/messages', (req, res) => {
   const args = before ? [roomId, before, limit] : [roomId, limit];
   const messages = db.prepare(query).all(...args).reverse();
 
+  // Attach reactions
+  const msgIds = messages.map(m => m.id);
+  if (msgIds.length) {
+    const placeholders = msgIds.map(() => '?').join(',');
+    const reactionRows = db.prepare(
+      `SELECT message_id, emoji, COUNT(*) as count
+       FROM message_reactions WHERE message_id IN (${placeholders})
+       GROUP BY message_id, emoji`
+    ).all(...msgIds);
+
+    const reactionMap = {};
+    reactionRows.forEach(r => {
+      if (!reactionMap[r.message_id]) reactionMap[r.message_id] = [];
+      reactionMap[r.message_id].push({ emoji: r.emoji, count: r.count });
+    });
+    messages.forEach(m => { m.reactions = reactionMap[m.id] || []; });
+  }
+
   res.json({ messages, has_more: messages.length === limit });
 });
 

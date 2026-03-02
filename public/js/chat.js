@@ -134,6 +134,14 @@
       const el = messagesArea.querySelector(`[data-msg-id="${message_id}"]`);
       if (el) el.remove();
     });
+
+    socket.on('reaction_update', ({ message_id, reactions }) => {
+      const bar = document.getElementById(`reactions-${message_id}`);
+      if (!bar) return;
+      bar.innerHTML = reactions.length
+        ? reactions.map(r => `<span class="msg__reaction-chip">${r.emoji} <span class="msg__reaction-count">${r.count}</span></span>`).join('')
+        : '';
+    });
   }
 
   // ═══════════════════════════════════════
@@ -328,6 +336,10 @@
       ? `<span class="msg__sender">${esc(senderName)}</span>`
       : '';
 
+    const EMOJIS = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
+    const reactionPickerHtml = `<div class="msg__reaction-picker">${EMOJIS.map(e => `<button class="msg__react-btn" data-emoji="${e}" data-msg-id="${msg.id}">${e}</button>`).join('')}</div>`;
+    const reactionBarHtml = `<div class="msg__reactions" id="reactions-${msg.id}"></div>`;
+
     if (isMine) {
       el.className = 'msg msg--sent' + colorClass;
       el.innerHTML = `
@@ -342,7 +354,8 @@
         <div class="msg__actions">
           ${msg.type !== 'file' ? `<button class="msg__action-btn" data-action="edit" data-id="${msg.id}" title="Editează">✏️</button>` : ''}
           <button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button>
-        </div>`;
+        </div>
+        ${reactionPickerHtml}${reactionBarHtml}`;
     } else {
       el.className = 'msg msg--received' + colorClass;
       el.innerHTML = `
@@ -353,7 +366,8 @@
           ${msg.is_edited ? '<span class="msg__edited">editat</span>' : ''}
           <span class="msg__time">${formatTime(msg.created_at)}</span>
         </div>
-        ${user.role === 'admin' ? `<div class="msg__actions"><button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button></div>` : ''}`;
+        ${user.role === 'admin' ? `<div class="msg__actions"><button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button></div>` : ''}
+        ${reactionPickerHtml}${reactionBarHtml}`;
     }
 
     // Bind action buttons
@@ -364,6 +378,16 @@
         const id = parseInt(btn.dataset.id);
         if (action === 'edit') startEdit(id, el.querySelector('.msg__text').textContent);
         if (action === 'delete') deleteMessage(id);
+      });
+    });
+
+    el.querySelectorAll('.msg__react-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        socket.emit('react', {
+          message_id: parseInt(btn.dataset.msgId),
+          emoji: btn.dataset.emoji,
+        });
       });
     });
 
@@ -394,6 +418,15 @@
           target.addEventListener('animationend', () => target.classList.remove('msg--highlight'), { once: true });
         }
       });
+    }
+
+    if (msg.reactions && msg.reactions.length) {
+      const rbar = el.querySelector('.msg__reactions');
+      if (rbar) {
+        rbar.innerHTML = msg.reactions.map(r =>
+          `<span class="msg__reaction-chip">${r.emoji} <span class="msg__reaction-count">${r.count}</span></span>`
+        ).join('');
+      }
     }
 
     return el;

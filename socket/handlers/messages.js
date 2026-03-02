@@ -183,6 +183,41 @@ function register(io, socket, db) {
       }
     } catch {}
   });
+
+  socket.on('react', (data) => {
+    const { message_id, emoji } = data;
+    if (!message_id || !emoji || typeof emoji !== 'string') return;
+    const ALLOWED = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
+    if (!ALLOWED.includes(emoji)) return;
+
+    const msg = db.prepare('SELECT room_id FROM messages WHERE id = ?').get(message_id);
+    if (!msg) return;
+
+    const membership = db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?')
+      .get(msg.room_id, socket.user.id);
+    if (!membership) return;
+
+    const existing = db.prepare(
+      'SELECT 1 FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?'
+    ).get(message_id, socket.user.id, emoji);
+
+    if (existing) {
+      db.prepare('DELETE FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?')
+        .run(message_id, socket.user.id, emoji);
+    } else {
+      db.prepare('INSERT OR IGNORE INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+        .run(message_id, socket.user.id, emoji);
+    }
+
+    const rows = db.prepare(
+      'SELECT emoji, COUNT(*) as count FROM message_reactions WHERE message_id = ? GROUP BY emoji'
+    ).all(message_id);
+
+    io.to(`room:${msg.room_id}`).emit('reaction_update', {
+      message_id,
+      reactions: rows,
+    });
+  });
 }
 
 module.exports = { register };
