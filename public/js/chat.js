@@ -141,6 +141,11 @@
     socket.on('private_request', (req) => {
       showPrivateRequestToast(req);
     });
+
+    socket.on('room_cleared', ({ room_id }) => {
+      if (room_id !== currentRoomId) return;
+      document.getElementById('msgList').innerHTML = '';
+    });
   }
 
   // ═══════════════════════════════════════
@@ -679,6 +684,36 @@
     if (!(await showConfirm('Ștergi acest mesaj?', { okLabel: 'Șterge', cancelLabel: 'Anulare' }))) return;
     socket.emit('message_delete', { message_id: msgId });
   }
+
+  async function clearRoomMessages() {
+    if (!currentRoomId) return;
+    if (!(await showConfirm('Ștergi TOATE mesajele din acest node? Acțiunea este ireversibilă.', { okLabel: 'Șterge tot', cancelLabel: 'Anulare' }))) return;
+    await Auth.api(`/api/rooms/${currentRoomId}/messages`, { method: 'DELETE' });
+  }
+
+  (function initHeaderMoreMenu() {
+    if (user.role !== 'admin') return;
+    const btn = document.getElementById('headerMoreBtn');
+    if (!btn) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'header-more-menu';
+    menu.innerHTML = `<button class="header-more-menu__item header-more-menu__item--danger" id="clearRoomBtn">⊗ Șterge toate mesajele</button>`;
+    btn.parentElement.style.position = 'relative';
+    btn.parentElement.appendChild(menu);
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('header-more-menu--open');
+    });
+    document.addEventListener('click', () => menu.classList.remove('header-more-menu--open'));
+    menu.addEventListener('click', (e) => e.stopPropagation());
+
+    document.getElementById('clearRoomBtn').addEventListener('click', () => {
+      menu.classList.remove('header-more-menu--open');
+      clearRoomMessages();
+    });
+  })();
 
   // ═══════════════════════════════════════
   // FILE UPLOAD

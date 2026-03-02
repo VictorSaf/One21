@@ -370,4 +370,36 @@
     gap: var(--sp-2);
     justify-content: flex-end;
   }
+
+  /* ── Header more-menu dropdown ──────────────────────── */
+  .header-more-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base) 60%, transparent);
+    min-width: 200px;
+    z-index: var(--z-dropdown);
+    overflow: hidden;
+  }
+  .header-more-menu--open { display: block; }
+  .header-more-menu__item {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: var(--sp-2) var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .header-more-menu__item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .header-more-menu__item--danger { color: var(--error); }
+  .header-more-menu__item--danger:hover { background: var(--danger-muted); color: var(--error); }
 }

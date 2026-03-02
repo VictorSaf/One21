@@ -56,19 +56,24 @@ router.get('/:id/messages', (req, res) => {
       u.role as sender_role,
       COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
       reply_m.text as reply_to_text,
-      ru.display_name as reply_to_sender
+      ru.display_name as reply_to_sender,
+      rec.username as recipient_username, rec.display_name as recipient_name
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
     LEFT JOIN messages reply_m ON reply_m.id = m.reply_to
     LEFT JOIN users ru ON ru.id = reply_m.sender_id
+    LEFT JOIN users rec ON rec.id = m.recipient_id
   `;
 
+  const visFilter = 'AND (m.recipient_id IS NULL OR m.sender_id = ? OR m.recipient_id = ?)';
   const query = before
-    ? `${BASE_SELECT} WHERE m.room_id = ? AND m.id < ? ORDER BY m.created_at DESC LIMIT ?`
-    : `${BASE_SELECT} WHERE m.room_id = ? ORDER BY m.created_at DESC LIMIT ?`;
+    ? `${BASE_SELECT} WHERE m.room_id = ? ${visFilter} AND m.id < ? ORDER BY m.created_at DESC LIMIT ?`
+    : `${BASE_SELECT} WHERE m.room_id = ? ${visFilter} ORDER BY m.created_at DESC LIMIT ?`;
 
-  const args = before ? [roomId, before, limit] : [roomId, limit];
+  const args = before
+    ? [roomId, req.user.id, req.user.id, before, limit]
+    : [roomId, req.user.id, req.user.id, limit];
   const messages = db.prepare(query).all(...args).reverse();
 
   // Attach reactions
@@ -113,6 +118,11 @@ router.post('/:id/messages', (req, res) => {
     }
     if (accessLevel === 'post_docs') {
       return res.status(403).json({ error: 'You can only post documents in this room.' });
+    }
+    // Channel rooms enforce whisper-only posting; use the app socket for @username messages
+    const room = db.prepare('SELECT type FROM rooms WHERE id = ?').get(roomId);
+    if (room?.type === 'channel') {
+      return res.status(403).json({ error: 'Folosește @username în aplicație pentru mesaje private în acest canal.' });
     }
   }
 
@@ -231,11 +241,36 @@ router.get('/:id/search', (req, res) => {
   const messages = db.prepare(`
     SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id
-    WHERE m.room_id = ? AND m.text LIKE ? ESCAPE '\\'
+    WHERE m.room_id = ?
+      AND (m.recipient_id IS NULL OR m.sender_id = ? OR m.recipient_id = ?)
+      AND m.text LIKE ? ESCAPE '\\'
     ORDER BY m.created_at DESC LIMIT 50
-  `).all(roomId, `%${escapedQ}%`);
+  `).all(roomId, req.user.id, req.user.id, `%${escapedQ}%`);
 
   res.json({ messages, query: q });
+});
+
+// DELETE /api/rooms/:id/messages — clear all messages in a room (admin only)
+router.delete('/:id/messages', (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const db = getDb();
+  const roomId = req.params.id;
+
+  const room = db.prepare('SELECT id FROM rooms WHERE id = ?').get(roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+
+  const { count } = db.prepare('SELECT COUNT(*) as count FROM messages WHERE room_id = ?').get(roomId);
+
+  db.transaction(() => {
+    db.prepare('DELETE FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE room_id = ?)').run(roomId);
+    db.prepare('DELETE FROM message_reads WHERE message_id IN (SELECT id FROM messages WHERE room_id = ?)').run(roomId);
+    db.prepare('DELETE FROM messages WHERE room_id = ?').run(roomId);
+  })();
+
+  const io = req.app.get('io');
+  io.to(`room:${roomId}`).emit('room_cleared', { room_id: roomId });
+
+  res.json({ ok: true, deleted: count, room_id: roomId });
 });
 
 module.exports = router;
