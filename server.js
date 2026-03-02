@@ -37,7 +37,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // --- Static + HTML routes ---
 app.get('/one21/hey',         (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
-app.get('/one21/login',       (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
+app.get('/one21/chat',        (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
 app.get('/one21/join/:token', (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
 app.get('/one21/join',        (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
 app.get('/one21/:token', (req, res, next) => {

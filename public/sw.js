@@ -4,7 +4,7 @@ const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 const ASSETS = [
   '/one21/',
   '/one21/join',
-  '/one21/login',
+  '/one21/chat',
   '/one21/hey',
   '/admin.html',
   '/css/design-system.css',
