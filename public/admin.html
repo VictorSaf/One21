@@ -1639,10 +1639,13 @@ async function generateInviteWithPerms() {
   const roomCheckboxes = document.querySelectorAll('.inv-room');
   const rooms = [...roomCheckboxes]
     .filter(cb => cb.checked)
-    .map(cb => ({
-      id: parseInt(cb.dataset.roomId),
-      access_level: document.querySelector(`[data-room-level="${cb.dataset.roomId}"]`).value
-    }));
+    .map(cb => {
+      const levelEl = document.querySelector(`[data-room-level="${cb.dataset.roomId}"]`);
+      return {
+        id: parseInt(cb.dataset.roomId, 10),
+        access_level: levelEl ? levelEl.value : 'readandwrite'
+      };
+    });
   const note = document.getElementById('inviteNote').value.trim();
   const nume = document.getElementById('invNume').value.trim() || null;
   const prenume = document.getElementById('invPrenume').value.trim() || null;
