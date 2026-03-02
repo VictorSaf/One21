@@ -326,7 +326,8 @@ function migrate(db) {
           created_at  TEXT NOT NULL DEFAULT (datetime('now'))
         )
       `);
-      db.exec(`INSERT INTO rooms_v2 SELECT * FROM rooms`);
+      db.exec(`INSERT INTO rooms_v2 (id, name, description, type, is_archived, created_by, created_at)
+        SELECT id, name, description, type, is_archived, created_by, created_at FROM rooms`);
       db.exec(`DROP TABLE rooms`);
       db.exec(`ALTER TABLE rooms_v2 RENAME TO rooms`);
       db.exec('COMMIT');
