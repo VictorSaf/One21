@@ -25,7 +25,7 @@ function assignRoomColor(db, roomId) {
 const createSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(200).optional(),
-  type: z.enum(['group', 'channel']).optional(),
+  type: z.enum(['group', 'channel', 'cult']).optional(),
   member_ids: z.array(z.number().int().positive()).optional(),
   member_access: z.record(z.string(), z.enum(['readonly', 'readandwrite', 'post_docs'])).optional(),
 });
@@ -110,6 +110,23 @@ router.post('/', (req, res) => {
       const nonAgents = db.prepare("SELECT id FROM users WHERE role != 'agent' AND id != ?").all(req.user.id);
       const addMember = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
       nonAgents.forEach((u, i) => addMember.run(id, u.id, 'member', 'readandwrite', (i + 1) % 8));
+    } else if (roomType === 'cult') {
+      // Auto-add all active AI agents to cult rooms
+      const agents = db.prepare("SELECT id FROM users WHERE role = 'agent'").all();
+      const addMember = db.prepare(
+        'INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)'
+      );
+      agents.forEach((a, i) => addMember.run(id, a.id, 'member', 'readandwrite', (i + 1) % 8));
+      if (Array.isArray(member_ids)) {
+        let colorCounter = agents.length + 1;
+        for (const uid of member_ids) {
+          if (uid !== req.user.id) {
+            const accessLevel = normalizeAccessLevel(member_access && member_access[String(uid)]);
+            addMember.run(id, uid, 'member', accessLevel, colorCounter % 8);
+            colorCounter++;
+          }
+        }
+      }
     } else if (Array.isArray(member_ids)) {
       const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
       let colorCounter = 1; // owner already has 0
