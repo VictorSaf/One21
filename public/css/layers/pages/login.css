@@ -10,6 +10,10 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    background:
+      radial-gradient(70% 55% at 14% 18%, var(--accent-bg-gradient-1), transparent 72%),
+      radial-gradient(58% 44% at 86% 84%, var(--info-bg-gradient), transparent 72%),
+      linear-gradient(180deg, var(--bg-base), var(--bg-surface));
   }
 
   /* -- Animated corner decorations -- */
@@ -270,6 +274,32 @@
     display: flex;
     align-items: center;
     gap: 5px;
+  }
+
+  .login-signoff {
+    position: fixed;
+    bottom: var(--sp-4);
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .login-signoff__brand {
+    color: var(--accent-border-40);
+  }
+
+  .login-signoff__strong {
+    font-weight: var(--weight-bold);
+  }
+
+  .login-signoff__slash {
+    font-weight: var(--weight-regular);
   }
 
 }

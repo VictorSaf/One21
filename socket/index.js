@@ -4,6 +4,7 @@
 const jwt = require('jsonwebtoken');
 const { getDb } = require('../db/init');
 const config = require('../config');
+const { isTokenRevoked } = require('../lib/jwt-revoke');
 
 const presenceHandlers = require('./handlers/presence');
 const roomHandlers     = require('./handlers/rooms');
@@ -15,7 +16,11 @@ function initSocket(io) {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Authentication required'));
     try {
-      socket.user = jwt.verify(token, config.jwt.secret);
+      const payload = jwt.verify(token, config.jwt.secret);
+      if (isTokenRevoked(payload)) {
+        return next(new Error('Token revoked'));
+      }
+      socket.user = payload;
       next();
     } catch {
       next(new Error('Invalid token'));

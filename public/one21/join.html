@@ -112,6 +112,10 @@
   const last = pathParts[pathParts.length - 1];
   const tokenFromPath = (last && last !== 'one21' && last !== 'join') ? last : null;
 
+  document.getElementById('btnEnterDirect').addEventListener('click', function () {
+    window.location.href = '/one21/hey';
+  });
+
   const stepUpload = document.getElementById('stepUpload');
   const stepWho = document.getElementById('stepWho');
   const stepRegister = document.getElementById('stepRegister');
@@ -330,7 +334,7 @@
         return r.json();
       })
       .then(function () {
-        window.location.href = '/one21/login';
+        window.location.href = '/one21/hey';
       })
       .catch(function (err) {
         regError.textContent = err.message || 'Eroare la înregistrare.';

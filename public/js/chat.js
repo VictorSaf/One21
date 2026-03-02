@@ -5,6 +5,7 @@
   const user = Auth.getUser();
   let socket = null;
   let currentRoomId = null;
+  let currentRoomType = 'direct';
   let rooms = [];
   let currentMembers = [];
   let lastTypingEmit = 0;
@@ -48,6 +49,9 @@
     socket.on('connect_error', (err) => {
       if (err.message === 'Invalid token' || err.message === 'Authentication required') Auth.logout();
     });
+    socket.on('error', (data) => {
+      if (typeof showAlert === 'function' && data && data.message) showAlert(data.message);
+    });
 
     socket.on('message', (msg) => {
       if (msg.room_id === currentRoomId) {
@@ -78,7 +82,7 @@
         const meta = messagesArea.querySelector(`[data-msg-id="${message_id}"] .msg__edited`);
         if (!meta) {
           const time = messagesArea.querySelector(`[data-msg-id="${message_id}"] .msg__meta`);
-          if (time) time.insertAdjacentHTML('afterbegin', '<span class="msg__edited">editit</span>');
+          if (time) time.insertAdjacentHTML('afterbegin', '<span class="msg__edited">editat</span>');
         }
       }
     });
@@ -154,6 +158,7 @@
     ]);
     if (!roomData || !msgData) return;
 
+    currentRoomType = (roomData.room && roomData.room.type) || 'direct';
     currentMembers = roomData.members;
     hasMore = msgData.has_more;
     oldestMsgId = msgData.messages.length > 0 ? msgData.messages[0].id : null;
@@ -166,6 +171,28 @@
     infoPanelDesc.textContent = roomData.room.description || '';
     renderMembers(roomData.members);
 
+    const myMember = roomData.members.find(m => m.id === user.id);
+    const accessLevel = (myMember && myMember.access_level) || 'readandwrite';
+
+    // Apply per-member access levels from Node Map in all rooms/channels.
+    let canSendText = true;
+    let canUploadFiles = true;
+    let placeholder = 'INPUT_TRANSMISSION...';
+
+    if (user.role !== 'admin') {
+      if (accessLevel === 'readonly') {
+        canSendText = false;
+        canUploadFiles = false;
+        placeholder = 'Ai acces readonly în acest canal.';
+      } else if (accessLevel === 'post_docs') {
+        canSendText = false;
+        canUploadFiles = true;
+        placeholder = 'Poți posta doar documente în acest canal.';
+      }
+    }
+
+    updateComposeChannelMode(canSendText, canUploadFiles, placeholder);
+
     for (const msg of msgData.messages) appendMessage(msg);
     scrollToBottom(false);
 
@@ -173,6 +200,14 @@
       socket.emit('mark_read', { message_id: msgData.messages[msgData.messages.length - 1].id });
     }
     socket.emit('join_room', roomId);
+  }
+
+  function updateComposeChannelMode(canSendText, canUploadFiles, placeholderText) {
+    const attachBtn = document.getElementById('attachBtn');
+    composeInput.disabled = !canSendText;
+    sendBtn.disabled = !canSendText;
+    if (attachBtn) attachBtn.disabled = !canUploadFiles;
+    composeInput.placeholder = placeholderText || 'INPUT_TRANSMISSION...';
   }
 
   // ═══════════════════════════════════════
@@ -183,24 +218,24 @@
     if (messagesArea.scrollTop < 80 && hasMore && !loadingOlder && oldestMsgId) {
       loadingOlder = true;
       const prevHeight = messagesArea.scrollHeight;
-
-      const data = await Auth.api(`/api/rooms/${currentRoomId}/messages?before=${oldestMsgId}&limit=50`);
-      if (data && data.messages.length > 0) {
-        hasMore = data.has_more;
-        oldestMsgId = data.messages[0].id;
-        // Prepend messages
-        const frag = document.createDocumentFragment();
-        data.messages.forEach(msg => {
-          const el = buildMessageEl(msg);
-          frag.appendChild(el);
-        });
-        messagesArea.insertBefore(frag, messagesArea.firstChild);
-        // Keep scroll position stable
-        messagesArea.scrollTop = messagesArea.scrollHeight - prevHeight;
-      } else {
-        hasMore = false;
+      try {
+        const data = await Auth.api(`/api/rooms/${currentRoomId}/messages?before=${oldestMsgId}&limit=50`);
+        if (data && data.messages.length > 0) {
+          hasMore = data.has_more;
+          oldestMsgId = data.messages[0].id;
+          const frag = document.createDocumentFragment();
+          data.messages.forEach(msg => {
+            const el = buildMessageEl(msg);
+            frag.appendChild(el);
+          });
+          messagesArea.insertBefore(frag, messagesArea.firstChild);
+          messagesArea.scrollTop = messagesArea.scrollHeight - prevHeight;
+        } else {
+          hasMore = false;
+        }
+      } finally {
+        loadingOlder = false;
       }
-      loadingOlder = false;
     }
 
     // Mark as read at bottom
@@ -220,6 +255,7 @@
     const el = document.createElement('div');
     const isMine = msg.sender_id === user.id;
     const isSystem = msg.type === 'system';
+    const isGroup = currentRoomType === 'group' || currentRoomType === 'channel';
 
     if (isSystem) {
       el.className = 'msg msg--system';
@@ -230,13 +266,22 @@
     el.dataset.msgId = msg.id;
 
     const contentHtml = buildContentHtml(msg);
+    const senderName = msg.sender_username || (currentMembers.find(m => m.id === msg.sender_id)?.username) || (isMine ? user.username : '');
+    const useColor = isGroup && msg.sender_role !== 'admin' && msg.sender_color_index != null;
+    const colorIdx = useColor ? (msg.sender_color_index % 8) : 0;
+    const colorClass = useColor ? ' msg--color-' + colorIdx : '';
+    const showSender = isGroup || !isMine;
+    const senderHtml = showSender
+      ? `<span class="msg__sender">${esc(senderName)}</span>`
+      : '';
 
     if (isMine) {
-      el.className = 'msg msg--sent';
+      el.className = 'msg msg--sent' + colorClass;
       el.innerHTML = `
+        ${senderHtml}
         ${contentHtml}
         <div class="msg__meta">
-          ${msg.is_edited ? '<span class="msg__edited">editit</span>' : ''}
+          ${msg.is_edited ? '<span class="msg__edited">editat</span>' : ''}
           <span class="msg__time">${formatTime(msg.created_at)}</span>
           <span class="msg__check" data-check="${msg.id}">✓</span>
         </div>
@@ -245,12 +290,12 @@
           <button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button>
         </div>`;
     } else {
-      el.className = 'msg msg--received';
+      el.className = 'msg msg--received' + colorClass;
       el.innerHTML = `
-        <span class="msg__sender">${esc(msg.sender_name || msg.sender_username)}</span>
+        ${senderHtml}
         ${contentHtml}
         <div class="msg__meta">
-          ${msg.is_edited ? '<span class="msg__edited">editit</span>' : ''}
+          ${msg.is_edited ? '<span class="msg__edited">editat</span>' : ''}
           <span class="msg__time">${formatTime(msg.created_at)}</span>
         </div>
         ${user.role === 'admin' ? `<div class="msg__actions"><button class="msg__action-btn" data-action="delete" data-id="${msg.id}" title="Șterge">🗑️</button></div>` : ''}`;
@@ -347,8 +392,8 @@
   // ═══════════════════════════════════════
   // DELETE MESSAGE
   // ═══════════════════════════════════════
-  function deleteMessage(msgId) {
-    if (!confirm('Ștergi acest mesaj?')) return;
+  async function deleteMessage(msgId) {
+    if (!(await showConfirm('Ștergi acest mesaj?', { okLabel: 'Șterge', cancelLabel: 'Anulare' }))) return;
     socket.emit('message_delete', { message_id: msgId });
   }
 
@@ -388,7 +433,7 @@
 
   async function uploadFile(file) {
     const MAX = 10 * 1024 * 1024;
-    if (file.size > MAX) { alert('Fișierul depășește 10MB.'); return; }
+    if (file.size > MAX) { showAlert('Fișierul depășește 10MB.'); return; }
 
     // Show uploading indicator
     const indicator = document.createElement('div');
@@ -408,11 +453,11 @@
       });
       const data = await res.json();
       indicator.remove();
-      if (data.error) { alert(data.error); return; }
+      if (data.error) { showAlert(data.error); return; }
       // Message will arrive via socket broadcast
     } catch {
       indicator.remove();
-      alert('Eroare la upload.');
+      showAlert('Eroare la upload.');
     }
   }
 
@@ -554,10 +599,10 @@
       const roleLabel = m.room_role === 'owner' ? 'Owner' : (m.role === 'agent' ? 'Agent' : 'Member');
       return `
         <div class="member-row" data-user-id="${m.id}">
-          <div class="avatar avatar--sm">${m.display_name.charAt(0).toUpperCase()}
+          <div class="avatar avatar--sm">${(m.display_name || m.username || '?').charAt(0).toUpperCase()}
             <span class="avatar__status ${isOnline ? 'avatar__status--online' : ''}" data-status="${m.id}"></span>
           </div>
-          <span class="member-row__name">${esc(m.display_name)}</span>
+          <span class="member-row__name">${esc(m.display_name || m.username)}</span>
           <span class="member-row__role">${roleLabel}</span>
         </div>`;
     }).join('');
@@ -625,6 +670,19 @@
     if (window.innerWidth <= 640) {
       sidebar && sidebar.classList.add('sidebar--open');
     }
+
+    // Resize: pe mobile fără room selectat → sidebar deschis
+    let resizeTicking = false;
+    window.addEventListener('resize', () => {
+      if (resizeTicking) return;
+      resizeTicking = true;
+      requestAnimationFrame(() => {
+        if (window.innerWidth <= 640 && !currentRoomId && sidebar) {
+          sidebar.classList.add('sidebar--open');
+        }
+        resizeTicking = false;
+      });
+    });
   }
 
   // Update document title with total unread

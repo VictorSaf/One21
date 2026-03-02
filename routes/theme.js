@@ -39,13 +39,20 @@ adminRouter.get('/', (req, res) => {
 // POST /api/admin/themes/chat  — MUST be before /:id to avoid dynamic param capture
 adminRouter.post('/chat', async (req, res) => {
   const db = getDb();
-  const { message, current_tokens } = req.body;
+  const { message, current_tokens, history } = req.body;
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return res.status(400).json({ error: 'message required' });
   }
   if (!current_tokens || typeof current_tokens !== 'object') {
     return res.status(400).json({ error: 'current_tokens required' });
   }
+  const historyList = Array.isArray(history) ? history : [];
+  const maxHistory = 10;
+  const priorMessages = historyList
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .slice(-maxHistory)
+    .map(m => ({ role: m.role, content: m.content }));
+  const messages = [...priorMessages, { role: 'user', content: message }];
 
   const apiKeyRow = db.prepare("SELECT value FROM app_settings WHERE key = 'claude_api_key'").get();
   if (!apiKeyRow) return res.status(400).json({ error: 'Claude API key not configured. Go to Settings → API Keys.' });
@@ -55,23 +62,19 @@ adminRouter.post('/chat', async (req, res) => {
     return res.status(500).json({ error: 'Failed to decrypt API key' });
   }
 
-  const systemPrompt = `Ești un expert în CSS design systems. Lucrezi cu tokenii vizuali ai aplicației ONE21 (dark terminal aesthetic).
-Regulile aplicației:
-- Păstrează TOATE cheile existente din JSON (nu șterge tokeni)
-- Poți modifica valori și adăuga tokeni noi dacă sunt necesari
-- Menține coerența: variantele unui accent color (muted, dim, glow, border variants) trebuie să derivă din culoarea de bază
-- Backgroundurile rămân întotdeauna dark (luminozitate sub 20%)
-- Fonturile și spacing-ul NU sunt în tema ta — concentrează-te pe culori
+  const systemPrompt = `You are a creative design-system expert for ONE21. Express yourself freely with CSS custom properties (design tokens).
 
-Tokenii curenți:
+Your role:
+- Interpret the user's request creatively. You MAY add new tokens (e.g. gradient stops, glow variants, extra accent shades) and remove or rename tokens when it serves the requested look. Create tokens that match their vision.
+- Light themes, dark themes, bold palettes, subtle gradients, neon accents — all allowed. No strict rules about luminosity or "keep all keys"; do what fits the request.
+- If the user asks for something that goes beyond static values (e.g. animations, motion, "surprise" effects): still deliver a concrete, creative token set — new colors, gradient tokens, accent-anim values, or new token names they can use in CSS. Never lead with "I cannot" or list limitations. In "explanation" you may briefly note that advanced effects can be implemented in CSS using these variables.
+- When the request is ambiguous: return tokens UNCHANGED and put your question in "explanation". When the request is clear: apply your creative interpretation and give a short "explanation".
+
+Current tokens (modify, add, or remove as needed):
 ${JSON.stringify(current_tokens, null, 2)}
 
-REGULA ABSOLUTĂ: Răspunzi MEREU cu JSON pur, fără text în afara lui, fără markdown, fără \`\`\`.
-Formatul exact (nicio deviație):
-{"tokens":{...toți tokenii, modificați sau nu...},"explanation":"mesajul tău"}
-
-Dacă cererea e ambiguă sau ai nevoie de clarificări: returnează tokenii NEMODIFICAȚI și pune întrebarea în "explanation".
-Dacă cererea e clară: aplică modificările și explică pe scurt în "explanation".`;
+ABSOLUTE RULE: You MUST reply with pure JSON only — no text outside it, no markdown, no code fences.
+Exact format: {"tokens":{...},"explanation":"your message"}`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -85,7 +88,7 @@ Dacă cererea e clară: aplică modificările și explică pe scurt în "explana
         model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: systemPrompt,
-        messages: [{ role: 'user', content: message }],
+        messages,
       }),
     });
 

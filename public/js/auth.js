@@ -13,12 +13,14 @@ const Auth = {
   logout() {
     localStorage.removeItem('one21_token');
     localStorage.removeItem('one21_user');
-    window.location.href = '/login.html';
+    const base = window.location.pathname.indexOf('/one21') !== -1 ? '/one21' : '';
+    window.location.href = base + (base ? '/hey' : '/login.html');
   },
 
   requireAuth() {
     if (!this.getToken()) {
-      window.location.href = '/login.html';
+      const base = window.location.pathname.indexOf('/one21') !== -1 ? '/one21' : '';
+      window.location.href = base + (base ? '/hey' : '/login.html');
       return false;
     }
     // Show admin button if user is admin
@@ -41,7 +43,7 @@ const Auth = {
       }
     });
     if (res.status === 401) {
-      this.logout();
+      this.logout(); // redirects to /one21/hey
       return null;
     }
     return res.json();

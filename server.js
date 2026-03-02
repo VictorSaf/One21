@@ -36,11 +36,14 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 
 // --- Static + HTML routes ---
-app.get('/one21/hey',         (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
-app.get('/one21/login',       (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
+app.get('/one21/hey',         (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
+app.get('/one21/login',       (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
 app.get('/one21/join/:token', (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
 app.get('/one21/join',        (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
-app.get('/one21/:token',      (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
+app.get('/one21/:token', (req, res, next) => {
+  if (req.params.token.includes('.')) return next(); // pass .html files to static middleware
+  res.sendFile(path.join(__dirname, 'public/one21/join.html'));
+});
 app.get('/one21',             (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
 app.get('/',                  (req, res) => res.redirect('/one21/'));
 app.get('/favicon.ico',       (req, res) => res.redirect('/favicon.svg'));
@@ -54,8 +57,8 @@ app.use('/api', rateLimit({
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Prea multe requesturi, incearca din nou mai tarziu.' },
 }));
-app.use('/api/auth/login',    rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false }));
-app.use('/api/auth/register', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/auth/login',    rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/auth/register', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
 
 // --- Health ---
 app.get('/health', (req, res) => {

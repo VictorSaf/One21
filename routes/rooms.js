@@ -6,11 +6,17 @@ const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 router.use(authMiddleware);
 
+const ACCESS_LEVELS = new Set(['readonly', 'readandwrite', 'post_docs']);
+function normalizeAccessLevel(value) {
+  return ACCESS_LEVELS.has(value) ? value : 'readandwrite';
+}
+
 const createSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(200).optional(),
   type: z.enum(['direct', 'group', 'channel']).optional(),
   member_ids: z.array(z.number().int().positive()).optional(),
+  member_access: z.record(z.string(), z.enum(['readonly', 'readandwrite', 'post_docs'])).optional(),
 });
 
 const editSchema = z.object({
@@ -23,7 +29,7 @@ const editSchema = z.object({
 router.get('/', (req, res) => {
   const db = getDb();
   const rooms = db.prepare(`
-    SELECT r.*, rm.role as my_role,
+    SELECT r.*, rm.role as my_role, rm.access_level as my_access_level,
       (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
       (SELECT m.text FROM messages m WHERE m.room_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
       (SELECT m.created_at FROM messages m WHERE m.room_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
@@ -49,7 +55,7 @@ router.post('/', (req, res) => {
     return res.status(403).json({ error: 'Users cannot create rooms directly. Submit a room request instead.' });
   }
 
-  const { name, description, type, member_ids } = result.data;
+  const { name, description, type, member_ids, member_access } = result.data;
   const db = getDb();
 
   // For direct messages: check if DM already exists
@@ -65,16 +71,26 @@ router.post('/', (req, res) => {
     if (existing) return res.json({ room: db.prepare('SELECT * FROM rooms WHERE id = ?').get(existing.id) });
   }
 
+  const roomType = type || 'group';
   const roomId = db.transaction(() => {
     const r = db.prepare(
       'INSERT INTO rooms (name, description, type, created_by) VALUES (?, ?, ?, ?)'
-    ).run(name, description || null, type || 'group', req.user.id);
+    ).run(name, description || null, roomType, req.user.id);
     const id = r.lastInsertRowid;
-    db.prepare('INSERT INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)').run(id, req.user.id, 'owner');
-    if (Array.isArray(member_ids)) {
-      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)');
+    db.prepare('INSERT INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)')
+      .run(id, req.user.id, 'owner', 'readandwrite');
+    if (roomType === 'channel') {
+      // Canale: toți userii (fără agenți) sunt membri; admin poate scoate pe cine vrea din Members
+      const nonAgents = db.prepare("SELECT id FROM users WHERE role != 'agent' AND id != ?").all(req.user.id);
+      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
+      for (const u of nonAgents) add.run(id, u.id, 'member', 'readandwrite');
+    } else if (Array.isArray(member_ids)) {
+      const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
       for (const uid of member_ids) {
-        if (uid !== req.user.id) add.run(id, uid, 'member');
+        if (uid !== req.user.id) {
+          const accessLevel = normalizeAccessLevel(member_access && member_access[String(uid)]);
+          add.run(id, uid, 'member', accessLevel);
+        }
       }
     }
     return id;
@@ -84,33 +100,35 @@ router.post('/', (req, res) => {
   res.json({ room });
 });
 
-// GET /api/rooms/:id — room details + members
+// GET /api/rooms/:id — room details + members (admin can access any room)
 router.get('/:id', (req, res) => {
   const db = getDb();
   const roomId = req.params.id;
   const membership = db.prepare('SELECT * FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.user.id);
-  if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
+  if (!membership && req.user.role !== 'admin') return res.status(403).json({ error: 'Not a member of this room' });
 
   const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
   const members = db.prepare(`
-    SELECT u.id, u.username, u.display_name, u.role, u.avatar_url, u.is_online, rm.role as room_role
+    SELECT u.id, u.username, u.display_name, u.role, u.avatar_url, u.is_online, rm.role as room_role, rm.access_level
     FROM room_members rm JOIN users u ON rm.user_id = u.id WHERE rm.room_id = ?
   `).all(roomId);
 
   res.json({ room, members });
 });
 
-// PUT /api/rooms/:id — edit room (owner or admin)
+// PUT /api/rooms/:id — edit room (owner or admin; admin can edit any room)
 router.put('/:id', (req, res) => {
   const result = editSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
 
   const db = getDb();
   const roomId = req.params.id;
+  const existing = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  if (!existing) return res.status(404).json({ error: 'Room not found' });
   const membership = db.prepare('SELECT * FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.user.id);
-  if (!membership || (membership.role !== 'owner' && req.user.role !== 'admin')) {
-    return res.status(403).json({ error: 'Only room owner or admin can edit' });
-  }
+  const canEdit = req.user.role === 'admin' || (membership && membership.role === 'owner');
+  if (!canEdit) return res.status(403).json({ error: 'Only room owner or admin can edit' });
 
   const { name, description, is_archived } = result.data;
   const updates = [];
@@ -128,11 +146,19 @@ router.put('/:id', (req, res) => {
   res.json({ room });
 });
 
-// DELETE /api/rooms/:id — admin only, delete room + cascade members
+// DELETE /api/rooms/:id — admin only; :id can be numeric id or node_id (room name)
 router.delete('/:id', (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   const db = getDb();
-  const roomId = req.params.id;
+  const idOrName = req.params.id;
+  let roomId;
+  if (/^\d+$/.test(idOrName)) {
+    roomId = parseInt(idOrName, 10);
+  } else {
+    const row = db.prepare('SELECT id FROM rooms WHERE name = ?').get(idOrName);
+    if (!row) return res.status(404).json({ error: 'Room not found' });
+    roomId = row.id;
+  }
   const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
   if (!room) return res.status(404).json({ error: 'Room not found' });
   db.transaction(() => {
@@ -142,27 +168,54 @@ router.delete('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/rooms/:id/members — add member (owner or admin)
+// POST /api/rooms/:id/members — add member (owner or admin; admin can add to any room)
 router.post('/:id/members', (req, res) => {
   const db = getDb();
   const roomId = req.params.id;
   const { user_id } = req.body;
+  const accessLevel = normalizeAccessLevel(req.body && req.body.access_level);
 
   if (!user_id) return res.status(400).json({ error: 'user_id required' });
 
+  const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
   const membership = db.prepare('SELECT * FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.user.id);
-  if (!membership || (membership.role !== 'owner' && req.user.role !== 'admin')) {
-    return res.status(403).json({ error: 'Only owner or admin can add members' });
-  }
+  const canAdd = req.user.role === 'admin' || (membership && (membership.role === 'owner' || req.user.role === 'admin'));
+  if (!canAdd) return res.status(403).json({ error: 'Only owner or admin can add members' });
 
   const targetUser = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(user_id);
   if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
-  db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)').run(roomId, user_id, 'member');
+  db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)')
+    .run(roomId, user_id, 'member', accessLevel);
+  db.prepare('UPDATE room_members SET access_level = ? WHERE room_id = ? AND user_id = ?')
+    .run(accessLevel, roomId, user_id);
   res.json({ ok: true, user: targetUser });
 });
 
-// DELETE /api/rooms/:id/members/:userId — remove member
+// PUT /api/rooms/:id/members/:userId/access-level — set member access level (owner or admin)
+router.put('/:id/members/:userId/access-level', (req, res) => {
+  const db = getDb();
+  const roomId = req.params.id;
+  const targetId = parseInt(req.params.userId, 10);
+  const accessLevel = normalizeAccessLevel(req.body && req.body.access_level);
+
+  const membership = db.prepare('SELECT * FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.user.id);
+  const isOwnerOrAdmin = req.user.role === 'admin' || (membership && membership.role === 'owner');
+  if (!isOwnerOrAdmin) return res.status(403).json({ error: 'Only owner or admin can edit member access level' });
+
+  const target = db.prepare('SELECT role FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, targetId);
+  if (!target) return res.status(404).json({ error: 'Member not found' });
+  if (target.role === 'owner' && accessLevel !== 'readandwrite') {
+    return res.status(400).json({ error: 'Owner access level must remain readandwrite' });
+  }
+
+  db.prepare('UPDATE room_members SET access_level = ? WHERE room_id = ? AND user_id = ?')
+    .run(accessLevel, roomId, targetId);
+  res.json({ ok: true, access_level: accessLevel });
+});
+
+// DELETE /api/rooms/:id/members/:userId — remove member (admin can remove from any room)
 router.delete('/:id/members/:userId', (req, res) => {
   const db = getDb();
   const roomId = req.params.id;
@@ -170,7 +223,7 @@ router.delete('/:id/members/:userId', (req, res) => {
 
   const membership = db.prepare('SELECT * FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.user.id);
   const isSelf = targetId === req.user.id;
-  const isOwnerOrAdmin = membership && (membership.role === 'owner' || req.user.role === 'admin');
+  const isOwnerOrAdmin = req.user.role === 'admin' || (membership && (membership.role === 'owner' || req.user.role === 'admin'));
 
   if (!isSelf && !isOwnerOrAdmin) return res.status(403).json({ error: 'Not allowed' });
 

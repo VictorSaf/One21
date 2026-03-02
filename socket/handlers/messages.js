@@ -40,6 +40,19 @@ function register(io, socket, db) {
     ).get(room_id, socket.user.id);
     if (!membership) return;
 
+    const ACCESS_LEVELS = new Set(['readonly', 'readandwrite', 'post_docs']);
+    const accessLevel = ACCESS_LEVELS.has(membership.access_level) ? membership.access_level : 'readandwrite';
+    if (socket.user.role !== 'admin') {
+      if (accessLevel === 'readonly') {
+        socket.emit('error', { message: 'This room is read-only for your account.' });
+        return;
+      }
+      if (accessLevel === 'post_docs' && type !== 'file') {
+        socket.emit('error', { message: 'You can only post documents in this room.' });
+        return;
+      }
+    }
+
     // Channel: doar admin poate trimite
     const room = db.prepare('SELECT type FROM rooms WHERE id = ?').get(room_id);
     if (room?.type === 'channel' && socket.user.role !== 'admin') {
@@ -101,7 +114,7 @@ function register(io, socket, db) {
     });
 
     const message = db.prepare(`
-      SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+      SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
       FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
     `).get(result.lastInsertRowid);
 

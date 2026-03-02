@@ -36,7 +36,7 @@
         item.innerHTML = `
           <input type="checkbox" id="up_${u.id}" value="${u.id}">
           <label for="up_${u.id}">${esc(u.display_name)}</label>
-          <span class="u-role">${u.role}</span>`;
+          <span class="u-role">${u.role === 'admin' ? 'Admin' : u.role}</span>`;
         item.addEventListener('click', (e) => {
           if (e.target.tagName !== 'INPUT') {
             const cb = item.querySelector('input');
@@ -104,7 +104,7 @@
         item.innerHTML = `
           <input type="radio" name="addMemberRadio" id="am_${u.id}" value="${u.id}">
           <label for="am_${u.id}">${esc(u.display_name)}</label>
-          <span class="u-role">${u.role}</span>`;
+          <span class="u-role">${u.role === 'admin' ? 'Admin' : u.role}</span>`;
         item.addEventListener('click', () => {
           list.querySelectorAll('.user-picker-item').forEach(i => i.classList.remove('selected'));
           item.classList.add('selected');
@@ -171,7 +171,7 @@
   async function archiveRoom() {
     const roomId = window.ChatModule && window.ChatModule.getCurrentRoomId();
     if (!roomId) return;
-    if (!confirm('Arhivezi această cameră? Nu va mai apărea în lista ta.')) return;
+    if (!(await showConfirm('Arhivezi această cameră? Nu va mai apărea în lista ta.', { okLabel: 'Arhivează', cancelLabel: 'Anulare' }))) return;
 
     await Auth.api(`/api/rooms/${roomId}`, {
       method: 'PUT',

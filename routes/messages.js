@@ -3,10 +3,30 @@ const { z } = require('zod');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
 const { getPermission } = require('../middleware/permissions');
-const { addDocument } = require('../lib/vectorstore');
+const { addDocument, addAgentMemory } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(authMiddleware);
+
+function queueAgentRoomMemory(db, roomId, text, metadata) {
+  const agentsInRoom = db.prepare(`
+    SELECT u.username
+    FROM room_members rm
+    JOIN users u ON rm.user_id = u.id
+    WHERE rm.room_id = ? AND u.role = 'agent'
+  `).all(roomId);
+  if (!agentsInRoom.length) return;
+  for (const agent of agentsInRoom) {
+    addAgentMemory(agent.username, text, {
+      ...metadata,
+      room_id: roomId,
+    }).catch(() => {});
+  }
+}
+
+function normalizeAccessLevel(value) {
+  return ['readonly', 'readandwrite', 'post_docs'].includes(value) ? value : 'readandwrite';
+}
 
 const sendSchema = z.object({
   text: z.string().min(1).max(4000),
@@ -31,11 +51,11 @@ router.get('/:id/messages', (req, res) => {
   if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
 
   const query = before
-    ? `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+    ? `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
        FROM messages m JOIN users u ON m.sender_id = u.id
        WHERE m.room_id = ? AND m.id < ?
        ORDER BY m.created_at DESC LIMIT ?`
-    : `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+    : `SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
        FROM messages m JOIN users u ON m.sender_id = u.id
        WHERE m.room_id = ?
        ORDER BY m.created_at DESC LIMIT ?`;
@@ -59,6 +79,16 @@ router.post('/:id/messages', (req, res) => {
     'SELECT * FROM room_members WHERE room_id = ? AND user_id = ?'
   ).get(roomId, req.user.id);
   if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
+  const accessLevel = normalizeAccessLevel(membership.access_level);
+
+  if (req.user.role !== 'admin') {
+    if (accessLevel === 'readonly') {
+      return res.status(403).json({ error: 'This room is read-only for your account.' });
+    }
+    if (accessLevel === 'post_docs') {
+      return res.status(403).json({ error: 'You can only post documents in this room.' });
+    }
+  }
 
   // Check max_messages_per_day
   if (req.user.role !== 'admin') {
@@ -102,10 +132,19 @@ router.post('/:id/messages', (req, res) => {
       sender: senderName,
       ts: new Date().toISOString(),
     }).catch(() => {});
+    queueAgentRoomMemory(db, roomId, text, {
+      message_id: msgId,
+      sender_id: req.user.id,
+      sender: senderName,
+      sender_username: req.user.username,
+      sender_role: req.user.role,
+      memory_type: 'room_message',
+      ts: new Date().toISOString(),
+    });
   });
 
   const message = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
   `).get(r.lastInsertRowid);
 
@@ -126,7 +165,7 @@ router.put('/messages/:id', (req, res) => {
     .run(result.data.text, msg.id);
 
   const updated = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
   `).get(msg.id);
 
@@ -162,12 +201,13 @@ router.get('/:id/search', (req, res) => {
   ).get(roomId, req.user.id);
   if (!membership) return res.status(403).json({ error: 'Not a member of this room' });
 
+  const escapedQ = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
   const messages = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role
+    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id
-    WHERE m.room_id = ? AND m.text LIKE ?
+    WHERE m.room_id = ? AND m.text LIKE ? ESCAPE '\\'
     ORDER BY m.created_at DESC LIMIT 50
-  `).all(roomId, `%${q}%`);
+  `).all(roomId, `%${escapedQ}%`);
 
   res.json({ messages, query: q });
 });

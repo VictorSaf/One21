@@ -37,7 +37,10 @@ function getDb() {
       created_by INTEGER NOT NULL REFERENCES users(id),
       used_by INTEGER REFERENCES users(id),
       expires_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      token TEXT,
+      nume TEXT,
+      prenume TEXT
     );
 
     CREATE TABLE IF NOT EXISTS rooms (
@@ -54,6 +57,7 @@ function getDb() {
       room_id INTEGER NOT NULL REFERENCES rooms(id),
       user_id INTEGER NOT NULL REFERENCES users(id),
       role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('owner','member')),
+      access_level TEXT NOT NULL DEFAULT 'readandwrite' CHECK(access_level IN ('readonly','readandwrite','post_docs')),
       joined_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (room_id, user_id)
     );
@@ -168,12 +172,29 @@ function migrate(db) {
   };
 
   safeAdd('users', 'avatar_url', 'TEXT');
+  safeAdd('users', 'chat_color_index', 'INTEGER');
+  try {
+    const usersWithoutColor = db.prepare("SELECT id FROM users WHERE chat_color_index IS NULL AND role != 'admin' ORDER BY id").all();
+    usersWithoutColor.forEach((u, i) => {
+      db.prepare('UPDATE users SET chat_color_index = ? WHERE id = ?').run(i % 8, u.id);
+    });
+    if (usersWithoutColor.length > 0) {
+      console.log(`[DB] Backfilled chat_color_index for ${usersWithoutColor.length} users`);
+    }
+  } catch {}
   safeAdd('rooms', 'is_archived', 'INTEGER NOT NULL DEFAULT 0');
+  safeAdd('room_members', 'access_level', "TEXT NOT NULL DEFAULT 'readandwrite'");
   safeAdd('messages', 'file_url', 'TEXT');
   safeAdd('messages', 'file_name', 'TEXT');
   safeAdd('messages', 'is_edited', 'INTEGER NOT NULL DEFAULT 0');
   safeAdd('invitations', 'default_permissions', "TEXT DEFAULT '{}'");
   safeAdd('invitations', 'note', 'TEXT');
+  safeAdd('invitations', 'token', 'TEXT');
+  safeAdd('invitations', 'nume', 'TEXT');
+  safeAdd('invitations', 'prenume', 'TEXT');
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_invitations_token ON invitations(token) WHERE token IS NOT NULL');
+  } catch {}
 
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS app_settings (
@@ -236,15 +257,21 @@ function seed(db) {
     `INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)`
   ).run('admin', 'Victor Safta', adminHash, 'admin');
 
+  const vic1Hash = bcrypt.hashSync('vic1123', 12);
+  const vic1Result = db.prepare(
+    `INSERT INTO users (username, display_name, password_hash, role, chat_color_index) VALUES (?, ?, ?, ?, 1)`
+  ).run('vic1', 'Safta Victor', vic1Hash, 'user');
+
   const agentResult = db.prepare(
     `INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)`
   ).run('claude', 'Claude AI Analyst', agentHash, 'agent');
 
   const claudiuResult = db.prepare(
-    `INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)`
+    `INSERT INTO users (username, display_name, password_hash, role, chat_color_index) VALUES (?, ?, ?, ?, 2)`
   ).run('claudiu', 'Claudiu Safta', claudiuHash, 'user');
 
   const adminId = adminResult.lastInsertRowid;
+  const vic1Id = vic1Result.lastInsertRowid;
   const agentId = agentResult.lastInsertRowid;
   const claudiuId = claudiuResult.lastInsertRowid;
 
@@ -261,9 +288,11 @@ function seed(db) {
 
   const addMember = db.prepare(`INSERT INTO room_members (room_id, user_id, role) VALUES (?, ?, ?)`);
   addMember.run(generalRoom.lastInsertRowid, adminId, 'owner');
+  addMember.run(generalRoom.lastInsertRowid, vic1Id, 'member');
   addMember.run(generalRoom.lastInsertRowid, agentId, 'member');
   addMember.run(generalRoom.lastInsertRowid, claudiuId, 'member');
   addMember.run(bizRoom.lastInsertRowid, adminId, 'owner');
+  addMember.run(bizRoom.lastInsertRowid, vic1Id, 'member');
   addMember.run(bizRoom.lastInsertRowid, agentId, 'member');
   addMember.run(bizRoom.lastInsertRowid, claudiuId, 'member');
 

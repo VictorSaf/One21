@@ -61,6 +61,15 @@ router.post('/:id/upload', checkPermission('can_send_files'), upload.single('fil
     fs.unlinkSync(req.file.path);
     return res.status(403).json({ error: 'Not a member of this room' });
   }
+  if (req.user.role !== 'admin') {
+    const accessLevel = ['readonly', 'readandwrite', 'post_docs'].includes(membership.access_level)
+      ? membership.access_level
+      : 'readandwrite';
+    if (accessLevel === 'readonly') {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ error: 'This room is read-only for your account.' });
+    }
+  }
 
   const fileUrl = `/api/files/${req.file.filename}`;
   const isImage = req.file.mimetype.startsWith('image/');

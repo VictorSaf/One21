@@ -1,5 +1,6 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const { isTokenRevoked } = require('../lib/jwt-revoke');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'one21-dev-secret-change-in-prod';
 
@@ -10,7 +11,11 @@ function authMiddleware(req, res, next) {
   }
   try {
     const token = header.slice(7);
-    req.user = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (isTokenRevoked(payload)) {
+      return res.status(401).json({ error: 'Token revoked' });
+    }
+    req.user = payload;
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });

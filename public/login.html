@@ -101,7 +101,7 @@
 
       localStorage.setItem('one21_token', data.token);
       localStorage.setItem('one21_user', JSON.stringify(data.user));
-      window.location.href = '/one21/hey';
+      window.location.href = '/one21/login';
     } catch (err) {
       showError('Connection error');
       btn.disabled = false;
@@ -109,7 +109,7 @@
   });
 
   if (window.self === window.top && localStorage.getItem('one21_token')) {
-    window.location.href = '/one21/hey';
+    window.location.href = '/one21/login';
   }
 </script>
 <script src="/js/install-banner.js"></script>

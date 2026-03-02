@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../db/init');
 const { agentMiddleware } = require('../middleware/agent');
+const { addAgentMemory, searchAgentMemory } = require('../lib/vectorstore');
 
 const router = express.Router();
 router.use(agentMiddleware);
@@ -47,6 +48,41 @@ router.get('/messages', (req, res) => {
   res.json({ messages, last_id: lastId, has_more: messages.length === limit });
 });
 
+// GET /api/agent/memory?q=...&room=ID&k=10
+// Semantic memory retrieval for this agent only
+router.get('/memory', async (req, res) => {
+  const db = getDb();
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const roomId = req.query.room ? String(req.query.room).trim() : null;
+  const k = Math.min(parseInt(req.query.k, 10) || 10, 25);
+  const ttlDays = Math.min(parseInt(req.query.ttl_days, 10) || 30, 365);
+
+  if (!query || query.length < 2) {
+    return res.status(400).json({ error: 'q must be at least 2 characters' });
+  }
+
+  if (roomId) {
+    const membership = db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, req.agentUser.id);
+    if (!membership) return res.status(403).json({ error: 'Agent not member of this room' });
+  }
+
+  try {
+    const results = await searchAgentMemory(req.agentUser.username, query, {
+      k,
+      filters: roomId ? { room_id: roomId } : null,
+      ttl_days: ttlDays,
+    });
+    return res.json({
+      results,
+      agent: req.agentUser.username,
+      room_id: roomId,
+      ttl_days: ttlDays,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Memory search failed', detail: err.message });
+  }
+});
+
 // POST /api/agent/send — send message as this agent
 router.post('/send', (req, res) => {
   const db = getDb();
@@ -75,6 +111,20 @@ router.post('/send', (req, res) => {
   if (req.app.get('io')) {
     req.app.get('io').to(`room:${room_id}`).emit('message', message);
   }
+
+  // Persist this agent's own output to its semantic memory store
+  setImmediate(() => {
+    addAgentMemory(req.agentUser.username, text.trim(), {
+      message_id: result.lastInsertRowid,
+      room_id,
+      sender_id: req.agentUser.id,
+      sender: req.agentUser.display_name || req.agentUser.username,
+      sender_username: req.agentUser.username,
+      sender_role: req.agentUser.role,
+      memory_type: 'agent_output',
+      ts: new Date().toISOString(),
+    }).catch(() => {});
+  });
 
   res.json({ message });
 });

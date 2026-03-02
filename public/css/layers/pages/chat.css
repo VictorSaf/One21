@@ -37,4 +37,22 @@
     box-sizing: border-box;
   }
   .modal__textarea:focus { border-color: var(--border-accent); }
+
+  /* ── Message bubble background colors in group (differentiate users) ── */
+  .msg--received.msg--color-0 { background: var(--accent-muted); border-left-color: var(--accent); }
+  .msg--received.msg--color-1 { background: var(--purple-muted); border-left-color: var(--purple); }
+  .msg--received.msg--color-2 { background: var(--accent-anim-bg-05); border-left-color: var(--online); }
+  .msg--received.msg--color-3 { background: var(--warning-muted); border-left-color: var(--warning); }
+  .msg--received.msg--color-4 { background: var(--info-muted); border-left-color: var(--info); }
+  .msg--received.msg--color-5 { background: var(--accent-anim-bg-06); border-left-color: var(--text-accent); }
+  .msg--received.msg--color-6 { background: var(--accent-anim-bg-08); border-left-color: var(--accent-dim); }
+  .msg--received.msg--color-7 { background: var(--danger-muted); border-left-color: var(--error); }
+  .msg--sent.msg--color-0 { background: var(--accent-anim-bg-12); border-right-color: var(--accent); }
+  .msg--sent.msg--color-1 { background: var(--purple-muted); border-right-color: var(--purple); }
+  .msg--sent.msg--color-2 { background: var(--accent-anim-bg-08); border-right-color: var(--online); }
+  .msg--sent.msg--color-3 { background: var(--warning-muted); border-right-color: var(--warning); }
+  .msg--sent.msg--color-4 { background: var(--info-muted); border-right-color: var(--info); }
+  .msg--sent.msg--color-5 { background: var(--accent-anim-bg-06); border-right-color: var(--text-accent); }
+  .msg--sent.msg--color-6 { background: var(--accent-anim-bg-08); border-right-color: var(--accent-dim); }
+  .msg--sent.msg--color-7 { background: var(--danger-muted); border-right-color: var(--error); }
 }
