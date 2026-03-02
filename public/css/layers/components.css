@@ -649,6 +649,27 @@ textarea.input {
 }
 .chat-item--active .chat-item__prefix { color: var(--accent); }
 
+/* -- Live_Node type modifiers ----------------------------------------- */
+/* Channel (General) -- always-on gold accent */
+.chat-item--channel .chat-item__prefix { color: var(--accent); }
+.chat-item--channel .chat-item__name   { color: var(--text-accent); }
+
+/* Cult -- purple indicator */
+.chat-item--cult { border-left-color: var(--purple) !important; }
+.chat-item--cult .chat-item__prefix { color: var(--purple); }
+.chat-item--cult:hover { border-left-color: var(--purple) !important; }
+.chat-item--cult.chat-item--active { border-left-color: var(--purple) !important; }
+.chat-item--cult.chat-item--active .chat-item__name  { color: var(--purple); }
+.chat-item--cult.chat-item--active .chat-item__prefix { color: var(--purple); }
+
+/* Private -- warm amber indicator */
+.chat-item--private { border-left-color: var(--warning) !important; }
+.chat-item--private .chat-item__prefix { color: var(--warning); }
+.chat-item--private:hover { border-left-color: var(--warning) !important; }
+.chat-item--private.chat-item--active { border-left-color: var(--warning) !important; }
+.chat-item--private.chat-item--active .chat-item__name   { color: var(--warning); }
+.chat-item--private.chat-item--active .chat-item__prefix { color: var(--warning); }
+
 
 /* === 8. PANEL HEADER === */
 @keyframes header-border-shimmer {

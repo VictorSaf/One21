@@ -25,7 +25,7 @@ function assignRoomColor(db, roomId) {
 const createSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(200).optional(),
-  type: z.enum(['direct', 'group', 'channel']).optional(),
+  type: z.enum(['group', 'channel']).optional(),
   member_ids: z.array(z.number().int().positive()).optional(),
   member_access: z.record(z.string(), z.enum(['readonly', 'readandwrite', 'post_docs'])).optional(),
 });
@@ -41,13 +41,23 @@ router.get('/', (req, res) => {
   const db = getDb();
   const rooms = db.prepare(`
     SELECT r.*, rm.role as my_role, rm.access_level as my_access_level,
+      CASE WHEN r.type = 'private'
+        THEN (
+          SELECT u.display_name FROM room_members rm2
+          JOIN users u ON u.id = rm2.user_id
+          WHERE rm2.room_id = r.id AND rm2.user_id != rm.user_id
+          LIMIT 1
+        )
+        ELSE r.name
+      END as display_name,
       (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
-      (SELECT m.text FROM messages m WHERE m.room_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
-      (SELECT m.created_at FROM messages m WHERE m.room_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
-      (SELECT u.display_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
+      (SELECT m.text FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message,
+      (SELECT m.created_at FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+      (SELECT u.display_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
       (SELECT COUNT(*) FROM messages m
        WHERE m.room_id = r.id
          AND m.sender_id != ?
+         AND (m.recipient_id IS NULL OR m.recipient_id = rm.user_id)
          AND m.id NOT IN (SELECT message_id FROM message_reads WHERE user_id = ?)) as unread_count
     FROM rooms r
     JOIN room_members rm ON r.id = rm.room_id AND rm.user_id = ?
@@ -57,48 +67,9 @@ router.get('/', (req, res) => {
   res.json({ rooms });
 });
 
-// POST /api/rooms/direct — find or create DM between current user and another user
+// POST /api/rooms/direct — deprecated; direct messages replaced by whispers in General
 router.post('/direct', (req, res) => {
-  const { participant_id } = req.body;
-  if (!participant_id || typeof participant_id !== 'number') {
-    return res.status(400).json({ error: 'participant_id required' });
-  }
-  if (participant_id === req.user.id) {
-    return res.status(400).json({ error: 'Cannot DM yourself' });
-  }
-  const db = getDb();
-
-  // Find existing DM
-  const existing = db.prepare(`
-    SELECT r.id FROM rooms r
-    JOIN room_members rm1 ON r.id = rm1.room_id AND rm1.user_id = ?
-    JOIN room_members rm2 ON r.id = rm2.room_id AND rm2.user_id = ?
-    WHERE r.type = 'direct'
-    LIMIT 1
-  `).get(req.user.id, participant_id);
-
-  if (existing) {
-    const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(existing.id);
-    return res.json({ room });
-  }
-
-  // Create new DM
-  const other = db.prepare('SELECT id, display_name FROM users WHERE id = ?').get(participant_id);
-  if (!other) return res.status(404).json({ error: 'User not found' });
-
-  const roomId = db.transaction(() => {
-    const r = db.prepare(
-      "INSERT INTO rooms (name, type, created_by) VALUES (?, 'direct', ?)"
-    ).run(`dm-${req.user.id}-${participant_id}`, req.user.id);
-    const id = r.lastInsertRowid;
-    const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)');
-    add.run(id, req.user.id, 'member', 'readandwrite', 0);
-    add.run(id, participant_id, 'member', 'readandwrite', 1);
-    return id;
-  })();
-
-  const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
-  res.json({ room });
+  return res.status(410).json({ error: 'Direct messages sunt dezactivate. Folosește @username în General pentru mesaje private.' });
 });
 
 // POST /api/rooms — create room

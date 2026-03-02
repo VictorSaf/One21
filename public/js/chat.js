@@ -74,12 +74,9 @@
         if (document.hasFocus()) socket.emit('mark_read', { message_id: msg.id });
       }
       updateRoomPreview(msg);
-      // Auto-redirect to DM if message is in a direct room we're not viewing
-      if (msg.room_id !== currentRoomId && msg.sender_id !== user.id) {
-        const room = rooms.find(r => r.id === msg.room_id);
-        if (room && room.type === 'direct') {
-          selectRoom(msg.room_id);
-        }
+      // Auto-navigate to room if we receive a whisper directed at us
+      if (msg.room_id !== currentRoomId && msg.recipient_id === user.id) {
+        selectRoom(msg.room_id);
       }
     });
 
@@ -148,20 +145,30 @@
 
   function roomItemHtml(room) {
     const isActive = room.id === currentRoomId;
+    const label = room.display_name || room.name;
     const preview = room.last_message
       ? `${room.last_message_sender ? room.last_message_sender + ': ' : ''}${truncate(room.last_message, 35)}`
       : '> no_transmissions';
     const unread = (room.unread_count > 0 && !isActive)
       ? `<span class="badge badge--accent">${room.unread_count > 99 ? '99+' : room.unread_count}</span>`
       : '';
-    // Type prefix: # for group/channel, @ for direct
-    const prefix = room.type === 'direct' ? '@' : '#';
+
+    // Icon and modifier class per Live_Node type
+    const typeConfig = {
+      channel: { icon: '\u25A0', mod: 'chat-item--channel' },
+      group:   { icon: '#', mod: 'chat-item--group'   },
+      cult:    { icon: '\u2B21', mod: 'chat-item--cult'    },
+      private: { icon: '@', mod: 'chat-item--private'  },
+      direct:  { icon: '@', mod: ''                   },
+    };
+    const { icon, mod } = typeConfig[room.type] || { icon: '#', mod: '' };
+
     return `
-      <div class="chat-item ${isActive ? 'chat-item--active' : ''}" data-room-id="${room.id}">
-        <span class="chat-item__prefix">${prefix}</span>
+      <div class="chat-item ${mod} ${isActive ? 'chat-item--active' : ''}" data-room-id="${room.id}" data-room-type="${room.type}">
+        <span class="chat-item__prefix">${icon}</span>
         <div class="chat-item__body">
           <div class="chat-item__header">
-            <span class="chat-item__name">${esc(room.name)}</span>
+            <span class="chat-item__name">${esc(label)}</span>
             <span class="chat-item__time">${room.last_message_at ? formatTime(room.last_message_at) : ''}</span>
           </div>
           <div class="chat-item__preview">
@@ -323,6 +330,11 @@
       ? `<span class="msg__sender">${esc(senderName)}</span>`
       : '';
 
+    const isWhisper = !!msg.recipient_id;
+    const whisperLabelHtml = isWhisper
+      ? `<span class="msg__whisper-label">🔒 ${isMine ? `→ @${esc(msg.recipient_username || '')}` : 'privat'}</span>`
+      : '';
+
     const EMOJIS = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
     const dropdownHtml = `
       <button class="msg__menu-btn" title="Acțiuni">▾</button>
@@ -338,14 +350,15 @@
         </div>
         <hr class="msg__dropdown-divider">
         <button class="msg__dropdown-item msg__dropdown-reply">↩ Reply</button>
-        ${!isMine ? `<button class="msg__dropdown-item msg__dropdown-dm">→ Private chat</button>` : ''}
+        ${!isMine ? `<button class="msg__dropdown-item msg__dropdown-whisper">🔒 Whisper</button>` : ''}
       </div>`;
     const reactionBarHtml = `<div class="msg__reactions" id="reactions-${msg.id}"></div>`;
 
     if (isMine) {
-      el.className = 'msg msg--sent' + colorClass;
+      el.className = 'msg msg--sent' + colorClass + (isWhisper ? ' msg--whisper' : '');
       el.innerHTML = `
         ${senderHtml}
+        ${whisperLabelHtml}
         ${buildReplyQuoteHtml(msg)}
         ${contentHtml}
         <div class="msg__meta">
@@ -359,10 +372,11 @@
         </div>
         ${reactionBarHtml}`;
     } else {
-      el.className = 'msg msg--received' + colorClass;
+      el.className = 'msg msg--received' + colorClass + (isWhisper ? ' msg--whisper' : '');
       el.innerHTML = `
         ${dropdownHtml}
         ${senderHtml}
+        ${whisperLabelHtml}
         ${buildReplyQuoteHtml(msg)}
         ${contentHtml}
         <div class="msg__meta">
@@ -427,14 +441,15 @@
       });
     }
 
-    // ── Private chat
-    const dmBtn = el.querySelector('.msg__dropdown-dm');
-    if (dmBtn) {
-      dmBtn.addEventListener('click', (e) => {
+    // ── Whisper: inject @username into compose and focus
+    const whisperBtn = el.querySelector('.msg__dropdown-whisper');
+    if (whisperBtn) {
+      whisperBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         el.classList.remove('msg--menu-open');
         const dd = el.querySelector('.msg__dropdown');
-        openPrivateChat(parseInt(dd.dataset.senderId));
+        composeInput.value = `@${dd.dataset.senderName} `;
+        composeInput.focus();
       });
     }
 
@@ -631,25 +646,10 @@
   }
 
   // ═══════════════════════════════════════
-  // PRIVATE CHAT (DM from context menu)
+  // WHISPER (private message via @username in General)
   // ═══════════════════════════════════════
-  async function openPrivateChat(userId) {
-    const data = await Auth.api('/api/rooms/direct', {
-      method: 'POST',
-      body: JSON.stringify({ participant_id: userId })
-    });
-    if (!data || !data.room) return;
-    const room = data.room;
-
-    // Navigate to the DM room — try sidebar click first, reload if not present
-    const existing = document.querySelector(`[data-room-id="${room.id}"]`);
-    if (existing) {
-      selectRoom(room.id);
-    } else {
-      await loadRooms();
-      selectRoom(room.id);
-    }
-  }
+  // Whispers are handled server-side: send @username text in a channel room.
+  // This function is no longer needed — whisperBtn injects @username directly.
 
   // ═══════════════════════════════════════
   // DELETE MESSAGE
