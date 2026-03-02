@@ -1,6 +1,6 @@
 # Project Map — ONE21
 
-> Auto-generated overview. Last updated: 2026-02-26
+> Auto-generated overview. Last updated: 2026-03-02
 
 ## Tech Stack
 
@@ -14,7 +14,7 @@
 | **File upload** | `multer` → `uploads/` |
 | **Push notif** | `web-push` (VAPID) |
 | **Vector search** | `hnswlib-node` + `@xenova/transformers` + LanceDB |
-| **Input validation** | `zod` (parțial — auth + rooms + messages) |
+| **Input validation** | `zod` v4 (parțial — auth + rooms + messages) |
 | **Process manager** | PM2 (`ecosystem.config.js`) |
 | **Reverse proxy** | Caddy (`Caddyfile`) |
 | **Frontend** | Vanilla JS + CSS @layer cascade system |
@@ -163,10 +163,10 @@ onechat/
 
 ### WebSocket Events (Socket.IO)
 **Client → Server:**
-`message`, `typing`, `join_room`, `leave_room`, `message_edit`, `message_delete`, `mark_read`, `room_updated`, `member_added`, `member_removed`
+`message`, `typing`, `join_room`, `leave_room`, `message_edit`, `message_delete`, `mark_read`, `upload_progress`, `room_updated`, `member_added`, `member_removed`
 
 **Server → Client:**
-`message`, `message_edited`, `message_deleted`, `message_read`, `typing`, `user_online`, `user_offline`, `member_added`, `member_removed`, `room_updated`, `joined_room`, `error`
+`message`, `message_edited`, `message_deleted`, `message_read`, `typing`, `upload_progress`, `user_online`, `user_offline`, `member_added`, `member_removed`, `room_updated`, `joined_room`, `error`
 
 ---
 
@@ -247,8 +247,11 @@ npm run pm2:logs     # Logs live
 
 - Auth JWT cu invite-only onboarding (coduri + link-uri token + QR)
 - Camere `direct`, `group`, `channel` (channel = broadcast unidirecțional admin→membri)
-- Mesagerie real-time Socket.IO: edit, delete, reply, read receipts, typing
-- Upload/download fișiere (multer, acces autentificat)
+- Mesagerie real-time Socket.IO: edit, delete, reply, read receipts, typing, reactions
+- Upload/download fișiere (multer, acces autentificat, Socket.IO broadcast)
+- Client-side image compression (Canvas API, max 1280px, JPEG 0.82)
+- Live upload progress bar (socket broadcast to room members)
+- DM auto-redirect (incoming DM switches to that conversation)
 - Agent AI integrat — trimite mesaje, citește rooms, memory semantică
 - Semantic search cu embeddings locale + HNSWLib
 - Agent memory (LanceDB) — context persistent per agent
@@ -266,8 +269,8 @@ npm run pm2:logs     # Logs live
 ### Prioritate înaltă
 | # | Problemă | Fișier | Impact |
 |---|----------|--------|--------|
-| 1 | **`server.js` monolitic** — 180+ linii de Socket.IO event handlers inline | `server.js:100-290` | Mentenanță grea |
-| 2 | **`chat.js` monolitic** — 774 linii fără module | `public/js/chat.js` | Scalabilitate zero |
+| 1 | **`server.js` monolitic** — Socket.IO handlers already extracted to `socket/handlers/` but server.js still ~107 lines | `server.js` | Moderate |
+| 2 | **`chat.js` monolitic** — ~850 linii fără module (grew with compression + upload progress) | `public/js/chat.js` | Scalabilitate zero |
 | 3 | **Agent route fără JWT** — dacă `AGENT_SECRET` nu e setat în `.env`, `/api/agent/*` e deschis | `routes/agent.js` | **Securitate** |
 | 4 | **Migrări fără versioning** — `migrate()` e un bloc de ALTER TABLE, fără rollback | `db/init.js` | Risc la deploy |
 
@@ -275,7 +278,7 @@ npm run pm2:logs     # Logs live
 | # | Problemă | Detaliu |
 |---|----------|---------|
 | 5 | **Routing suprapus** — `messageRoutes` și `roomRoutes` mount-ate ambele pe `/api/rooms` | `server.js:101-106` |
-| 6 | **Validare Zod incompletă** — lipsește în `admin.js`, `agent.js`, `files.js` | Inconsistență |
+| 6 | **Validare Zod incompletă** — lipsește în `admin.js`, `agent.js`, `files.js` | Inconsistență (Zod v4 `.issues` fix applied to existing routes) |
 | 7 | **No profile page** — userul nu poate edita display name, avatar, parolă proprie | UX gap |
 
 ### Prioritate scăzută
