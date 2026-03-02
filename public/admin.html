@@ -2598,6 +2598,7 @@ function setupThemeTokensResize() {
 
 // ── Init ──────────────────────────────────────────
 loadOverview();
+Auth.api('/api/admin/rooms').then(d => { window._adminRooms = d && d.rooms ? d.rooms : []; });
 setupThemeTokensResize();
 setupThemePreviewIframe();
 </script>

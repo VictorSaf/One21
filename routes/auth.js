@@ -105,6 +105,10 @@ router.post('/register', (req, res) => {
       const allRooms = db.prepare("SELECT id FROM rooms WHERE type IN ('channel', 'group') AND is_archived = 0").all();
       roomAssignments = allRooms.map(r => ({ id: r.id, access_level: 'readandwrite' }));
     }
+    const validRoomIds = new Set(
+      db.prepare("SELECT id FROM rooms WHERE type IN ('channel','group') AND is_archived = 0").all().map(r => r.id)
+    );
+    roomAssignments = roomAssignments.filter(rm => validRoomIds.has(rm.id));
     const addMember = db.prepare(
       'INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)'
     );
