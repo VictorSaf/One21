@@ -138,9 +138,7 @@
     socket.on('reaction_update', ({ message_id, reactions }) => {
       const bar = document.getElementById(`reactions-${message_id}`);
       if (!bar) return;
-      bar.innerHTML = reactions.length
-        ? reactions.map(r => `<span class="msg__reaction-chip">${r.emoji} <span class="msg__reaction-count">${r.count}</span></span>`).join('')
-        : '';
+      bar.innerHTML = buildReactionChips(reactions);
     });
   }
 
@@ -312,6 +310,12 @@
     </div>`;
   }
 
+  function buildReactionChips(reactions) {
+    return reactions.map(r =>
+      `<span class="msg__reaction-chip">${esc(String(r.emoji))} <span class="msg__reaction-count">${esc(String(r.count))}</span></span>`
+    ).join('');
+  }
+
   function buildMessageEl(msg) {
     const el = document.createElement('div');
     const isMine = msg.sender_id === user.id;
@@ -423,9 +427,7 @@
     if (msg.reactions && msg.reactions.length) {
       const rbar = el.querySelector('.msg__reactions');
       if (rbar) {
-        rbar.innerHTML = msg.reactions.map(r =>
-          `<span class="msg__reaction-chip">${r.emoji} <span class="msg__reaction-count">${r.count}</span></span>`
-        ).join('');
+        rbar.innerHTML = buildReactionChips(msg.reactions);
       }
     }
 
