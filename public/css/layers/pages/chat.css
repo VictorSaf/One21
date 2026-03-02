@@ -55,4 +55,102 @@
   .msg--sent.msg--color-5 { background: var(--accent-anim-bg-06); border-right-color: var(--text-accent); }
   .msg--sent.msg--color-6 { background: var(--accent-anim-bg-08); border-right-color: var(--accent-dim); }
   .msg--sent.msg--color-7 { background: var(--danger-muted); border-right-color: var(--error); }
+
+  /* ── Message context menu ─────────────────────────── */
+  .msg-menu {
+    position: fixed;
+    z-index: var(--z-dropdown);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--sp-2);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base) 60%, transparent);
+    padding: var(--sp-1) 0;
+    min-width: 140px;
+    display: none;
+  }
+  .msg-menu.is-open { display: block; }
+  .msg-menu__item {
+    display: block;
+    width: 100%;
+    padding: var(--sp-2) var(--sp-3);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+    font-family: var(--font-mono);
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .msg-menu__item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* ── Reply bar (above compose) ────────────────────── */
+  .reply-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-3);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-dim);
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+  }
+  .reply-bar__label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .reply-bar__label strong {
+    color: var(--text-accent);
+  }
+  .reply-bar__cancel {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: var(--font-sm);
+    padding: 0 var(--sp-1);
+    line-height: 1;
+  }
+  .reply-bar__cancel:hover { color: var(--text-primary); }
+
+  /* ── Quoted block inside bubble ───────────────────── */
+  .msg__reply-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-1) var(--sp-2);
+    margin-bottom: var(--sp-1);
+    border-left: 2px solid var(--border-accent);
+    background: color-mix(in srgb, var(--bg-base) 40%, transparent);
+    border-radius: 2px var(--sp-1) var(--sp-1) 2px;
+    cursor: pointer;
+    font-size: var(--font-xs);
+  }
+  .msg__reply-quote:hover { background: color-mix(in srgb, var(--accent-dim) 20%, transparent); }
+  .msg__reply-quote__sender {
+    color: var(--text-accent);
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+  .msg__reply-quote__text {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 280px;
+  }
+
+  /* ── Highlight flash on scroll-to ────────────────── */
+  @keyframes msg-highlight-flash {
+    0%   { outline: 2px solid var(--accent); outline-offset: 2px; }
+    80%  { outline: 2px solid var(--accent); outline-offset: 2px; }
+    100% { outline: none; }
+  }
+  .msg--highlight { animation: msg-highlight-flash 1.2s ease-out forwards; }
 }
