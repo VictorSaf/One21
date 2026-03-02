@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'one21-v4';
+const CACHE_VERSION = 'one21-v5';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
 // Only pre-cache static assets — HTML pages use network-first (see fetch handler)
@@ -63,6 +63,9 @@ self.addEventListener('fetch', function (e) {
     );
     return;
   }
+
+  // JS files — never cache in SW; let browser HTTP cache handle them
+  if (url.pathname.endsWith('.js')) return;
 
   // Static assets: cache-first (CSS, images, fonts)
   e.respondWith(

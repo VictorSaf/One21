@@ -152,11 +152,29 @@
   // ROOMS
   // ═══════════════════════════════════════
   async function loadRooms() {
+    // Render immediately from localStorage cache — eliminates home-screen flash on refresh
+    const cached = localStorage.getItem('one21_rooms');
+    if (cached) {
+      try {
+        rooms = JSON.parse(cached);
+        renderSidebar();
+        const lastId = parseInt(localStorage.getItem('one21_last_room'));
+        const target = (lastId && rooms.find(r => r.id === lastId)) ? lastId : (rooms[0] && rooms[0].id);
+        if (target) selectRoom(target);
+      } catch (_) { /* corrupt cache — fall through to network */ }
+    }
+
+    // Fetch fresh data; update sidebar silently in background
     const data = await Auth.api('/api/rooms');
     if (!data) return;
     rooms = data.rooms;
+    localStorage.setItem('one21_rooms', JSON.stringify(rooms));
     renderSidebar();
-    if (rooms.length > 0 && !currentRoomId) selectRoom(rooms[0].id);
+    if (rooms.length > 0 && !currentRoomId) {
+      selectRoom(rooms[0].id);
+    } else if (rooms.length === 0 && !currentRoomId) {
+      if (window.showHomeScreen) window.showHomeScreen(true);
+    }
   }
 
   function renderSidebar() {
@@ -207,6 +225,7 @@
 
   async function selectRoom(roomId) {
     currentRoomId = roomId;
+    localStorage.setItem('one21_last_room', roomId);
     editingMsgId = null;
     cancelEdit();
     // Show chat, hide home dashboard

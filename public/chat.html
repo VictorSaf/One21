@@ -128,7 +128,7 @@
     </div>
 
     <!-- ── Home Dashboard (shown when no room selected) ── -->
-    <div class="home-screen" id="homeScreen">
+    <div class="home-screen hidden" id="homeScreen">
       <span class="home-screen__label">SYSTEM_HUB // ONE_21</span>
       <h1 class="home-screen__title">
         <span class="home-screen__title-line1">NEURAL CONTROL</span>
@@ -424,8 +424,8 @@ window.showHomeScreen = function(show) {
   }
 };
 
-// Start with home screen
-window.showHomeScreen(true);
+// Show home screen only if no cached rooms — avoids flash on refresh
+if (!localStorage.getItem('one21_rooms')) window.showHomeScreen(true);
 
 // ─── Home feed: populate with a few startup log entries ───
 (function initHomeFeed() {

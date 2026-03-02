@@ -19,6 +19,8 @@ function register(io, socket, db) {
   for (const m of memberships) {
     socket.join(`room:${m.room_id}`);
   }
+  // Personal room for targeted whisper delivery
+  socket.join(`user:${socket.user.id}`);
 
   // Disconnect
   socket.on('disconnect', () => {

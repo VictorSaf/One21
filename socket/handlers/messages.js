@@ -53,11 +53,28 @@ function register(io, socket, db) {
       }
     }
 
-    // Channel: doar admin poate trimite
+    // Channel: non-admin must use @username prefix (whisper)
     const room = db.prepare('SELECT type FROM rooms WHERE id = ?').get(room_id);
+    let recipientId = null;
+    let actualText = text.trim();
+
     if (room?.type === 'channel' && socket.user.role !== 'admin') {
-      socket.emit('error', { message: 'Doar admin poate trimite în acest canal.' });
-      return;
+      const match = actualText.match(/^@(\S+)\s+([\s\S]+)$/);
+      if (!match) {
+        socket.emit('error', { message: 'Folosește @username mesaj pentru un mesaj privat în acest canal.' });
+        return;
+      }
+      const targetUser = db.prepare('SELECT id FROM users WHERE username = ?').get(match[1]);
+      if (!targetUser) {
+        socket.emit('error', { message: `Utilizatorul @${match[1]} nu există.` });
+        return;
+      }
+      if (targetUser.id === socket.user.id) {
+        socket.emit('error', { message: 'Nu poți trimite mesaj privat ție însuți.' });
+        return;
+      }
+      recipientId = targetUser.id;
+      actualText = match[2].trim();
     }
 
     // Limită mesaje/zi
@@ -89,20 +106,20 @@ function register(io, socket, db) {
     }
 
     const result = db.prepare(
-      'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
-    ).run(room_id, socket.user.id, text.trim(), type || 'text', reply_to || null);
+      'INSERT INTO messages (room_id, sender_id, text, type, reply_to, recipient_id) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(room_id, socket.user.id, actualText, type || 'text', reply_to || null, recipientId);
 
     // Vectorizare (fire-and-forget)
     setImmediate(() => {
       const ts = new Date().toISOString();
-      addDocument('messages', text.trim(), {
+      addDocument('messages', actualText, {
         message_id: result.lastInsertRowid,
         room_id,
         sender_id: socket.user.id,
         sender: socket.user.display_name || socket.user.username,
         ts,
       }).catch(() => {});
-      queueAgentRoomMemory(db, room_id, text.trim(), {
+      queueAgentRoomMemory(db, room_id, actualText, {
         message_id: result.lastInsertRowid,
         sender_id: socket.user.id,
         sender: socket.user.display_name || socket.user.username,
@@ -116,33 +133,50 @@ function register(io, socket, db) {
     const message = db.prepare(`
       SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
              COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
-             reply_m.text as reply_to_text, ru.display_name as reply_to_sender
+             reply_m.text as reply_to_text, ru.display_name as reply_to_sender,
+             rec.username as recipient_username, rec.display_name as recipient_name
       FROM messages m
       JOIN users u ON m.sender_id = u.id
       LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
       LEFT JOIN messages reply_m ON reply_m.id = m.reply_to
       LEFT JOIN users ru ON ru.id = reply_m.sender_id
+      LEFT JOIN users rec ON rec.id = m.recipient_id
       WHERE m.id = ?
     `).get(result.lastInsertRowid);
 
-    io.to(`room:${room_id}`).emit('message', message);
-
-    // Push notif pentru useri offline
-    const offlineMembers = db.prepare(`
-      SELECT u.id FROM room_members rm
-      JOIN users u ON rm.user_id = u.id
-      WHERE rm.room_id = ? AND u.id != ? AND u.is_online = 0
-    `).all(room_id, socket.user.id);
+    if (recipientId) {
+      io.to(`user:${socket.user.id}`).to(`user:${recipientId}`).emit('message', message);
+    } else {
+      io.to(`room:${room_id}`).emit('message', message);
+    }
 
     const senderName = socket.user.display_name || socket.user.username;
-    const roomName = db.prepare('SELECT name FROM rooms WHERE id = ?').get(room_id)?.name || 'One21';
-    for (const member of offlineMembers) {
-      notifyUser(member.id, {
-        title: `${senderName} în ${roomName}`,
-        body:  text.trim().slice(0, 100),
-        tag:   `room-${room_id}`,
-        url:   '/chat.html',
-      }).catch(() => {});
+    if (recipientId) {
+      // Push only to recipient if offline
+      const recipient = db.prepare('SELECT id, is_online FROM users WHERE id = ?').get(recipientId);
+      if (recipient && !recipient.is_online) {
+        notifyUser(recipient.id, {
+          title: `${senderName} (privat)`,
+          body:  actualText.slice(0, 100),
+          tag:   `whisper-${socket.user.id}`,
+          url:   '/chat.html',
+        }).catch(() => {});
+      }
+    } else {
+      const offlineMembers = db.prepare(`
+        SELECT u.id FROM room_members rm
+        JOIN users u ON rm.user_id = u.id
+        WHERE rm.room_id = ? AND u.id != ? AND u.is_online = 0
+      `).all(room_id, socket.user.id);
+      const roomName = db.prepare('SELECT name FROM rooms WHERE id = ?').get(room_id)?.name || 'One21';
+      for (const member of offlineMembers) {
+        notifyUser(member.id, {
+          title: `${senderName} în ${roomName}`,
+          body:  actualText.slice(0, 100),
+          tag:   `room-${room_id}`,
+          url:   '/chat.html',
+        }).catch(() => {});
+      }
     }
   });
 
@@ -152,11 +186,12 @@ function register(io, socket, db) {
     const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(message_id);
     if (!msg || msg.sender_id !== socket.user.id) return;
     db.prepare("UPDATE messages SET text = ?, is_edited = 1 WHERE id = ?").run(text.trim(), message_id);
-    io.to(`room:${msg.room_id}`).emit('message_edited', {
-      message_id,
-      text: text.trim(),
-      room_id: msg.room_id,
-    });
+    const editPayload = { message_id, text: text.trim(), room_id: msg.room_id };
+    if (msg.recipient_id) {
+      io.to(`user:${msg.sender_id}`).to(`user:${msg.recipient_id}`).emit('message_edited', editPayload);
+    } else {
+      io.to(`room:${msg.room_id}`).emit('message_edited', editPayload);
+    }
   });
 
   socket.on('message_delete', (data) => {
@@ -167,10 +202,12 @@ function register(io, socket, db) {
     if (msg.sender_id !== socket.user.id && socket.user.role !== 'admin') return;
     db.prepare('DELETE FROM message_reads WHERE message_id = ?').run(message_id);
     db.prepare('DELETE FROM messages WHERE id = ?').run(message_id);
-    io.to(`room:${msg.room_id}`).emit('message_deleted', {
-      message_id,
-      room_id: msg.room_id,
-    });
+    const deletePayload = { message_id, room_id: msg.room_id };
+    if (msg.recipient_id) {
+      io.to(`user:${msg.sender_id}`).to(`user:${msg.recipient_id}`).emit('message_deleted', deletePayload);
+    } else {
+      io.to(`room:${msg.room_id}`).emit('message_deleted', deletePayload);
+    }
   });
 
   socket.on('mark_read', (data) => {
@@ -209,12 +246,14 @@ function register(io, socket, db) {
     const ALLOWED = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
     if (!ALLOWED.includes(emoji)) return;
 
-    const msg = db.prepare('SELECT room_id FROM messages WHERE id = ?').get(message_id);
+    const msg = db.prepare('SELECT room_id, sender_id, recipient_id FROM messages WHERE id = ?').get(message_id);
     if (!msg) return;
 
     const membership = db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?')
       .get(msg.room_id, socket.user.id);
     if (!membership) return;
+    // Whisper: only sender and recipient can react
+    if (msg.recipient_id && socket.user.id !== msg.sender_id && socket.user.id !== msg.recipient_id) return;
 
     const existing = db.prepare(
       'SELECT 1 FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?'
@@ -232,10 +271,12 @@ function register(io, socket, db) {
       'SELECT emoji, COUNT(*) as count FROM message_reactions WHERE message_id = ? GROUP BY emoji'
     ).all(message_id);
 
-    io.to(`room:${msg.room_id}`).emit('reaction_update', {
-      message_id,
-      reactions: rows,
-    });
+    const reactPayload = { message_id, reactions: rows };
+    if (msg.recipient_id) {
+      io.to(`user:${msg.sender_id}`).to(`user:${msg.recipient_id}`).emit('reaction_update', reactPayload);
+    } else {
+      io.to(`room:${msg.room_id}`).emit('reaction_update', reactPayload);
+    }
   });
 }
 
