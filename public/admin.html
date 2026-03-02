@@ -511,6 +511,14 @@
           </div>
           <p class="invite-join-hint">Completează nume + prenume pentru a genera QR; invitatul răspunde cu prenumele la „Who are you?”</p>
         </div>
+        <!-- Room access picker -->
+        <div class="invite-rooms-block">
+          <div class="perm-row__label">Rooms_Access</div>
+          <p class="invite-join-hint">Selectează camerele la care va avea acces noul user.</p>
+          <div id="invRoomsList" class="invite-rooms-list">
+            <div class="u-dim">Se încarcă camerele…</div>
+          </div>
+        </div>
         <div id="inviteQrBlock" class="invite-qr-block u-hidden">
           <div class="perm-row__label">Link pentru invitat (trimite acest link)</div>
           <p class="invite-join-hint" id="inviteQrUrl"></p>
@@ -771,7 +779,7 @@ document.querySelectorAll('.admin-nav__item[data-page]').forEach(btn => {
   });
 });
 
-function goToChat() { window.location.href = ONE21_BASE ? ONE21_BASE + '/hey' : '/chat.html'; }
+function goToChat() { window.location.href = ONE21_BASE ? ONE21_BASE + '/login' : '/chat.html'; }
 
 // ── RAG Agent floating panel ──────────────────────
 function toggleAgentPanel() {
@@ -922,7 +930,7 @@ async function loadHubCards() {
       const type = btn.dataset.actionType;
       const payload = btn.dataset.actionPayload || '';
       if (type === 'url') window.open(payload, '_blank');
-      else if (type === 'room') window.location.href = (ONE21_BASE ? ONE21_BASE + '/hey' : '/chat.html') + '?room=' + payload;
+      else if (type === 'room') window.location.href = (ONE21_BASE ? ONE21_BASE + '/login' : '/chat.html') + '?room=' + payload;
       else if (type === 'internal_app') {
         if (payload === '#agent') {
           const panel = document.getElementById('agentFloat');
