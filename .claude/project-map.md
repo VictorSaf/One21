@@ -1,188 +1,324 @@
-# Project Map — One21 (OneChat)
+# Project Map — ONE21
 
-> Auto-generated overview of the codebase. Last updated: 2026-02-21
+> Auto-generated overview. Last updated: 2026-02-26
 
 ## Tech Stack
 
-- **Runtime:** Node.js v22.15.0
-- **Backend:** Express.js 5.2.1 + Socket.IO 4.8.3
-- **Database:** SQLite via better-sqlite3 12.6.2 (WAL mode)
-- **Auth:** JWT (jsonwebtoken 9.0.3) + bcryptjs 3.0.3
-- **Frontend:** Vanilla JS (no framework), CSS-only design system
-- **Real-time:** Socket.IO (WebSocket + polling fallback)
-- **Planned infra:** PM2 (process mgr), Caddy (reverse proxy + SSL)
+| Layer | Tehnologie |
+|-------|-----------|
+| **Runtime** | Node.js v25.6.1 |
+| **Framework** | Express.js v5 |
+| **Real-time** | Socket.IO v4 |
+| **Database** | SQLite (`better-sqlite3`) · WAL mode |
+| **Auth** | JWT (`jsonwebtoken`) + `bcryptjs` |
+| **File upload** | `multer` → `uploads/` |
+| **Push notif** | `web-push` (VAPID) |
+| **Vector search** | `hnswlib-node` + `@xenova/transformers` + LanceDB |
+| **Input validation** | `zod` (parțial — auth + rooms + messages) |
+| **Process manager** | PM2 (`ecosystem.config.js`) |
+| **Reverse proxy** | Caddy (`Caddyfile`) |
+| **Frontend** | Vanilla JS + CSS @layer cascade system |
+| **AI integration** | Claude API prin route `/api/agent` |
+
+---
 
 ## Project Structure
 
 ```
-/
-├── server.js              # Express + Socket.IO server (128 lines)
-├── package.json           # Dependencies & metadata
-├── OneChat_Platform_Spec.md  # Full platform specification
-├── conversation.json      # Seed conversation data
-│
+onechat/
+├── server.js              # Entry point: Express + HTTP + Socket.IO (~300 linii)
 ├── db/
-│   ├── init.js            # Schema creation, pragmas, seed data (142 lines)
-│   └── chat.db            # SQLite database + WAL files
-│
-├── middleware/
-│   └── auth.js            # JWT verification + role-based access (29 lines)
-│
+│   └── init.js            # Schema SQLite, migrations inline, seed
 ├── routes/
-│   ├── auth.js            # Login/register/me endpoints (117 lines)
-│   ├── rooms.js           # Room CRUD + membership (94 lines)
-│   ├── messages.js        # Message CRUD + pagination (85 lines)
-│   └── admin.js           # Invite codes + user management (49 lines)
-│
+│   ├── auth.js            # POST /login, /register, GET /me
+│   ├── rooms.js           # CRUD rooms + members
+│   ├── messages.js        # CRUD messages + search
+│   ├── files.js           # Upload/download fișiere
+│   ├── admin.js           # Panel admin (users, invite, hub cards, agent memory)
+│   ├── agent.js           # API pentru agentul AI (fără JWT, cu agent token)
+│   ├── join.js            # Flow invite/join cu token
+│   ├── push.js            # Web Push subscriptions
+│   ├── settings.js        # App settings (admin only, criptate)
+│   └── theme.js           # CSS theme dinamic (tokens din DB)
+├── middleware/
+│   ├── auth.js            # JWT verify, requireAdmin
+│   ├── agent.js           # Agent token verify
+│   └── permissions.js     # Per-user permission checks granulare
+├── lib/
+│   ├── vectorstore.js     # Semantic search (HNSWLib + LanceDB + embeddings)
+│   ├── events.js          # Event log helper
+│   └── crypto.js          # Encrypt/decrypt pentru settings
 ├── public/
-│   ├── login.html         # Login/register page (312 lines)
-│   ├── chat.html          # Main 3-panel chat interface (200+ lines)
-│   ├── showcase.html      # Component gallery
+│   ├── index.html         # Home / Hub cards dashboard  → /one21
+│   ├── chat.html          # Chat principal              → /one21/hey
+│   ├── login.html         # Login                       → /one21/login
+│   ├── admin.html         # Admin panel                 → /admin.html
+│   ├── one21/
+│   │   └── join.html      # Invite flow                 → /one21/join/:token
 │   ├── css/
-│   │   ├── theme.css      # Design tokens (218 lines)
-│   │   └── components.css # 15+ reusable components (1228 lines)
-│   └── js/
-│       ├── auth.js        # Auth module, token storage (44 lines)
-│       └── chat.js        # Chat client, Socket.IO, UI (307 lines)
-│
-├── concepts/              # 12 UI design concepts (HTML prototypes)
-│
-└── docs/plans/            # Design system planning docs
+│   │   ├── design-system.css        # Import central — singurul import necesar
+│   │   └── layers/
+│   │       ├── tokens.css           # @layer tokens — toate variabilele CSS
+│   │       ├── base.css             # @layer base — reset + tipografie
+│   │       ├── components.css       # @layer components — butoane, input, modal etc.
+│   │       └── pages/
+│   │           ├── chat.css         # Stiluri specifice chat
+│   │           ├── admin.css        # Admin panel
+│   │           ├── login.css        # Login page
+│   │           ├── join.css         # Join flow
+│   │           └── index.css        # Home dashboard
+│   ├── js/
+│   │   ├── chat.js        # Logic chat UI (774 linii — monolitic)
+│   │   ├── rooms.js       # Sidebar rooms + DM (234 linii)
+│   │   ├── auth.js        # Token management, logout (51 linii)
+│   │   └── system-dialogs.js  # Confirm dialogs custom
+│   └── themes/
+│       └── test3-tokens.json  # Token set alternativ
+├── uploads/               # Fișiere uploadate (MD5 hash ca filename)
+├── data/vectorstore/      # Index HNSWLib + LanceDB persistat pe disk
+├── scripts/
+│   ├── audit-css.sh       # Verifică CSS: fără hex hardcodat, fără inline style
+│   └── backup.sh          # Backup DB
+├── docs/                  # Documente planificare + deploy
+├── concepts/              # Prototipuri UI HTML (nu sunt în producție)
+├── ecosystem.config.js    # PM2 config
+├── Caddyfile              # Reverse proxy config
+└── OneChat_Platform_Spec.md  # Specificații originale platformă
 ```
+
+---
 
 ## API Surface
 
-### Authentication
-- `POST /api/auth/login` — Login with username/password, returns JWT (7-day expiry)
-- `POST /api/auth/register` — Register with invite code, returns JWT
-- `GET  /api/auth/me` — Current user info (requires auth)
+**Auth:** `Authorization: Bearer <JWT>` pe toate rutele `/api/*`
+*(excepție: `/api/join/*` — public, `/api/agent/*` — `X-Agent-Token`)*
+
+### Auth
+| Method | Path | Descriere |
+|--------|------|-----------|
+| POST | `/api/auth/register` | Înregistrare cu invite code |
+| POST | `/api/auth/login` | Login → JWT |
+| GET | `/api/auth/me` | Profil user curent |
 
 ### Rooms
-- `GET  /api/rooms` — List user's rooms (with last message, member count)
-- `POST /api/rooms` — Create room (type: direct/group/channel)
-- `GET  /api/rooms/:id` — Room details + member list (requires membership)
+| Method | Path | Descriere |
+|--------|------|-----------|
+| GET | `/api/rooms` | Lista rooms ale userului |
+| POST | `/api/rooms` | Creare room nou |
+| GET | `/api/rooms/:id` | Detalii room |
+| PUT | `/api/rooms/:id` | Editare room |
+| DELETE | `/api/rooms/:id` | Arhivare room |
+| POST | `/api/rooms/:id/members` | Adaugă member |
+| PUT | `/api/rooms/:id/members/:userId/access-level` | Schimbă access level |
+| DELETE | `/api/rooms/:id/members/:userId` | Elimină member |
+| GET | `/api/rooms/users/list` | Lista useri pentru member picker |
 
 ### Messages
-- `GET  /api/rooms/:id/messages?before=ID&limit=50` — Paginated messages
-- `POST /api/rooms/:id/messages` — Send message (text/file/system)
+| Method | Path | Descriere |
+|--------|------|-----------|
+| GET | `/api/rooms/:id/messages` | Paginare mesaje (cursor-based) |
+| POST | `/api/rooms/:id/messages` | Trimite mesaj (HTTP fallback) |
+| PUT | `/api/messages/:id` | Editare mesaj (owner only) |
+| DELETE | `/api/messages/:id` | Ștergere mesaj (owner sau admin) |
+| GET | `/api/rooms/:id/search` | Semantic search în room |
 
-### Admin (requires admin role)
-- `POST /api/admin/invites` — Generate invite code (8-char uppercase)
-- `GET  /api/admin/invites` — List all invitations
-- `GET  /api/admin/users` — List all users
+### Files
+| Method | Path | Descriere |
+|--------|------|-----------|
+| POST | `/api/rooms/:id/upload` | Upload fișier în room |
+| GET | `/api/files/:filename` | Download fișier (auth required) |
 
-### Socket.IO Events
-| Direction | Event | Payload | Description |
-|-----------|-------|---------|-------------|
-| Client→Server | `join_room` | `{ roomId }` | Join a room |
-| Client→Server | `message` | `{ room_id, text, type, reply_to }` | Send message |
-| Client→Server | `typing` | `{ room_id }` | Typing indicator |
-| Server→Client | `message` | Full message object | New message broadcast |
-| Server→Client | `typing` | `{ user_id, username }` | Typing notification |
+### Agent — `X-Agent-Token` header
+| Method | Path | Descriere |
+|--------|------|-----------|
+| GET | `/api/agent/rooms` | Rooms cu agent membership |
+| GET | `/api/agent/messages` | Mesaje recente |
+| GET | `/api/agent/memory` | Căutare semantică în agent memory |
+| POST | `/api/agent/send` | Trimite mesaj ca agent |
+| GET | `/api/agent/users` | Lista useri |
+
+### Admin — rol `admin` required
+| Method | Path | Descriere |
+|--------|------|-----------|
+| GET | `/api/admin/stats` | Statistici platformă |
+| GET/PUT/DELETE | `/api/admin/users/:id` | Management useri |
+| PUT | `/api/admin/users/:id/password` | Reset parolă |
+| GET/PUT | `/api/admin/users/:id/permissions` | Permisiuni per user |
+| GET/POST/DELETE | `/api/admin/invites` | Management invite-uri |
+| GET | `/api/admin/invites/qr` | QR code invite |
+| GET | `/api/admin/conversations` | Lista conversații |
+| GET | `/api/admin/export/:roomId` | Export room (JSON) |
+| GET | `/api/admin/search` | Semantic search global |
+| GET | `/api/admin/agent-memory/stats` | Statistici memory agent |
+| POST | `/api/admin/agent-memory/prune` | Curățare memory agent |
+| GET/POST/PUT/DELETE | `/api/admin/hub-cards` | CRUD hub cards |
+| GET/PUT | `/api/admin/settings` | App settings (encrypted) |
+
+### Theme + Join
+| Method | Path | Descriere |
+|--------|------|-----------|
+| GET | `/api/theme/active.css` | Token CSS activi (din DB) — public |
+| GET | `/api/join/:token` | Verificare token invitație — public |
+| POST | `/api/join/verify` | Activare join cu token — public |
+
+### WebSocket Events (Socket.IO)
+**Client → Server:**
+`message`, `typing`, `join_room`, `leave_room`, `message_edit`, `message_delete`, `mark_read`, `room_updated`, `member_added`, `member_removed`
+
+**Server → Client:**
+`message`, `message_edited`, `message_deleted`, `message_read`, `typing`, `user_online`, `user_offline`, `member_added`, `member_removed`, `room_updated`, `joined_room`, `error`
+
+---
 
 ## Database Schema
 
-**5 tables** in SQLite with WAL mode + foreign keys:
+**Engine:** SQLite · WAL mode · FK enabled · `db/chat.db`
 
-- **users** — id, username, display_name, password_hash, role (admin/user/agent), is_online, last_seen
-- **invitations** — code (8-char), created_by, used_by, expires_at
-- **rooms** — id, name, description, type (direct/group/channel), created_by
-- **room_members** — room_id, user_id, role (owner/member), PK(room_id, user_id)
-- **messages** — id, room_id, sender_id, text, type (text/file/system), reply_to
+| Tabel | Câmpuri cheie |
+|-------|--------------|
+| `users` | `id, username, display_name, role(admin/user/agent), is_online, avatar_url, invited_by` |
+| `rooms` | `id, name, type(direct/group/channel), is_archived, created_by` |
+| `room_members` | `role(owner/member), access_level(readonly/readandwrite/post_docs)` |
+| `messages` | `text, type(text/file/system), reply_to, is_edited, file_url, file_name` |
+| `message_reads` | `(message_id, user_id)` — read receipts |
+| `invitations` | `code, token, expires_at, used_by, nume, prenume, default_permissions` |
+| `push_subscriptions` | VAPID endpoint + keys per user |
+| `user_permissions` | KV: `max_messages_per_day, can_send_files, allowed_agents` |
+| `room_requests` | Cereri room de la useri: `status(pending/approved/rejected)` |
+| `app_settings` | KV store criptat (AES) pentru config platformă |
+| `themes` | JSON token sets — unul `is_active=1` la un moment dat |
+| `hub_cards` | `action_type(url/room/script/internal_app), action_payload, sort_order` |
 
-**Indexes:** messages(room_id, created_at), room_members(user_id), invitations(code)
+**Migrări:** inline în `db/init.js → migrate()` cu `safeAdd` idempotent (fără versioning)
 
-**Seed data:** admin user, Claude AI agent, 2 rooms, 3 messages, 1 invite code
+---
 
 ## Frontend Architecture
 
-**Design:** Navy glassmorphism theme with emerald (#10b981) accent + cyan (#00ccff) brand color
+### Pagini
+| URL | Fișier sursă | Descriere |
+|-----|-------------|-----------|
+| `/` sau `/one21` | `index.html` | Home dashboard cu hub cards |
+| `/one21/login` | `login.html` | Login form |
+| `/one21/join/:token` | `one21/join.html` | Flow invitație |
+| `/one21/hey` | `chat.html` | Interfața de chat |
+| `/admin.html` | `admin.html` | Panel administrare |
 
-**Pages:**
-- `/login.html` — Login/register with invite code (glassmorphism card)
-- `/chat.html` — 3-panel layout: nav (72px) + sidebar (320px) + main + info panel (300px)
+### CSS — @layer Cascade
+```
+@layer tokens < base < components < pages < overrides
+```
+- Schimbarea temei = doar `tokens.css` sau `/api/theme/active.css` din DB
+- Fiecare pagină importă **exact 2 fișiere**: `design-system.css` + `pages/[pagina].css`
+- Audit: `bash scripts/audit-css.sh`
 
-**JS Architecture (Vanilla, IIFE pattern):**
-- `Auth` module — Token management, API wrapper, auto-logout on 401
-- `Chat` client — Socket.IO connection, room/message management, typing indicators
-
-**Design System (CSS-only, token-first):**
-- 218 lines of design tokens (colors, spacing, typography, radii)
-- 15+ components: Avatar, Badge, Button, Input, ChatItem, MessageBubble, Nav, Sidebar, etc.
-- Effects: Aurora glow background, fade-in animations, typing bounce, glassmorphism
+---
 
 ## Infrastructure
 
-### Local Development
+### Rulare locală
 ```bash
 npm install
-node server.js
-# Server runs on http://localhost:3737
+npm run dev          # node --watch server.js
+# http://localhost:3737
 ```
 
-### Default Credentials
-| User | Password | Role |
-|------|----------|------|
-| admin | admin123 | admin |
-| claude | claude-agent-secret | agent |
+### Producție
+```bash
+npm run pm2:start    # PM2 cu ecosystem.config.js
+npm run pm2:logs     # Logs live
+```
 
 ### Environment Variables
-| Variable | Purpose | Required | Default |
-|----------|---------|----------|---------|
-| JWT_SECRET | Token signing key | Yes (prod) | `one21-dev-secret-change-in-prod` |
-| PORT | Server port | No | 3737 |
+| Variabilă | Scop | Obligatoriu |
+|-----------|------|------------|
+| `PORT` | Port server (default: 3737) | Nu |
+| `JWT_SECRET` | Semnare JWT | **Da** în prod |
+| `NODE_ENV` | `production` / `development` | Recomandat |
+| `ALLOWED_ORIGINS` | CORS whitelist (virgulă-separated) | Da |
+| `JOIN_BASE_URL` | URL bază pentru link-uri invite | Da |
+| `AGENT_SECRET` | Token autentificare agent AI | Da |
+| `VAPID_PUBLIC_KEY` | Web Push public key | Opțional |
+| `VAPID_PRIVATE_KEY` | Web Push private key | Opțional |
 
-### Target Deployment
-- Mac Mini at 192.168.10.42
-- Public IP: 31.153.116.47 (needs port forwarding)
-- PM2 for process management
-- Caddy for reverse proxy + automatic SSL
+---
 
-## Testing
+## Funcționalități implementate
 
-- **Framework:** None configured
-- **Run tests:** `npm test` (currently exits with error — no tests written)
+- Auth JWT cu invite-only onboarding (coduri + link-uri token + QR)
+- Camere `direct`, `group`, `channel` (channel = broadcast unidirecțional admin→membri)
+- Mesagerie real-time Socket.IO: edit, delete, reply, read receipts, typing
+- Upload/download fișiere (multer, acces autentificat)
+- Agent AI integrat — trimite mesaje, citește rooms, memory semantică
+- Semantic search cu embeddings locale + HNSWLib
+- Agent memory (LanceDB) — context persistent per agent
+- Web Push notifications pentru useri offline
+- Teme dinamice — tokens JSON stocați în DB, aplicați ca CSS vars
+- Hub cards dashboard — linkuri/rooms/acțiuni configurabile din admin
+- Permisiuni granulare per user
+- Admin panel complet: useri, invite-uri, rooms, export, settings criptat
+- CSS @layer architecture
 
-## Current Features (Implemented)
+---
 
-- SQLite database with full relational schema
-- JWT authentication with invite-code registration
-- Multi-room real-time chat via Socket.IO
-- Message persistence with cursor-based pagination
-- Role system: admin, user, agent
-- User online/offline presence tracking
-- Typing indicators (3-dot animation)
-- Complete CSS design system (15+ components)
-- Login page with glassmorphism UI
-- 3-panel chat interface
-- Room member management
-- Admin invite code generation
+## Probleme de arhitectură identificate
 
-## Planned Features (Not Yet Implemented)
+### Prioritate înaltă
+| # | Problemă | Fișier | Impact |
+|---|----------|--------|--------|
+| 1 | **`server.js` monolitic** — 180+ linii de Socket.IO event handlers inline | `server.js:100-290` | Mentenanță grea |
+| 2 | **`chat.js` monolitic** — 774 linii fără module | `public/js/chat.js` | Scalabilitate zero |
+| 3 | **Agent route fără JWT** — dacă `AGENT_SECRET` nu e setat în `.env`, `/api/agent/*` e deschis | `routes/agent.js` | **Securitate** |
+| 4 | **Migrări fără versioning** — `migrate()` e un bloc de ALTER TABLE, fără rollback | `db/init.js` | Risc la deploy |
 
-- File upload/download (multer)
-- Message editing & deletion
-- In-room search
-- Read receipts tracking (DB + UI)
-- Admin dashboard
-- Conversation export (JSON/PDF)
-- PM2 process management
-- Caddy reverse proxy + SSL
-- Browser push notifications
-- Rate limiting (30 msgs/min)
-- Backup automation
-- Claude AI agent specialized API
+### Prioritate medie
+| # | Problemă | Detaliu |
+|---|----------|---------|
+| 5 | **Routing suprapus** — `messageRoutes` și `roomRoutes` mount-ate ambele pe `/api/rooms` | `server.js:101-106` |
+| 6 | **Validare Zod incompletă** — lipsește în `admin.js`, `agent.js`, `files.js` | Inconsistență |
+| 7 | **No profile page** — userul nu poate edita display name, avatar, parolă proprie | UX gap |
 
-## Known Limitations
+### Prioritate scăzută
+| # | Problemă |
+|---|----------|
+| 8 | Rate limiting **doar pe REST** — Socket.IO events nu sunt limitate |
+| 9 | **Zero teste automate** |
 
-- No .env file — JWT secret hardcoded for dev
-- CORS set to `*` (open to all origins)
-- No rate limiting on any endpoint
-- No input validation library (manual checks only)
-- No test suite
-- No CI/CD pipeline
-- bcrypt rounds: 10 in auth routes vs spec says 12
-- No message editing/deletion endpoints
-- No file upload support
-- Socket.IO auto-joins ALL rooms on connect (no lazy loading)
-- localStorage for auth tokens (vulnerable to XSS)
+---
+
+## Structură recomandată (refactoring)
+
+```
+onechat/
+├── server.js                    # SLIM — bootstrap, mount routes, mount socket (~40 linii)
+├── socket/
+│   ├── index.js                 # Socket.IO setup + auth middleware
+│   └── handlers/
+│       ├── messages.js          # on('message'), on('message_edit'), on('message_delete')
+│       ├── presence.js          # on('connect'), on('disconnect')
+│       └── rooms.js             # on('join_room'), on('member_added') etc.
+├── db/
+│   ├── init.js                  # getDb() — schema + seed
+│   └── migrations/
+│       ├── 001_initial.sql
+│       ├── 002_hub_cards.sql
+│       └── runner.js            # Versioning cu tabel `schema_version`
+├── routes/                      # (neschimbat + validare Zod completă)
+├── middleware/                  # (neschimbat)
+├── lib/                         # (neschimbat)
+├── public/
+│   └── js/
+│       ├── chat/
+│       │   ├── index.js         # Entry point + init
+│       │   ├── socket.js        # Conexiune + event handlers
+│       │   ├── messages.js      # Render + edit + delete
+│       │   ├── upload.js        # File upload
+│       │   └── reply.js         # Reply thread
+│       ├── rooms.js
+│       ├── auth.js
+│       └── system-dialogs.js
+│   └── css/                     # (neschimbat — arhitectura @layer e solidă)
+└── tests/
+    ├── api/                     # REST tests (supertest)
+    └── socket/                  # Socket.IO event tests
+```
