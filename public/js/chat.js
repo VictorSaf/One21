@@ -449,6 +449,7 @@
   // ═══════════════════════════════════════
   function startEdit(msgId, currentText) {
     editingMsgId = msgId;
+    cancelReply();
     composeInput.value = currentText;
     composeInput.focus();
     composeInput.dataset.editing = msgId;
@@ -478,6 +479,7 @@
   // ═══════════════════════════════════════
   function startReply(msgId, senderName, text, fileUrl, fileName) {
     replyingToId = msgId;
+    if (editingMsgId) cancelEdit();
 
     let bar = document.getElementById('replyBar');
     if (!bar) {
@@ -492,7 +494,7 @@
 
     const isImage = fileName && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
     const previewContent = fileUrl && isImage
-      ? `<img src="${fileUrl}" class="reply-bar__thumb" alt="${esc(fileName)}">`
+      ? `<img src="${esc(fileUrl)}" class="reply-bar__thumb" alt="${esc(fileName)}">`
       : `<span class="reply-bar__preview">${esc(text.substring(0, 80))}${text.length > 80 ? '\u2026' : ''}</span>`;
 
     bar.innerHTML = `
