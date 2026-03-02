@@ -60,6 +60,12 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMsgMenu(); });
   msgMenu.addEventListener('click', e => e.stopPropagation());
 
+  msgMenuReply.addEventListener('click', () => {
+    if (!menuTargetMsg) return;
+    closeMsgMenu();
+    startReply(menuTargetMsg.id, menuTargetMsg.senderName, menuTargetMsg.text);
+  });
+
   // --- Init ---
   async function init() {
     connectSocket();
@@ -434,6 +440,35 @@
   }
 
   // ═══════════════════════════════════════
+  // REPLY MESSAGE
+  // ═══════════════════════════════════════
+  function startReply(msgId, senderName, text) {
+    replyingToId = msgId;
+    const preview = text.length > 60 ? text.substring(0, 60) + '\u2026' : text;
+
+    let bar = document.getElementById('replyBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'replyBar';
+      bar.className = 'reply-bar';
+      bar.innerHTML = `
+        <span class="reply-bar__label">\u21A9 <strong></strong>: <span class="reply-bar__preview"></span></span>
+        <button class="reply-bar__cancel" id="cancelReply" title="Anuleaz\u0103">\u2715</button>`;
+      composeInput.parentElement.insertBefore(bar, composeInput);
+      document.getElementById('cancelReply').addEventListener('click', cancelReply);
+    }
+    bar.querySelector('strong').textContent = senderName;
+    bar.querySelector('.reply-bar__preview').textContent = preview;
+    composeInput.focus();
+  }
+
+  function cancelReply() {
+    replyingToId = null;
+    const bar = document.getElementById('replyBar');
+    if (bar) bar.remove();
+  }
+
+  // ═══════════════════════════════════════
   // DELETE MESSAGE
   // ═══════════════════════════════════════
   async function deleteMessage(msgId) {
@@ -516,7 +551,8 @@
       socket.emit('message_edit', { message_id: editingMsgId, text });
       cancelEdit();
     } else {
-      socket.emit('message', { room_id: currentRoomId, text });
+      socket.emit('message', { room_id: currentRoomId, text, reply_to: replyingToId || undefined });
+      if (replyingToId) cancelReply();
     }
 
     composeInput.value = '';
@@ -526,7 +562,7 @@
   sendBtn.addEventListener('click', sendMessage);
   composeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    if (e.key === 'Escape' && editingMsgId) cancelEdit();
+    if (e.key === 'Escape') { if (editingMsgId) cancelEdit(); else if (replyingToId) cancelReply(); }
   });
 
   composeInput.addEventListener('input', () => {
