@@ -66,6 +66,12 @@
     startReply(menuTargetMsg.id, menuTargetMsg.senderName, menuTargetMsg.text);
   });
 
+  msgMenuDm.addEventListener('click', () => {
+    if (!menuTargetMsg) return;
+    closeMsgMenu();
+    openPrivateChat(menuTargetMsg.senderId);
+  });
+
   // --- Init ---
   async function init() {
     connectSocket();
@@ -492,6 +498,27 @@
     replyingToId = null;
     const bar = document.getElementById('replyBar');
     if (bar) bar.remove();
+  }
+
+  // ═══════════════════════════════════════
+  // PRIVATE CHAT (DM from context menu)
+  // ═══════════════════════════════════════
+  async function openPrivateChat(userId) {
+    const data = await Auth.api('/api/rooms/direct', {
+      method: 'POST',
+      body: JSON.stringify({ participant_id: userId })
+    });
+    if (!data || !data.room) return;
+    const room = data.room;
+
+    // Navigate to the DM room — try sidebar click first, reload if not present
+    const existing = document.querySelector(`[data-room-id="${room.id}"]`);
+    if (existing) {
+      selectRoom(room.id);
+    } else {
+      await loadRooms();
+      selectRoom(room.id);
+    }
   }
 
   // ═══════════════════════════════════════
