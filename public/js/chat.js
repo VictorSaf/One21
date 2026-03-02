@@ -16,6 +16,8 @@
   let hasMore = false;
   let oldestMsgId = null;
   let editingMsgId = null;
+  let replyingToId = null;
+  let menuTargetMsg = null; // { id, senderId, senderName, text }
 
   // --- DOM refs ---
   const sidebarList      = document.getElementById('sidebarList');
@@ -28,6 +30,35 @@
   const infoPanelMembers = document.getElementById('infoPanelMembers');
   const infoPanelName    = document.getElementById('infoPanelName');
   const infoPanelDesc    = document.getElementById('infoPanelDesc');
+
+  // --- Context menu refs ---
+  const msgMenu = document.getElementById('msgMenu');
+  const msgMenuReply = document.getElementById('msgMenuReply');
+  const msgMenuDm = document.getElementById('msgMenuDm');
+
+  function openMsgMenu(e, msgData) {
+    e.stopPropagation();
+    menuTargetMsg = msgData;
+
+    // Show/hide Private chat based on ownership
+    msgMenuDm.style.display = msgData.senderId === user.id ? 'none' : '';
+
+    // Position menu near click, adjust for viewport edges
+    const x = Math.min(e.clientX, window.innerWidth - 160);
+    const y = Math.min(e.clientY, window.innerHeight - 90);
+    msgMenu.style.left = x + 'px';
+    msgMenu.style.top = y + 'px';
+    msgMenu.classList.add('is-open');
+  }
+
+  function closeMsgMenu() {
+    msgMenu.classList.remove('is-open');
+    menuTargetMsg = null;
+  }
+
+  document.addEventListener('click', closeMsgMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMsgMenu(); });
+  msgMenu.addEventListener('click', e => e.stopPropagation());
 
   // --- Init ---
   async function init() {
@@ -311,6 +342,19 @@
         if (action === 'delete') deleteMessage(id);
       });
     });
+
+    if (!isSystem) {
+      el.addEventListener('click', (e) => {
+        // Don't trigger menu if user clicked an action button
+        if (e.target.closest('.msg__action-btn')) return;
+        openMsgMenu(e, {
+          id: msg.id,
+          senderId: msg.sender_id,
+          senderName: msg.sender_name || msg.sender_username || '',
+          text: msg.text || ''
+        });
+      });
+    }
 
     return el;
   }
