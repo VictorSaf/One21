@@ -1,12 +1,8 @@
-const CACHE_VERSION = 'one21-v3';
+const CACHE_VERSION = 'one21-v4';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
+// Only pre-cache static assets — HTML pages use network-first (see fetch handler)
 const ASSETS = [
-  '/one21/',
-  '/one21/join',
-  '/one21/chat',
-  '/one21/hey',
-  '/admin.html',
   '/css/design-system.css',
   '/manifest.json',
   '/logo.png',
@@ -16,6 +12,9 @@ const ASSETS = [
   '/css/layers/pages/chat.css',
   '/css/layers/pages/admin.css',
 ];
+
+// HTML navigation routes — always fetch from network, cache as fallback only
+const HTML_ROUTES = ['/one21/', '/one21/join', '/one21/chat', '/one21/hey', '/admin.html'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -46,12 +45,33 @@ self.addEventListener('activate', function (e) {
 });
 
 self.addEventListener('fetch', function (e) {
-  if (e.request.url.indexOf('/api/') !== -1) {
+  // Never intercept API calls
+  if (e.request.url.indexOf('/api/') !== -1) return;
+
+  const url = new URL(e.request.url);
+
+  // HTML pages: network-first — always show fresh content, fall back to cache only if offline
+  if (e.request.mode === 'navigate' || HTML_ROUTES.some(function (r) { return url.pathname === r; })) {
+    e.respondWith(
+      fetch(e.request).then(function (response) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(e.request, clone); });
+        return response;
+      }).catch(function () {
+        return caches.match(e.request);
+      })
+    );
     return;
   }
+
+  // Static assets: cache-first (CSS, images, fonts)
   e.respondWith(
     caches.match(e.request).then(function (cached) {
-      return cached || fetch(e.request);
+      return cached || fetch(e.request).then(function (response) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(e.request, clone); });
+        return response;
+      });
     })
   );
 });
