@@ -46,6 +46,50 @@ router.get('/', (req, res) => {
   res.json({ rooms });
 });
 
+// POST /api/rooms/direct — find or create DM between current user and another user
+router.post('/direct', (req, res) => {
+  const { participant_id } = req.body;
+  if (!participant_id || typeof participant_id !== 'number') {
+    return res.status(400).json({ error: 'participant_id required' });
+  }
+  if (participant_id === req.user.id) {
+    return res.status(400).json({ error: 'Cannot DM yourself' });
+  }
+  const db = getDb();
+
+  // Find existing DM
+  const existing = db.prepare(`
+    SELECT r.id FROM rooms r
+    JOIN room_members rm1 ON r.id = rm1.room_id AND rm1.user_id = ?
+    JOIN room_members rm2 ON r.id = rm2.room_id AND rm2.user_id = ?
+    WHERE r.type = 'direct'
+    LIMIT 1
+  `).get(req.user.id, participant_id);
+
+  if (existing) {
+    const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(existing.id);
+    return res.json({ room });
+  }
+
+  // Create new DM
+  const other = db.prepare('SELECT id, display_name FROM users WHERE id = ?').get(participant_id);
+  if (!other) return res.status(404).json({ error: 'User not found' });
+
+  const roomId = db.transaction(() => {
+    const r = db.prepare(
+      "INSERT INTO rooms (name, type, created_by) VALUES (?, 'direct', ?)"
+    ).run(`dm-${req.user.id}-${participant_id}`, req.user.id);
+    const id = r.lastInsertRowid;
+    const add = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level) VALUES (?, ?, ?, ?)');
+    add.run(id, req.user.id, 'member', 'readandwrite');
+    add.run(id, participant_id, 'member', 'readandwrite');
+    return id;
+  })();
+
+  const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  res.json({ room });
+});
+
 // POST /api/rooms — create room
 router.post('/', (req, res) => {
   const result = createSchema.safeParse(req.body);
