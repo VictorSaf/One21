@@ -134,7 +134,7 @@
     // Private request declined — show alert to sender
     socket.on('private_declined', ({ from_display_name }) => {
       if (typeof showAlert === 'function') {
-        showAlert(`${from_display_name} a refuzat conversația privată.`);
+        showAlert(`${esc(from_display_name)} a refuzat conversația privată.`);
       }
     });
 
@@ -1215,7 +1215,7 @@
       if (data?.exists) {
         selectRoom(data.room.id);
       } else if (data?.ok) {
-        if (typeof showAlert === 'function') showAlert(`Cerere trimisa catre ${toDisplayName}.`);
+        if (typeof showAlert === 'function') showAlert(`Cerere trimisa catre ${esc(toDisplayName)}.`);
       }
     });
   }
