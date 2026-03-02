@@ -1566,6 +1566,32 @@ function closePermsPanel() {
 }
 
 // ── Invite Wizard ────────────────────────────────
+function renderInviteRooms(rooms) {
+  const list = document.getElementById('invRoomsList');
+  if (!rooms || rooms.length === 0) {
+    list.innerHTML = '<div class="u-dim">Nicio cameră disponibilă.</div>';
+    return;
+  }
+  list.innerHTML = rooms.map(r => `
+    <div class="invite-room-row">
+      <input type="checkbox" class="perm-toggle inv-room" data-room-id="${r.id}" id="inv_room_${r.id}">
+      <label class="invite-room-row__name" for="inv_room_${r.id}"># ${r.name} <span class="u-dim">(${r.member_count})</span></label>
+      <select class="invite-room-row__level" data-room-level="${r.id}" disabled>
+        <option value="readandwrite" selected>read+write</option>
+        <option value="readonly">readonly</option>
+        <option value="post_docs">post_docs</option>
+      </select>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.inv-room').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const sel = list.querySelector(`[data-room-level="${cb.dataset.roomId}"]`);
+      if (sel) sel.disabled = !cb.checked;
+    });
+  });
+}
+
 function openInviteModal() {
   const agents = allUsers.filter(u => u.role === 'agent');
   document.getElementById('inv_agents_section').innerHTML = agents.length === 0
@@ -1583,6 +1609,12 @@ function openInviteModal() {
   document.getElementById('inviteQrBlock').style.display = 'none';
   document.getElementById('inviteModal').classList.add('open');
   applyInvitePreset('standard');
+
+  document.getElementById('invRoomsList').innerHTML = '<div class="u-dim">Se încarcă…</div>';
+  Auth.api('/api/admin/rooms').then(data => {
+    window._adminRooms = data && data.rooms ? data.rooms : [];
+    renderInviteRooms(window._adminRooms);
+  });
 }
 
 function closeInviteModal() {
