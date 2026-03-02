@@ -1634,7 +1634,7 @@ function renderInviteRooms(rooms) {
   list.innerHTML = generalLocked + nonGeneral.map(r => `
     <div class="invite-room-row">
       <input type="checkbox" class="perm-toggle inv-room" data-room-id="${r.id}" id="inv_room_${r.id}">
-      <label class="invite-room-row__name" for="inv_room_${r.id}">${r.type === 'cult' ? '⬡' : '#'} ${r.name} <span class="u-dim">(${r.member_count})</span></label>
+      <label class="invite-room-row__name" for="inv_room_${r.id}">${r.type === 'cult' ? '⬡' : '#'} ${escape(r.name)} <span class="u-dim">(${r.member_count})</span></label>
       <select class="invite-room-row__level" data-room-level="${r.id}" disabled>
         <option value="readandwrite" selected>read+write</option>
         <option value="readonly">readonly</option>

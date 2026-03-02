@@ -115,7 +115,7 @@ router.post('/register', (req, res) => {
     const generalRoom = db.prepare(
       "SELECT id FROM rooms WHERE name = 'General' AND type = 'channel'"
     ).get();
-    if (generalRoom && !roomAssignments.some(r => r.id === generalRoom.id)) {
+    if (generalRoom && !roomAssignments.some(r => Number(r.id) === Number(generalRoom.id))) {
       roomAssignments.push({ id: generalRoom.id, access_level: 'readonly' });
     }
     const validRoomIds = new Set(
