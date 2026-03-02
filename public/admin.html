@@ -239,6 +239,10 @@
             <div class="invite-detail-row"><span class="perm-row__label">Claimed_By</span><span id="inviteDetailClaimedBy">—</span></div>
             <div class="invite-detail-row"><span class="perm-row__label">Expires</span><span id="inviteDetailExpires">—</span></div>
           </div>
+          <div id="inviteDetailRoomsSection" class="u-mt-3">
+            <p class="perm-row__label">Rooms_Access</p>
+            <div id="inviteDetailRoomsList" class="invite-rooms-list"></div>
+          </div>
           <div class="invite-qr-view-wrap u-mt-3" id="inviteDetailQrSection">
             <p class="perm-row__label">Link pentru noul user</p>
             <p class="invite-qr-view-hint">Noul user deschide acest link (sau scanează QR) pentru a crea cont.</p>
@@ -1291,7 +1295,9 @@ async function loadInvites() {
     : data.invites.map(inv => {
         const esc = (s) => (s == null || s === '' ? '' : String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'));
         const claimedBy = inv.used_by_name ? `${inv.used_by_display || ''} @${inv.used_by_name}` : '';
-        return `<tr data-inv-code="${esc(inv.code)}" data-inv-token="${esc(inv.token)}" data-inv-join-link="${esc(inv.join_link)}" data-inv-nume="${esc(inv.nume)}" data-inv-prenume="${esc(inv.prenume)}" data-inv-note="${esc(inv.note)}" data-inv-issued-by="${esc(inv.created_by_name)}" data-inv-created="${esc(inv.created_at)}" data-inv-claimed-by="${esc(claimedBy)}" data-inv-expires="${esc(inv.expires_at)}">
+        let permsObj = {};
+        try { permsObj = typeof inv.default_permissions === 'string' ? JSON.parse(inv.default_permissions || '{}') : (inv.default_permissions || {}); } catch {}
+        return `<tr data-inv-code="${esc(inv.code)}" data-inv-token="${esc(inv.token)}" data-inv-join-link="${esc(inv.join_link)}" data-inv-nume="${esc(inv.nume)}" data-inv-prenume="${esc(inv.prenume)}" data-inv-note="${esc(inv.note)}" data-inv-issued-by="${esc(inv.created_by_name)}" data-inv-created="${esc(inv.created_at)}" data-inv-claimed-by="${esc(claimedBy)}" data-inv-expires="${esc(inv.expires_at)}" data-inv-perms="${esc(JSON.stringify(permsObj))}">
       <td><span class="invite-code invite-code--clickable" onclick="showInviteDetailView(this.closest('tr'))" title="Vezi detalii">${inv.code}</span></td>
       <td class="td-meta">${inv.created_by_name || '—'}</td>
       <td class="td-meta" title="${inv.created_at || ''}">${inv.created_at ? formatDate(inv.created_at) : '—'}</td>
@@ -1377,6 +1383,23 @@ async function showInviteDetailView(tr) {
     qrSection.classList.add('u-hidden');
     img.removeAttribute('src');
     urlEl.textContent = '';
+  }
+  const roomsSec = document.getElementById('inviteDetailRoomsSection');
+  const roomsList = document.getElementById('inviteDetailRoomsList');
+  let detailPerms = {};
+  try { detailPerms = JSON.parse(tr.dataset.invPerms || '{}'); } catch {}
+  if (detailPerms.rooms && detailPerms.rooms.length > 0) {
+    roomsSec.style.display = '';
+    roomsList.innerHTML = detailPerms.rooms.map(rm => {
+      const found = (window._adminRooms || []).find(r => r.id === rm.id);
+      const roomName = found ? found.name : 'room #' + rm.id;
+      return `<div class="invite-room-row">
+        <span class="invite-room-row__name"># ${roomName}</span>
+        <span class="invite-room-row__level">${rm.access_level}</span>
+      </div>`;
+    }).join('');
+  } else {
+    roomsSec.style.display = 'none';
   }
   document.getElementById('inviteDetailOverlay').classList.add('open');
 }
