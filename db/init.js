@@ -209,6 +209,29 @@ function migrate(db) {
   safeAdd('messages', 'file_url', 'TEXT');
   safeAdd('messages', 'file_name', 'TEXT');
   safeAdd('messages', 'is_edited', 'INTEGER NOT NULL DEFAULT 0');
+  safeAdd('messages', 'recipient_id', 'INTEGER REFERENCES users(id)');
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id)');
+  } catch {}
+  // Migrate General room from group → channel (admin-only broadcasting)
+  try {
+    const generalRoom = db.prepare("SELECT id FROM rooms WHERE name = 'General' AND type = 'group'").get();
+    if (generalRoom) {
+      db.prepare("UPDATE rooms SET type = 'channel' WHERE id = ?").run(generalRoom.id);
+      console.log('[DB] Migrated: General room type -> channel');
+    }
+  } catch {}
+  // Set all non-admin General members to readonly
+  try {
+    const generalId = db.prepare("SELECT id FROM rooms WHERE name = 'General' AND type = 'channel'").get()?.id;
+    if (generalId) {
+      db.prepare(`
+        UPDATE room_members SET access_level = 'readonly'
+        WHERE room_id = ? AND role = 'member'
+          AND user_id IN (SELECT id FROM users WHERE role != 'admin')
+      `).run(generalId);
+    }
+  } catch {}
   safeAdd('invitations', 'default_permissions', "TEXT DEFAULT '{}'");
   safeAdd('invitations', 'note', 'TEXT');
   safeAdd('invitations', 'token', 'TEXT');
@@ -278,6 +301,54 @@ function migrate(db) {
         emoji      TEXT NOT NULL,
         PRIMARY KEY (message_id, user_id, emoji)
       )
+    `);
+  } catch {}
+
+  // ── Migrate: expand rooms.type CHECK to include cult + private ──────────────
+  try {
+    // Test if new types are already supported
+    db.pragma('foreign_keys = OFF');
+    db.exec("INSERT INTO rooms (name, type, created_by) VALUES ('__type_test', 'cult', 1)");
+    db.exec("DELETE FROM rooms WHERE name = '__type_test'");
+    db.pragma('foreign_keys = ON');
+  } catch {
+    // Recreate rooms with updated CHECK constraint (SQLite can't ALTER CHECK inline)
+    db.exec(`
+      CREATE TABLE rooms_v2 (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT NOT NULL,
+        description TEXT,
+        type        TEXT NOT NULL DEFAULT 'group'
+                    CHECK(type IN ('direct','group','channel','cult','private')),
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        created_by  INTEGER REFERENCES users(id),
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+    db.exec(`INSERT INTO rooms_v2 SELECT * FROM rooms`);
+    db.exec(`DROP TABLE rooms`);
+    db.exec(`ALTER TABLE rooms_v2 RENAME TO rooms`);
+    db.pragma('foreign_keys = ON');
+    console.log('[DB] Migrated: rooms.type CHECK expanded (cult, private)');
+  }
+
+  // ── private_requests table ───────────────────────────────────────────────────
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS private_requests (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user_id    INTEGER NOT NULL REFERENCES users(id),
+        to_user_id      INTEGER NOT NULL REFERENCES users(id),
+        initial_message TEXT    NOT NULL,
+        status          TEXT    NOT NULL DEFAULT 'pending'
+                        CHECK(status IN ('pending','accepted','declined')),
+        created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+        responded_at    TEXT
+      )
+    `);
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_private_req_pending
+      ON private_requests(from_user_id, to_user_id) WHERE status = 'pending'
     `);
   } catch {}
 }
