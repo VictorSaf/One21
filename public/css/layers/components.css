@@ -641,9 +641,9 @@ textarea.input {
 /* Channel type indicator (before name) */
 .chat-item__prefix {
   color: var(--text-tertiary);
-  font-size: var(--font-xs);
+  font-size: var(--font-xl);
   flex-shrink: 0;
-  width: 14px;
+  width: 28px;
   text-align: center;
   letter-spacing: 0;
 }
@@ -1629,6 +1629,9 @@ textarea.input {
 
   /* Bottom status bar */
   .compose__statusbar { display: none; }
+
+  /* Hide compose when sidebar (home screen) is open on mobile */
+  .sidebar.sidebar--open ~ .main .compose { display: none; }
 
   /* Sidebar: full-screen overlay */
   .sidebar {

@@ -1124,10 +1124,12 @@
     });
 
     // On sidebar item click → close sidebar (mobile)
-    sidebarList.addEventListener('click', () => {
-      if (window.innerWidth <= 640) {
-        setTimeout(() => sidebar && sidebar.classList.remove('sidebar--open'), 150);
-      }
+    [sidebarList, privateList].forEach(list => {
+      list.addEventListener('click', () => {
+        if (window.innerWidth <= 640) {
+          setTimeout(() => sidebar && sidebar.classList.remove('sidebar--open'), 150);
+        }
+      });
     });
 
     // Show sidebar on initial load (mobile)
