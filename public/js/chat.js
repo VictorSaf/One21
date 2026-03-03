@@ -1091,9 +1091,10 @@
       rooms.sort((a, b) => (!a.last_message_at ? 1 : !b.last_message_at ? -1 : b.last_message_at.localeCompare(a.last_message_at)));
       renderSidebar();
       updateBackBtnBadge();
-      // Flash activity animation on the sidebar item
+      // Flash activity animation on the sidebar item (both public and private lists)
       if (msg.room_id !== currentRoomId) {
-        const itemEl = sidebarList.querySelector(`[data-room-id="${msg.room_id}"]`);
+        const itemEl = sidebarList.querySelector(`[data-room-id="${msg.room_id}"]`)
+                    || privateList.querySelector(`[data-room-id="${msg.room_id}"]`);
         if (itemEl) {
           itemEl.classList.add('chat-item--new-msg');
           setTimeout(() => itemEl.classList.remove('chat-item--new-msg'), 1000);
