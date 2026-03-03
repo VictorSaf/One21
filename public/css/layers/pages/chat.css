@@ -467,3 +467,36 @@
     transition: transform var(--transition-fast);
   }
 }
+
+/* ── Emoji popup (swipe-up gesture) ─────────────────── */
+.emoji-popup {
+  position: fixed;
+  z-index: var(--z-modal);
+  display: flex;
+  gap: var(--sp-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: 24px;
+  padding: var(--sp-2) var(--sp-3);
+  box-shadow: 0 4px 20px var(--overlay-bg);
+  animation: popup-in var(--transition-fast) ease;
+}
+@keyframes popup-in {
+  from { opacity: 0; transform: translateY(6px) scale(.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.emoji-popup__btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: var(--sp-1);
+  border-radius: 8px;
+  line-height: 1;
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+.emoji-popup__btn:hover,
+.emoji-popup__btn:active {
+  background: var(--bg-hover);
+  transform: scale(1.25);
+}

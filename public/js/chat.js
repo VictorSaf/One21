@@ -385,10 +385,43 @@
     </div>`;
   }
 
+  const EMOJIS = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
+
   function buildReactionChips(reactions) {
     return reactions.map(r =>
       `<span class="msg__reaction-chip">${esc(String(r.emoji))} <span class="msg__reaction-count">${esc(String(r.count))}</span></span>`
     ).join('');
+  }
+
+  function showEmojiPopup(msgEl, msgId) {
+    const old = document.getElementById('emojiPopup');
+    if (old) old.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'emojiPopup';
+    popup.className = 'emoji-popup';
+    popup.innerHTML = EMOJIS.map(e =>
+      `<button class="emoji-popup__btn" data-emoji="${e}">${e}</button>`
+    ).join('');
+
+    const rect = msgEl.getBoundingClientRect();
+    popup.style.top  = Math.max(8, rect.top - 56) + 'px';
+    popup.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 240)) + 'px';
+    document.body.appendChild(popup);
+
+    popup.querySelectorAll('.emoji-popup__btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        socket.emit('react', { message_id: msgId, emoji: btn.dataset.emoji });
+        popup.remove();
+      });
+    });
+
+    const dismiss = () => popup.remove();
+    setTimeout(() => {
+      document.addEventListener('click',    dismiss, { once: true });
+      document.addEventListener('touchend', dismiss, { once: true });
+    }, 80);
   }
 
   function buildMessageEl(msg) {
@@ -421,7 +454,6 @@
       ? `<span class="msg__whisper-label">🔒 ${isMine ? `→ @${esc(msg.recipient_username || '')}` : 'privat'}</span>`
       : '';
 
-    const EMOJIS = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];
     const dropdownHtml = `
       <button class="msg__menu-btn" title="Acțiuni">▾</button>
       <div class="msg__dropdown"
@@ -645,6 +677,49 @@
         el.classList.remove('msg--swiping');
         swiping = false;
       }, { passive: true });
+    })();
+
+    // ── Vertical swipe: up = emoji picker, down = whisper (received only)
+    (function attachVerticalSwipes() {
+      let startX = 0, startY = 0, locked = false, dir = null;
+      const LOCK = 20;    // px to commit gesture
+      const TRIGGER = 55; // px to fire action
+
+      el.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY;
+        locked = false; dir = null;
+      }, { passive: true });
+
+      el.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        const dx = Math.abs(t.clientX - startX);
+        const dy = startY - t.clientY; // positive = up
+        const ady = Math.abs(dy);
+        if (!locked) {
+          if (ady > LOCK && ady > dx * 2) {
+            locked = true; dir = dy > 0 ? 'up' : 'down';
+            e.preventDefault();
+          }
+          return;
+        }
+        e.preventDefault();
+      }, { passive: false });
+
+      el.addEventListener('touchend', (e) => {
+        if (!locked) return;
+        const t = e.changedTouches[0];
+        const ady = Math.abs(startY - t.clientY);
+        if (dir === 'up' && ady >= TRIGGER) {
+          showEmojiPopup(el, msg.id);
+        } else if (dir === 'down' && ady >= TRIGGER && !isMine) {
+          composeInput.value = `@${senderName} `;
+          composeInput.focus();
+        }
+        locked = false; dir = null;
+      }, { passive: true });
+
+      el.addEventListener('touchcancel', () => { locked = false; dir = null; }, { passive: true });
     })();
 
     return el;
