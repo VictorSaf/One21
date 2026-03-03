@@ -249,6 +249,7 @@
     const selectedRoom = rooms.find(r => r.id === roomId);
     if (selectedRoom) selectedRoom.unread_count = 0;
     renderSidebar();
+    updateBackBtnBadge();
     messagesArea.innerHTML = '';
 
     const [roomData, msgData] = await Promise.all([
@@ -1089,6 +1090,7 @@
       }
       rooms.sort((a, b) => (!a.last_message_at ? 1 : !b.last_message_at ? -1 : b.last_message_at.localeCompare(a.last_message_at)));
       renderSidebar();
+      updateBackBtnBadge();
       // Flash activity animation on the sidebar item
       if (msg.room_id !== currentRoomId) {
         const itemEl = sidebarList.querySelector(`[data-room-id="${msg.room_id}"]`);
@@ -1107,13 +1109,14 @@
   // MOBILE LAYOUT
   // ═══════════════════════════════════════
   const sidebar = document.querySelector('.sidebar');
+  let backBtn = null;
 
   function initMobileLayout() {
     // Inject back button into panel header (hidden on desktop via CSS)
     const panelHeader = document.querySelector('.panel-header');
     if (!panelHeader) return;
 
-    const backBtn = document.createElement('button');
+    backBtn = document.createElement('button');
     backBtn.className = 'mobile-back-btn';
     backBtn.title = 'Înapoi';
     backBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
@@ -1155,6 +1158,23 @@
   function updateDocTitle() {
     const total = rooms.reduce((sum, r) => sum + (r.unread_count || 0), 0);
     document.title = total > 0 ? `(${total}) One21` : 'One21 — by ONE AI/gency';
+  }
+
+  // Update back button badge (mobile) with total unread in other rooms
+  function updateBackBtnBadge() {
+    if (!backBtn) return;
+    const total = rooms.reduce((sum, r) => r.id !== currentRoomId ? sum + (r.unread_count || 0) : sum, 0);
+    let badge = backBtn.querySelector('.mobile-back-badge');
+    if (total > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'mobile-back-badge';
+        backBtn.appendChild(badge);
+      }
+      badge.textContent = total > 99 ? '99+' : total;
+    } else if (badge) {
+      badge.remove();
+    }
   }
 
   // ═══════════════════════════════════════
