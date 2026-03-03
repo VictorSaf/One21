@@ -355,7 +355,7 @@
     const el = document.createElement('div');
     const isMine = msg.sender_id === user.id;
     const isSystem = msg.type === 'system';
-    const isGroup = currentRoomType === 'group' || currentRoomType === 'channel';
+    const isGroup = ['group', 'cult', 'private', 'channel'].includes(currentRoomType);
 
     if (isSystem) {
       el.className = 'msg msg--system';
@@ -367,7 +367,7 @@
 
     const contentHtml = buildContentHtml(msg);
     const senderName = msg.sender_username || (currentMembers.find(m => m.id === msg.sender_id)?.username) || (isMine ? user.username : '');
-    const useColor = isGroup && msg.sender_role !== 'admin' && msg.sender_color_index != null;
+    const useColor = isGroup && msg.sender_color_index != null;
     const colorIdx = useColor ? (msg.sender_color_index % 8) : 0;
     const colorClass = useColor ? ' msg--color-' + colorIdx : '';
     const showSender = isGroup || !isMine;
