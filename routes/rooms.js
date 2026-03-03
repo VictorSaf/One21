@@ -41,9 +41,9 @@ router.get('/', (req, res) => {
   const db = getDb();
   const rooms = db.prepare(`
     SELECT r.*, rm.role as my_role, rm.access_level as my_access_level,
-      CASE WHEN r.type = 'private'
+      CASE WHEN r.type IN ('private', 'direct')
         THEN (
-          SELECT u.display_name FROM room_members rm2
+          SELECT u.username FROM room_members rm2
           JOIN users u ON u.id = rm2.user_id
           WHERE rm2.room_id = r.id AND rm2.user_id != rm.user_id
           LIMIT 1

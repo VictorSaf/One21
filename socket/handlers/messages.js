@@ -136,11 +136,11 @@ function register(io, socket, db) {
       if (isNew) {
         const dmRoomRaw = db.prepare('SELECT * FROM rooms WHERE id = ?').get(dmRoomId);
         io.to(`user:${socket.user.id}`).emit('room_added', {
-          room: { ...dmRoomRaw, display_name: targetUser.display_name || targetUser.username },
+          room: { ...dmRoomRaw, display_name: targetUser.username },
           silent: true,
         });
         io.to(`user:${targetUser.id}`).emit('room_added', {
-          room: { ...dmRoomRaw, display_name: socket.user.display_name || socket.user.username },
+          room: { ...dmRoomRaw, display_name: socket.user.username },
           silent: true,
         });
       }

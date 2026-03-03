@@ -95,9 +95,12 @@ router.post('/request/:id/accept', (req, res) => {
   })();
 
   const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+  const fromUser = db.prepare('SELECT username FROM users WHERE id = ?').get(request.from_user_id);
+  const toUser = db.prepare('SELECT username FROM users WHERE id = ?').get(request.to_user_id);
 
-  // Notify both users to add the new room to their sidebar
-  io.to(`user:${request.from_user_id}`).to(`user:${request.to_user_id}`).emit('room_added', { room });
+  // Notify both users to add the new room to their sidebar (each sees the other's username)
+  io.to(`user:${request.from_user_id}`).emit('room_added', { room: { ...room, display_name: toUser?.username } });
+  io.to(`user:${request.to_user_id}`).emit('room_added', { room: { ...room, display_name: fromUser?.username } });
 
   res.json({ ok: true, room });
 });

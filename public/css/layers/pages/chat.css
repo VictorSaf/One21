@@ -413,6 +413,29 @@
   .header-more-menu__item--danger { color: var(--error); }
   .header-more-menu__item--danger:hover { background: var(--danger-muted); color: var(--error); }
 
+  /* ── Unread messages separator ─────────────────────── */
+  .unread-separator {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin: var(--sp-3) 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-xs);
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+  }
+  .unread-separator::before,
+  .unread-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .unread-separator__label {
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
   /* ── Private room unread highlight ─────────────────── */
   .chat-item--private.chat-item--has-unread {
     background: color-mix(in srgb, var(--warning) 10%, transparent);
@@ -422,5 +445,25 @@
   }
   .chat-item--private.chat-item--has-unread .chat-item__prefix {
     color: var(--warning);
+  }
+
+  /* ── Swipe-to-reply indicator (mobile touch only) ─── */
+  .msg__swipe-reply-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+  }
+  /* Received messages: indicator on the left (revealed by right-translate) */
+  .msg--received .msg__swipe-reply-indicator { left: -28px; }
+  /* Sent messages: indicator on the right side */
+  .msg--sent .msg__swipe-reply-indicator { right: -28px; }
+  .msg--swiping .msg__swipe-reply-indicator { opacity: 1; }
+  .msg--swipe-snap {
+    transition: transform var(--transition-fast);
   }
 }

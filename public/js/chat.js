@@ -245,8 +245,9 @@
     cancelEdit();
     // Show chat, hide home dashboard
     if (window.showHomeScreen) window.showHomeScreen(false);
-    // Reset unread badge for selected room
+    // Capture unread count BEFORE resetting (for unread separator)
     const selectedRoom = rooms.find(r => r.id === roomId);
+    const unreadCount = selectedRoom?.unread_count || 0;
     if (selectedRoom) selectedRoom.unread_count = 0;
     renderSidebar();
     updateBackBtnBadge();
@@ -294,7 +295,30 @@
     updateComposeChannelMode(canSendText, canUploadFiles, placeholder);
 
     for (const msg of msgData.messages) appendMessage(msg);
-    scrollToBottom(false);
+
+    // Insert unread separator if there are unread messages
+    if (unreadCount > 0) {
+      const allMsgs = messagesArea.querySelectorAll('.msg');
+      const separatorIndex = allMsgs.length - unreadCount;
+      if (separatorIndex >= 0 && separatorIndex < allMsgs.length) {
+        const sep = document.createElement('div');
+        sep.className = 'unread-separator';
+        sep.innerHTML = `<span class="unread-separator__label">${unreadCount} mesaje noi</span>`;
+        messagesArea.insertBefore(sep, allMsgs[separatorIndex]);
+        sep.scrollIntoView({ block: 'center' });
+      } else if (separatorIndex < 0) {
+        // All loaded messages are new — place separator at the very top
+        const sep = document.createElement('div');
+        sep.className = 'unread-separator';
+        sep.innerHTML = `<span class="unread-separator__label">${unreadCount} mesaje noi</span>`;
+        messagesArea.insertBefore(sep, messagesArea.firstChild);
+        sep.scrollIntoView({ block: 'center' });
+      } else {
+        scrollToBottom(false);
+      }
+    } else {
+      scrollToBottom(false);
+    }
 
     if (msgData.messages.length > 0) {
       socket.emit('mark_read', { message_id: msgData.messages[msgData.messages.length - 1].id });
@@ -416,9 +440,19 @@
       </div>`;
     const reactionBarHtml = `<div class="msg__reactions" id="reactions-${msg.id}"></div>`;
 
+    // Store reply-related data on the element for swipe-to-reply
+    el.dataset.replyMsgId = msg.id;
+    el.dataset.replySender = senderName;
+    el.dataset.replyText = msg.text || '';
+    el.dataset.replyFileUrl = msg.file_url || '';
+    el.dataset.replyFileName = msg.file_name || '';
+
+    const swipeIndicatorHtml = '<span class="msg__swipe-reply-indicator">\u21A9</span>';
+
     if (isMine) {
       el.className = 'msg msg--sent' + colorClass + (isWhisper ? ' msg--whisper' : '');
       el.innerHTML = `
+        ${swipeIndicatorHtml}
         ${senderHtml}
         ${whisperLabelHtml}
         ${buildReplyQuoteHtml(msg)}
@@ -436,6 +470,7 @@
     } else {
       el.className = 'msg msg--received' + colorClass + (isWhisper ? ' msg--whisper' : '');
       el.innerHTML = `
+        ${swipeIndicatorHtml}
         ${dropdownHtml}
         ${senderHtml}
         ${whisperLabelHtml}
@@ -535,6 +570,82 @@
         rbar.innerHTML = buildReactionChips(msg.reactions);
       }
     }
+
+    // ── Swipe-to-reply (mobile touch only)
+    (function attachSwipeToReply() {
+      let startX = 0, startY = 0, currentDeltaX = 0;
+      let swiping = false, scrolling = false;
+      const SWIPE_SHOW = 40;   // px: start showing indicator
+      const SWIPE_TRIGGER = 60; // px: trigger reply
+      const MAX_TRANSLATE = 80; // px: cap the visual shift
+
+      el.addEventListener('touchstart', function (e) {
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        currentDeltaX = 0;
+        swiping = false;
+        scrolling = false;
+        el.classList.remove('msg--swipe-snap');
+      }, { passive: true });
+
+      el.addEventListener('touchmove', function (e) {
+        if (scrolling) return;
+        const t = e.touches[0];
+        const deltaX = startX - t.clientX;  // positive = swipe left
+        const deltaY = Math.abs(t.clientY - startY);
+
+        // If vertical movement dominates, this is a scroll -- cancel swipe
+        if (!swiping && deltaY > Math.abs(deltaX)) {
+          scrolling = true;
+          el.classList.remove('msg--swiping');
+          el.style.transform = '';
+          return;
+        }
+
+        currentDeltaX = deltaX;
+
+        // Only handle left-swipe (deltaX > 0)
+        if (deltaX > SWIPE_SHOW) {
+          swiping = true;
+          const shift = Math.min(deltaX, MAX_TRANSLATE);
+          el.style.transform = 'translateX(-' + shift + 'px)';
+          el.classList.add('msg--swiping');
+        } else if (swiping && deltaX <= SWIPE_SHOW) {
+          el.style.transform = '';
+          el.classList.remove('msg--swiping');
+          swiping = false;
+        }
+      }, { passive: true });
+
+      el.addEventListener('touchend', function () {
+        if (!swiping) return;
+        const triggered = currentDeltaX >= SWIPE_TRIGGER;
+
+        // Snap back
+        el.classList.add('msg--swipe-snap');
+        el.style.transform = '';
+        el.classList.remove('msg--swiping');
+
+        if (triggered) {
+          startReply(
+            parseInt(el.dataset.replyMsgId),
+            el.dataset.replySender,
+            el.dataset.replyText,
+            el.dataset.replyFileUrl,
+            el.dataset.replyFileName
+          );
+        }
+        swiping = false;
+      }, { passive: true });
+
+      el.addEventListener('touchcancel', function () {
+        el.classList.add('msg--swipe-snap');
+        el.style.transform = '';
+        el.classList.remove('msg--swiping');
+        swiping = false;
+      }, { passive: true });
+    })();
 
     return el;
   }
