@@ -56,7 +56,7 @@ router.get('/:id/messages', (req, res) => {
       u.role as sender_role,
       COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
       reply_m.text as reply_to_text,
-      ru.display_name as reply_to_sender,
+      ru.username as reply_to_sender,
       rec.username as recipient_username, rec.display_name as recipient_name
     FROM messages m
     JOIN users u ON m.sender_id = u.id

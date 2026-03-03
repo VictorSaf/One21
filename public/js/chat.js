@@ -337,7 +337,7 @@
   // ═══════════════════════════════════════
   function buildReplyQuoteHtml(msg) {
     if (!msg.reply_to) return '';
-    const sender = esc(msg.reply_to_sender || 'utilizator');
+    const sender = msg.reply_to_sender ? '@' + esc(msg.reply_to_sender) : 'utilizator';
     const text = esc((msg.reply_to_text || 'mesaj șters').substring(0, 80));
     return `<div class="msg__reply-quote" data-ref-id="${msg.reply_to}">
       <span class="msg__reply-quote__sender">${sender}</span>
