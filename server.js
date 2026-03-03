@@ -46,6 +46,7 @@ app.get('/one21/:token', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public/one21/join.html'));
 });
 app.get('/one21',             (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
+app.get('/one21/',            (req, res) => res.sendFile(path.join(__dirname, 'public/one21/join.html')));
 app.get('/',                  (req, res) => res.redirect('/one21/'));
 app.get('/favicon.ico',       (req, res) => res.redirect('/favicon.svg'));
 

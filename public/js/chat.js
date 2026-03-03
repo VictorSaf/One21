@@ -21,7 +21,9 @@
   let mentionStart = -1;
 
   // --- DOM refs ---
-  const sidebarList      = document.getElementById('sidebarList');
+  const sidebarList        = document.getElementById('sidebarList');
+  const privateList        = document.getElementById('privateList');
+  const directSectionLabel = document.getElementById('directSectionLabel');
   const messagesArea     = document.getElementById('messagesArea');
   const composeInput     = document.getElementById('composeInput');
   const sendBtn          = document.getElementById('sendBtn');
@@ -178,37 +180,50 @@
   }
 
   function renderSidebar() {
-    // All rooms in one flat list — section labels are in the HTML, not dynamically injected
-    const html = rooms.map(roomItemHtml).join('');
-    sidebarList.innerHTML = html;
-    sidebarList.querySelectorAll('.chat-item').forEach(el => {
-      el.addEventListener('click', () => selectRoom(parseInt(el.dataset.roomId)));
+    const publicRooms  = rooms.filter(r => r.type !== 'private' && r.type !== 'direct');
+    const privateRooms = rooms.filter(r => r.type === 'private' || r.type === 'direct');
+
+    sidebarList.innerHTML = publicRooms.map(roomItemHtml).join('');
+    privateList.innerHTML = privateRooms.map(roomItemHtml).join('');
+
+    // Show "Direct" label only when private rooms exist
+    directSectionLabel.classList.toggle('u-hidden', privateRooms.length === 0);
+
+    [sidebarList, privateList].forEach(list => {
+      list.querySelectorAll('.chat-item').forEach(el => {
+        el.addEventListener('click', () => selectRoom(parseInt(el.dataset.roomId)));
+      });
     });
+
     updateDocTitle();
   }
 
   function roomItemHtml(room) {
-    const isActive = room.id === currentRoomId;
-    const label = room.display_name || room.name;
-    const preview = room.last_message
+    const isActive  = room.id === currentRoomId;
+    const hasUnread = room.unread_count > 0 && !isActive;
+    const label     = room.display_name || room.name;
+    const preview   = room.last_message
       ? `${room.last_message_sender ? room.last_message_sender + ': ' : ''}${truncate(room.last_message, 35)}`
       : '> no_transmissions';
-    const unread = (room.unread_count > 0 && !isActive)
-      ? `<span class="badge badge--accent">${room.unread_count > 99 ? '99+' : room.unread_count}</span>`
+
+    const isPrivate = room.type === 'private' || room.type === 'direct';
+    const badgeMod  = isPrivate ? 'badge--warning' : 'badge--accent';
+    const unread    = hasUnread
+      ? `<span class="badge ${badgeMod}">${room.unread_count > 99 ? '99+' : room.unread_count}</span>`
       : '';
 
     // Icon and modifier class per Live_Node type
     const typeConfig = {
       channel: { icon: '\u25A0', mod: 'chat-item--channel' },
-      group:   { icon: '#', mod: 'chat-item--group'   },
+      group:   { icon: '#',      mod: 'chat-item--group'   },
       cult:    { icon: '\u2B21', mod: 'chat-item--cult'    },
-      private: { icon: '@', mod: 'chat-item--private'  },
-      direct:  { icon: '@', mod: ''                   },
+      private: { icon: '@',      mod: 'chat-item--private' },
+      direct:  { icon: '@',      mod: ''                   },
     };
     const { icon, mod } = typeConfig[room.type] || { icon: '#', mod: '' };
 
     return `
-      <div class="chat-item ${mod} ${isActive ? 'chat-item--active' : ''}" data-room-id="${room.id}" data-room-type="${room.type}">
+      <div class="chat-item ${mod} ${isActive ? 'chat-item--active' : ''} ${hasUnread ? 'chat-item--has-unread' : ''}" data-room-id="${room.id}" data-room-type="${room.type}">
         <span class="chat-item__prefix">${icon}</span>
         <div class="chat-item__body">
           <div class="chat-item__header">
