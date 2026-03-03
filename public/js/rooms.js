@@ -35,7 +35,7 @@
         item.className = 'user-picker-item';
         item.innerHTML = `
           <input type="checkbox" id="up_${u.id}" value="${u.id}">
-          <label for="up_${u.id}">${esc(u.display_name)}</label>
+          <label for="up_${u.id}">${esc(u.username)}</label>
           <span class="u-role">${u.role === 'admin' ? 'Admin' : u.role}</span>`;
         item.addEventListener('click', (e) => {
           if (e.target.tagName !== 'INPUT') {
@@ -103,7 +103,7 @@
         item.className = 'user-picker-item';
         item.innerHTML = `
           <input type="radio" name="addMemberRadio" id="am_${u.id}" value="${u.id}">
-          <label for="am_${u.id}">${esc(u.display_name)}</label>
+          <label for="am_${u.id}">${esc(u.username)}</label>
           <span class="u-role">${u.role === 'admin' ? 'Admin' : u.role}</span>`;
         item.addEventListener('click', () => {
           list.querySelectorAll('.user-picker-item').forEach(i => i.classList.remove('selected'));

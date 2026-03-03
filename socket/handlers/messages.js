@@ -51,7 +51,6 @@ function register(io, socket, db) {
       room_id,
       user_id:      socket.user.id,
       username:     socket.user.username,
-      display_name: socket.user.display_name || socket.user.username,
     });
   });
 
@@ -84,7 +83,7 @@ function register(io, socket, db) {
     const atMatch = actualText.match(/^@(\S+)\s+([\s\S]+)$/);
     if (atMatch) {
       const targetUser = db.prepare(
-        'SELECT id, username, display_name FROM users WHERE username = ? COLLATE NOCASE'
+        'SELECT id, username FROM users WHERE username = ? COLLATE NOCASE'
       ).get(atMatch[1]);
       if (!targetUser) {
         socket.emit('error', { message: `Utilizatorul @${atMatch[1]} nu există.` });
@@ -122,7 +121,7 @@ function register(io, socket, db) {
       });
 
       const dmMessage = db.prepare(`
-        SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
+        SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role,
                COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
                reply_m.text as reply_to_text, ru.username as reply_to_sender
         FROM messages m
@@ -150,7 +149,7 @@ function register(io, socket, db) {
       const recipientOnline = db.prepare('SELECT is_online FROM users WHERE id = ?').get(targetUser.id);
       if (!recipientOnline?.is_online) {
         notifyUser(targetUser.id, {
-          title: `${socket.user.display_name || socket.user.username} (DM)`,
+          title: `${socket.user.username} (DM)`,
           body:  dmText.slice(0, 100),
           tag:   `dm-${socket.user.id}`,
           url:   '/chat.html',
@@ -221,10 +220,10 @@ function register(io, socket, db) {
     });
 
     const message = db.prepare(`
-      SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
+      SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role,
              COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
              reply_m.text as reply_to_text, ru.username as reply_to_sender,
-             rec.username as recipient_username, rec.display_name as recipient_name
+             rec.username as recipient_username, rec.username as recipient_name
       FROM messages m
       JOIN users u ON m.sender_id = u.id
       LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
@@ -240,7 +239,7 @@ function register(io, socket, db) {
       io.to(`room:${room_id}`).emit('message', message);
     }
 
-    const senderName = socket.user.display_name || socket.user.username;
+    const senderName = socket.user.username;
     if (recipientId) {
       // Push only to recipient if offline
       const recipient = db.prepare('SELECT id, is_online FROM users WHERE id = ?').get(recipientId);
@@ -324,7 +323,7 @@ function register(io, socket, db) {
     socket.to(`room:${room_id}`).emit('upload_progress', {
       room_id,
       user_id: socket.user.id,
-      username: socket.user.display_name || socket.user.username,
+      username: socket.user.username,
       filename,
       percent: Math.min(100, Math.max(0, parseInt(percent) || 0)),
     });

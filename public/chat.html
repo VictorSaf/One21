@@ -389,8 +389,8 @@ function toggleInfoPanel() {
     if (user.username) {
       const nameEl = document.getElementById('sidebarUserName');
       const avatarEl = document.getElementById('sidebarUserAvatar');
-      if (nameEl) nameEl.textContent = (user.display_name || user.username).toUpperCase();
-      if (avatarEl) avatarEl.textContent = (user.display_name || user.username).substring(0, 2).toUpperCase();
+      if (nameEl) nameEl.textContent = user.username.toUpperCase();
+      if (avatarEl) avatarEl.textContent = user.username.substring(0, 2).toUpperCase();
       // Show admin buttons for admins
       if (user.role === 'admin') {
         const adminBtn = document.getElementById('adminNavBtn');

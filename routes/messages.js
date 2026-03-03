@@ -52,12 +52,12 @@ router.get('/:id/messages', (req, res) => {
 
   const BASE_SELECT = `
     SELECT m.*,
-      u.username as sender_username, u.display_name as sender_name,
+      u.username as sender_username, u.username as sender_name,
       u.role as sender_role,
       COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
       reply_m.text as reply_to_text,
       ru.username as reply_to_sender,
-      rec.username as recipient_username, rec.display_name as recipient_name
+      rec.username as recipient_username, rec.username as recipient_name
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
@@ -159,7 +159,7 @@ router.post('/:id/messages', (req, res) => {
 
   // Vectorize message (fire-and-forget)
   const msgId = r.lastInsertRowid;
-  const senderName = req.user.display_name || req.user.username;
+  const senderName = req.user.username;
   setImmediate(() => {
     addDocument('messages', text, {
       message_id: msgId,
@@ -180,7 +180,7 @@ router.post('/:id/messages', (req, res) => {
   });
 
   const message = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
+    SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
   `).get(r.lastInsertRowid);
 
@@ -201,7 +201,7 @@ router.put('/messages/:id', (req, res) => {
     .run(result.data.text, msg.id);
 
   const updated = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
+    SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?
   `).get(msg.id);
 
@@ -239,7 +239,7 @@ router.get('/:id/search', (req, res) => {
 
   const escapedQ = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
   const messages = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
+    SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role, u.chat_color_index as sender_color_index
     FROM messages m JOIN users u ON m.sender_id = u.id
     WHERE m.room_id = ?
       AND (m.recipient_id IS NULL OR m.sender_id = ? OR m.recipient_id = ?)

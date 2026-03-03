@@ -85,7 +85,7 @@
 
     socket.on('typing', (data) => {
       if (data.room_id === currentRoomId && data.user_id !== user.id) {
-        showTyping(data.display_name || data.username);
+        showTyping(data.username);
       }
     });
 
@@ -134,9 +134,9 @@
     });
 
     // Private request declined — show alert to sender
-    socket.on('private_declined', ({ from_display_name }) => {
+    socket.on('private_declined', ({ from_username }) => {
       if (typeof showAlert === 'function') {
-        showAlert(`${esc(from_display_name)} a refuzat conversația privată.`);
+        showAlert(`${esc(from_username)} a refuzat conversația privată.`);
       }
     });
 
@@ -788,7 +788,7 @@
 
     picker.innerHTML = matches.map(m => `
       <div class="mention-option" data-username="${esc(m.username)}">
-        <span class="mention-option__name">${esc(m.display_name || m.username)}</span>
+        <span class="mention-option__name">${esc(m.username)}</span>
         <span class="mention-option__user">@${esc(m.username)}</span>
       </div>`).join('');
 
@@ -976,7 +976,7 @@
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) {
         const percent = Math.round((e.loaded / e.total) * 100);
-        showUploadProgress(user.display_name || user.username, file.name, percent);
+        showUploadProgress(user.username, file.name, percent);
         socket.emit('upload_progress', { room_id: roomId, filename: file.name, percent });
       }
     });
@@ -1164,14 +1164,14 @@
       const isOnline = m.is_online || onlineUsers.has(m.id);
       const roleLabel = m.room_role === 'owner' ? 'Owner' : (m.role === 'agent' ? 'Agent' : 'Member');
       const privateBtn = m.id !== user.id
-        ? `<button class="btn btn--ghost btn--sm member-private-btn" data-user-id="${m.id}" data-display-name="${esc(m.display_name || m.username)}" title="Start private chat">🔒</button>`
+        ? `<button class="btn btn--ghost btn--sm member-private-btn" data-user-id="${m.id}" data-display-name="${esc(m.username)}" title="Start private chat">🔒</button>`
         : '';
       return `
         <div class="member-row" data-user-id="${m.id}">
-          <div class="avatar avatar--sm">${(m.display_name || m.username || '?').charAt(0).toUpperCase()}
+          <div class="avatar avatar--sm">${(m.username || '?').charAt(0).toUpperCase()}
             <span class="avatar__status ${isOnline ? 'avatar__status--online' : ''}" data-status="${m.id}"></span>
           </div>
-          <span class="member-row__name">${esc(m.display_name || m.username)}</span>
+          <span class="member-row__name">${esc(m.username)}</span>
           <span class="member-row__role">${roleLabel}</span>
           ${privateBtn}
         </div>`;
@@ -1432,7 +1432,7 @@
     toast.id = toastId;
     toast.className = 'private-req-toast';
     toast.innerHTML = `
-      <div class="private-req-toast__header">🔒 Chat privat — <strong>${esc(req.from_display_name || req.from_username || '')}</strong></div>
+      <div class="private-req-toast__header">🔒 Chat privat — <strong>${esc(req.from_username || '')}</strong></div>
       <div class="private-req-toast__preview">${esc((req.initial_message || '').slice(0, 80))}</div>
       <div class="private-req-toast__actions">
         <button class="btn btn--primary btn--sm" id="${toastId}-accept">Accepta</button>

@@ -53,7 +53,7 @@ router.get('/', (req, res) => {
       (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
       (SELECT m.text FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message,
       (SELECT m.created_at FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
-      (SELECT u.display_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
+      (SELECT u.username FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
       (SELECT COUNT(*) FROM messages m
        WHERE m.room_id = r.id
          AND m.sender_id != ?
@@ -283,7 +283,7 @@ router.delete('/:id/members/:userId', (req, res) => {
 router.get('/users/list', (req, res) => {
   const db = getDb();
   const users = db.prepare(
-    "SELECT id, username, display_name, role, is_online FROM users WHERE role != 'admin' OR id = ? ORDER BY display_name"
+    "SELECT id, username, role, is_online FROM users WHERE role != 'admin' OR id = ? ORDER BY username"
   ).all(req.user.id);
   res.json({ users });
 });

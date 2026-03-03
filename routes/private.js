@@ -32,7 +32,7 @@ router.post('/request', (req, res) => {
     return res.json({ exists: true, room });
   }
 
-  const target = db.prepare('SELECT id, display_name FROM users WHERE id = ?').get(to_user_id);
+  const target = db.prepare('SELECT id, username FROM users WHERE id = ?').get(to_user_id);
   if (!target) return res.status(404).json({ error: 'User not found' });
 
   // Check for pending request already sent
@@ -49,7 +49,7 @@ router.post('/request', (req, res) => {
   io.to(`user:${to_user_id}`).emit('private_request', {
     request_id: result.lastInsertRowid,
     from_user_id: req.user.id,
-    from_display_name: req.user.display_name || req.user.username,
+    from_username: req.user.username,
     initial_message: initial_message.trim().slice(0, 500),
   });
 
@@ -122,7 +122,7 @@ router.post('/request/:id/decline', (req, res) => {
 
   io.to(`user:${request.from_user_id}`).emit('private_declined', {
     request_id: requestId,
-    from_display_name: req.user.display_name || req.user.username,
+    from_username: req.user.username,
   });
 
   res.json({ ok: true });

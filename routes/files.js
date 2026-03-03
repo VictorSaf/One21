@@ -83,7 +83,7 @@ router.post('/:id/upload', authMiddleware, checkPermission('can_send_files'), up
   );
 
   const message = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
+    SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role,
            COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index
     FROM messages m
     JOIN users u ON m.sender_id = u.id
