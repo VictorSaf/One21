@@ -18,6 +18,31 @@ function queueAgentRoomMemory(db, roomId, text, metadata) {
   }
 }
 
+function findOrCreatePrivateRoom(db, userId1, userId2) {
+  const existing = db.prepare(`
+    SELECT r.id FROM rooms r
+    JOIN room_members rm1 ON r.id = rm1.room_id AND rm1.user_id = ?
+    JOIN room_members rm2 ON r.id = rm2.room_id AND rm2.user_id = ?
+    WHERE r.type = 'private' AND r.is_archived = 0
+    LIMIT 1
+  `).get(userId1, userId2);
+  if (existing) return { id: existing.id, isNew: false };
+
+  const id = db.transaction(() => {
+    const r = db.prepare(
+      "INSERT INTO rooms (name, type, created_by) VALUES (?, 'private', ?)"
+    ).run(`private-${userId1}-${userId2}`, userId1);
+    const roomId = r.lastInsertRowid;
+    const add = db.prepare(
+      'INSERT OR IGNORE INTO room_members (room_id, user_id, role, access_level, color_index) VALUES (?, ?, ?, ?, ?)'
+    );
+    add.run(roomId, userId1, 'owner', 'readandwrite', 0);
+    add.run(roomId, userId2, 'member', 'readandwrite', 1);
+    return roomId;
+  })();
+  return { id, isNew: true };
+}
+
 function register(io, socket, db) {
   socket.on('typing', (data) => {
     const { room_id } = data;
@@ -53,28 +78,93 @@ function register(io, socket, db) {
       }
     }
 
-    // Channel: non-admin must use @username prefix (whisper)
-    const room = db.prepare('SELECT type FROM rooms WHERE id = ?').get(room_id);
-    let recipientId = null;
     let actualText = text.trim();
 
-    if (room?.type === 'channel' && socket.user.role !== 'admin') {
-      const match = actualText.match(/^@(\S+)\s+([\s\S]+)$/);
-      if (!match) {
-        socket.emit('error', { message: 'Folosește @username mesaj pentru un mesaj privat în acest canal.' });
-        return;
-      }
-      const targetUser = db.prepare('SELECT id FROM users WHERE username = ?').get(match[1]);
+    // @username <text> from any room → route silently to private DM room
+    const atMatch = actualText.match(/^@(\S+)\s+([\s\S]+)$/);
+    if (atMatch) {
+      const targetUser = db.prepare(
+        'SELECT id, username, display_name FROM users WHERE username = ? COLLATE NOCASE'
+      ).get(atMatch[1]);
       if (!targetUser) {
-        socket.emit('error', { message: `Utilizatorul @${match[1]} nu există.` });
+        socket.emit('error', { message: `Utilizatorul @${atMatch[1]} nu există.` });
         return;
       }
       if (targetUser.id === socket.user.id) {
-        socket.emit('error', { message: 'Nu poți trimite mesaj privat ție însuți.' });
+        socket.emit('error', { message: 'Nu poți trimite mesaj ție însuți.' });
         return;
       }
-      recipientId = targetUser.id;
-      actualText = match[2].trim();
+
+      const dmText = atMatch[2].trim();
+      const { id: dmRoomId, isNew } = findOrCreatePrivateRoom(db, socket.user.id, targetUser.id);
+
+      const dmResult = db.prepare(
+        'INSERT INTO messages (room_id, sender_id, text, type, reply_to) VALUES (?, ?, ?, ?, ?)'
+      ).run(dmRoomId, socket.user.id, dmText, 'text', reply_to || null);
+
+      setImmediate(() => {
+        addDocument('messages', dmText, {
+          message_id: dmResult.lastInsertRowid,
+          room_id: dmRoomId,
+          sender_id: socket.user.id,
+          sender: socket.user.display_name || socket.user.username,
+          ts: new Date().toISOString(),
+        }).catch(() => {});
+        queueAgentRoomMemory(db, dmRoomId, dmText, {
+          message_id: dmResult.lastInsertRowid,
+          sender_id: socket.user.id,
+          sender: socket.user.display_name || socket.user.username,
+          sender_username: socket.user.username,
+          sender_role: socket.user.role,
+          memory_type: 'room_message',
+          ts: new Date().toISOString(),
+        });
+      });
+
+      const dmMessage = db.prepare(`
+        SELECT m.*, u.username as sender_username, u.display_name as sender_name, u.role as sender_role,
+               COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index,
+               reply_m.text as reply_to_text, ru.username as reply_to_sender
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
+        LEFT JOIN messages reply_m ON reply_m.id = m.reply_to
+        LEFT JOIN users ru ON ru.id = reply_m.sender_id
+        WHERE m.id = ?
+      `).get(dmResult.lastInsertRowid);
+
+      if (isNew) {
+        const dmRoomRaw = db.prepare('SELECT * FROM rooms WHERE id = ?').get(dmRoomId);
+        io.to(`user:${socket.user.id}`).emit('room_added', {
+          room: { ...dmRoomRaw, display_name: targetUser.display_name || targetUser.username },
+          silent: true,
+        });
+        io.to(`user:${targetUser.id}`).emit('room_added', {
+          room: { ...dmRoomRaw, display_name: socket.user.display_name || socket.user.username },
+          silent: true,
+        });
+      }
+
+      io.to(`user:${socket.user.id}`).to(`user:${targetUser.id}`).emit('message', dmMessage);
+
+      const recipientOnline = db.prepare('SELECT is_online FROM users WHERE id = ?').get(targetUser.id);
+      if (!recipientOnline?.is_online) {
+        notifyUser(targetUser.id, {
+          title: `${socket.user.display_name || socket.user.username} (DM)`,
+          body:  dmText.slice(0, 100),
+          tag:   `dm-${socket.user.id}`,
+          url:   '/chat.html',
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    // Channel: non-admin cannot post without @username (which now routes to DM)
+    const room = db.prepare('SELECT type FROM rooms WHERE id = ?').get(room_id);
+    let recipientId = null;
+    if (room?.type === 'channel' && socket.user.role !== 'admin') {
+      socket.emit('error', { message: 'Folosește @username mesaj pentru a trimite un mesaj direct.' });
+      return;
     }
 
     // Limită mesaje/zi

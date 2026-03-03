@@ -124,13 +124,13 @@
       showUploadProgress(data.username, data.filename, data.percent);
     });
 
-    // Private room created (accepted request) — add to sidebar without full reload
-    socket.on('room_added', ({ room }) => {
+    // Private room created — add to sidebar; silent=true skips auto-navigation (e.g. @username DM send)
+    socket.on('room_added', ({ room, silent }) => {
       if (!rooms.find(r => r.id === room.id)) {
         rooms.unshift(room);
         renderSidebar();
       }
-      selectRoom(room.id);
+      if (!silent) selectRoom(room.id);
     });
 
     // Private request declined — show alert to sender
