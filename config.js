@@ -8,6 +8,16 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProd,
 
+  db: {
+    driver: (process.env.DB_DRIVER || 'sqlite').trim().toLowerCase(),
+    pgUrl: process.env.PG_URL || process.env.DATABASE_URL || null,
+    pgPool: {
+      max: Number.parseInt(process.env.PG_POOL_MAX || '10', 10),
+      idleTimeoutMs: Number.parseInt(process.env.PG_POOL_IDLE_TIMEOUT_MS || '30000', 10),
+      connTimeoutMs: Number.parseInt(process.env.PG_POOL_CONN_TIMEOUT_MS || '5000', 10),
+    },
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET || 'one21-dev-secret-change-in-prod',
   },

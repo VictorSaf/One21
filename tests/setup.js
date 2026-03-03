@@ -4,7 +4,6 @@
 const { login, authRequest } = require('./helpers');
 
 const TEST_USER = {
-  username: 'qabot_' + Date.now().toString(36),
   password: 'qatest123456',
   display_name: 'QA Bot',
 };
@@ -38,18 +37,28 @@ async function getOrCreateTestUser() {
     throw new Error(`Failed to create invite: ${JSON.stringify(invRes.body)}`);
   }
 
-  // Register
+  // Register (retry on username collision)
   const { request } = require('./helpers');
-  const regRes = await request('POST', '/api/auth/register', {
-    body: {
-      username: TEST_USER.username,
-      password: TEST_USER.password,
-      display_name: TEST_USER.display_name,
-      invite_code: invRes.body.code,
-    },
-  });
-  if (regRes.status !== 200 || !regRes.body.token) {
-    throw new Error(`Failed to register test user: ${JSON.stringify(regRes.body)}`);
+  const maxAttempts = 5;
+  let regRes;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const username = `qabot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    regRes = await request('POST', '/api/auth/register', {
+      body: {
+        username,
+        password: TEST_USER.password,
+        display_name: TEST_USER.display_name,
+        invite_code: invRes.body.code,
+      },
+    });
+
+    if (regRes.status === 200 && regRes.body && regRes.body.token) break;
+
+    const errMsg = regRes && regRes.body && regRes.body.error ? String(regRes.body.error) : '';
+    const isCollision = regRes && regRes.status === 400 && errMsg.toLowerCase().includes('username already');
+    if (!isCollision || attempt === maxAttempts) {
+      throw new Error(`Failed to register test user: ${JSON.stringify(regRes.body)}`);
+    }
   }
 
   _testUserAuth = regRes.body;

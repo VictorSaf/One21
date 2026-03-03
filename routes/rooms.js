@@ -1,6 +1,6 @@
 const express = require('express');
 const { z } = require('zod');
-const { getDb } = require('../db/init');
+const { getDb, getDbDriver, getPgPool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -38,33 +38,91 @@ const editSchema = z.object({
 
 // GET /api/rooms — list rooms the current user belongs to
 router.get('/', (req, res) => {
-  const db = getDb();
-  const rooms = db.prepare(`
-    SELECT r.*, rm.role as my_role, rm.access_level as my_access_level,
-      CASE WHEN r.type IN ('private', 'direct')
-        THEN (
-          SELECT u.username FROM room_members rm2
-          JOIN users u ON u.id = rm2.user_id
-          WHERE rm2.room_id = r.id AND rm2.user_id != rm.user_id
-          LIMIT 1
-        )
-        ELSE r.name
-      END as display_name,
-      (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
-      (SELECT m.text FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message,
-      (SELECT m.created_at FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
-      (SELECT u.username FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
-      (SELECT COUNT(*) FROM messages m
-       WHERE m.room_id = r.id
-         AND m.sender_id != ?
-         AND (m.recipient_id IS NULL OR m.recipient_id = rm.user_id)
-         AND m.id NOT IN (SELECT message_id FROM message_reads WHERE user_id = ?)) as unread_count
-    FROM rooms r
-    JOIN room_members rm ON r.id = rm.room_id AND rm.user_id = ?
-    WHERE r.is_archived = 0
-    ORDER BY last_message_at DESC NULLS LAST
-  `).all(req.user.id, req.user.id, req.user.id);
-  res.json({ rooms });
+  const driver = getDbDriver();
+
+  const send = async () => {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const userId = Number(req.user.id);
+      const { rows } = await pool.query(
+        `
+        SELECT
+          r.id,
+          r.name,
+          r.description,
+          r.type,
+          CASE WHEN r.is_archived THEN 1 ELSE 0 END as is_archived,
+          r.created_by,
+          r.created_at,
+          rm.role as my_role,
+          rm.access_level as my_access_level,
+          CASE WHEN r.type IN ('private', 'direct')
+            THEN (
+              SELECT u.username
+              FROM room_members rm2
+              JOIN users u ON u.id = rm2.user_id
+              WHERE rm2.room_id = r.id AND rm2.user_id <> rm.user_id
+              LIMIT 1
+            )
+            ELSE r.name
+          END as display_name,
+          (SELECT COUNT(*)::int FROM room_members WHERE room_id = r.id) as member_count,
+          (SELECT m.text FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message,
+          (SELECT m.created_at FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+          (SELECT u.username FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
+          (
+            SELECT COUNT(*)::int
+            FROM messages m
+            WHERE m.room_id = r.id
+              AND m.sender_id <> $1
+              AND (m.recipient_id IS NULL OR m.recipient_id = rm.user_id)
+              AND NOT EXISTS (
+                SELECT 1 FROM message_reads mr
+                WHERE mr.user_id = $1 AND mr.message_id = m.id
+              )
+          ) as unread_count
+        FROM rooms r
+        JOIN room_members rm ON r.id = rm.room_id AND rm.user_id = $1
+        WHERE r.is_archived = false
+        ORDER BY last_message_at DESC NULLS LAST
+        `,
+        [userId]
+      );
+      return res.json({ rooms: rows });
+    }
+
+    const db = getDb();
+    const rooms = db.prepare(`
+      SELECT r.*, rm.role as my_role, rm.access_level as my_access_level,
+        CASE WHEN r.type IN ('private', 'direct')
+          THEN (
+            SELECT u.username FROM room_members rm2
+            JOIN users u ON u.id = rm2.user_id
+            WHERE rm2.room_id = r.id AND rm2.user_id != rm.user_id
+            LIMIT 1
+          )
+          ELSE r.name
+        END as display_name,
+        (SELECT COUNT(*) FROM room_members WHERE room_id = r.id) as member_count,
+        (SELECT m.text FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message,
+        (SELECT m.created_at FROM messages m WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+        (SELECT u.username FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.room_id = r.id AND m.recipient_id IS NULL ORDER BY m.created_at DESC LIMIT 1) as last_message_sender,
+        (SELECT COUNT(*) FROM messages m
+         WHERE m.room_id = r.id
+           AND m.sender_id != ?
+           AND (m.recipient_id IS NULL OR m.recipient_id = rm.user_id)
+           AND m.id NOT IN (SELECT message_id FROM message_reads WHERE user_id = ?)) as unread_count
+      FROM rooms r
+      JOIN room_members rm ON r.id = rm.room_id AND rm.user_id = ?
+      WHERE r.is_archived = 0
+      ORDER BY last_message_at DESC NULLS LAST
+    `).all(req.user.id, req.user.id, req.user.id);
+    res.json({ rooms });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Failed to list rooms' });
+  });
 });
 
 // POST /api/rooms/direct — deprecated; direct messages replaced by whispers in General

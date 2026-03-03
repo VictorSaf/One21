@@ -24,10 +24,19 @@ describe('API Conformance Tests', () => {
       assert.equal(res.status, 200);
       assert.equal(res.body.status, 'ok');
       assert.ok(typeof res.body.uptime === 'number');
+      assert.ok(typeof res.body.version === 'string');
       assert.ok(res.body.stats);
       assert.ok(typeof res.body.stats.users === 'number');
       assert.ok(typeof res.body.stats.rooms === 'number');
       assert.ok(typeof res.body.stats.messages === 'number');
+      assert.ok(res.body.disk);
+      assert.ok(res.body.disk.data);
+      assert.ok(res.body.disk.uploads);
+      assert.ok(typeof res.body.disk.data.ok === 'boolean');
+      assert.ok(typeof res.body.disk.uploads.ok === 'boolean');
+      assert.ok(res.body.flags);
+      assert.ok(typeof res.body.flags.vapidConfigured === 'boolean');
+      assert.ok(typeof res.body.flags.agentApiKeyConfigured === 'boolean');
     });
   });
 
@@ -257,30 +266,20 @@ describe('API Conformance Tests', () => {
   // DM Direct endpoint (Test 6 context)
   // -------------------------------------------------------
   describe('POST /api/rooms/direct', () => {
-    it('creates or finds DM room between two users', async () => {
+    it('returns 410 because direct messages are deprecated', async () => {
       const res = await authRequest('POST', '/api/rooms/direct', admin.token, {
         participant_id: testUser.user.id,
       });
-      assert.equal(res.status, 200);
-      assert.ok(res.body.room);
-      assert.equal(res.body.room.type, 'direct');
+      assert.equal(res.status, 410);
+      assert.ok(res.body.error);
     });
 
-    it('returns same room on duplicate request', async () => {
-      const res1 = await authRequest('POST', '/api/rooms/direct', admin.token, {
-        participant_id: testUser.user.id,
-      });
-      const res2 = await authRequest('POST', '/api/rooms/direct', admin.token, {
-        participant_id: testUser.user.id,
-      });
-      assert.equal(res1.body.room.id, res2.body.room.id);
-    });
-
-    it('returns 400 for self-DM', async () => {
+    it('returns 410 for self-DM as well', async () => {
       const res = await authRequest('POST', '/api/rooms/direct', admin.token, {
         participant_id: admin.user.id,
       });
-      assert.equal(res.status, 400);
+      assert.equal(res.status, 410);
+      assert.ok(res.body.error);
     });
   });
 

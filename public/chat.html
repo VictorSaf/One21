@@ -7,7 +7,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ONE21 — Neural Terminal</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#00e676">
+<meta name="theme-color" content="#040404">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ONE21">
 <link rel="stylesheet" href="/css/design-system.css">
 <link rel="stylesheet" href="/api/theme/active.css">
 <link rel="stylesheet" href="/css/layers/pages/chat.css">
@@ -94,32 +98,38 @@
 
   </aside><!-- /.sidebar -->
 
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 
   <!-- ══════════════════════════════════════
        MAIN CONTENT AREA
        ══════════════════════════════════════ -->
   <main class="main">
 
+    <div class="main__inner">
+
     <!-- ── Panel Header ── -->
     <header class="panel-header" id="panelHeaderEl">
-      <div class="avatar avatar--md" id="panelAvatar"></div>
-      <div class="panel-header__info">
-        <h3 class="panel-header__title" id="panelTitle">SELECT_NODE</h3>
-        <div class="u-flex-center">
-          <span class="panel-header__subtitle" id="panelSubtitle"></span>
-          <span class="badge badge--outline u-hidden" id="panelEncryptBadge">ENCRYPTED_LINK</span>
+      <div class="panel-header__inner">
+        <div class="avatar avatar--md" id="panelAvatar"></div>
+        <div class="panel-header__info">
+          <h3 class="panel-header__title" id="panelTitle">SELECT_NODE</h3>
+          <div class="u-flex-center">
+            <span class="panel-header__subtitle" id="panelSubtitle"></span>
+            <span class="badge badge--outline u-hidden" id="panelEncryptBadge">ENCRYPTED_LINK</span>
+          </div>
         </div>
-      </div>
-      <div class="panel-header__actions">
-        <button class="btn btn--icon btn--ghost" title="Cauta in conversatie" id="searchToggleBtn">
-          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
-        <button class="btn btn--icon btn--ghost" title="Info canal" onclick="toggleInfoPanel()">
-          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </button>
-        <button class="btn btn--icon btn--ghost" title="Mai multe" id="headerMoreBtn">
-          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </button>
+        <div class="panel-header__actions">
+          <button class="btn btn--icon btn--ghost" title="Cauta in conversatie" id="searchToggleBtn">
+            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn btn--icon btn--ghost" title="Info canal" onclick="toggleInfoPanel()">
+            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </button>
+          <button class="btn btn--icon btn--ghost" title="Mai multe" id="headerMoreBtn">
+            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -192,29 +202,33 @@
     <!-- ── Compose Bar ── -->
     <div class="compose" id="composeArea">
       <div class="mention-picker" id="mentionPicker"></div>
-      <div class="compose__row">
-        <button class="btn btn--icon btn--ghost" title="Atasament" id="attachBtn">
-          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        </button>
-        <input class="compose__input" id="composeInput" type="text" placeholder="INPUT_TRANSMISSION...">
-        <button class="compose__send" id="sendBtn" title="Transmite">
-          <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-      <div class="compose__statusbar">
-        <div class="compose__statusbar-left">
-          <span class="compose__stat">
-            <span class="status-dot status-dot--online"></span>
-            &nbsp;SIGNAL:100%
-          </span>
-          <span class="compose__stat">LATENCY:0.2MS</span>
-          <span class="compose__stat">PORT:443</span>
+      <div class="compose__inner">
+        <div class="compose__row">
+          <button class="btn btn--icon btn--ghost" title="Atasament" id="attachBtn">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <input class="compose__input" id="composeInput" type="text" placeholder="INPUT_TRANSMISSION...">
+          <button class="compose__send" id="sendBtn" title="Transmite">
+            <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
         </div>
-        <span class="compose__statusbar-right">NEURAL_LINK_V2.0</span>
+        <div class="compose__statusbar">
+          <div class="compose__statusbar-left">
+            <span class="compose__stat">
+              <span class="status-dot status-dot--online"></span>
+              &nbsp;SIGNAL:100%
+            </span>
+            <span class="compose__stat">LATENCY:0.2MS</span>
+            <span class="compose__stat">PORT:443</span>
+          </div>
+          <span class="compose__statusbar-right">NEURAL_LINK_V2.0</span>
+        </div>
       </div>
     </div>
 
     <!-- file input injected dynamically by chat.js -->
+
+    </div>
 
   </main><!-- /.main -->
 

@@ -19,6 +19,13 @@ logs/
 # Claude Code IDE files
 .claude/settings.local.json
 
+# Local editor / tooling artifacts
+.cursor/
+.playwright-mcp/
+
+# Local screenshots / mock exports
+*.png
+
 # Git worktrees
 .worktrees/
 data/

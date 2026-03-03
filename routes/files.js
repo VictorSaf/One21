@@ -3,9 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
-const { getDb } = require('../db/init');
+const { getDb, getDbDriver, getPgPool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
+const { assertCanSendFiles } = require('../middleware/policy');
 
 const router = express.Router();
 
@@ -50,52 +51,94 @@ const upload = multer({
 router.post('/:id/upload', authMiddleware, checkPermission('can_send_files'), upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const db = getDb();
   const roomId = req.params.id;
+  const driver = getDbDriver();
 
-  const membership = db.prepare(
-    'SELECT * FROM room_members WHERE room_id = ? AND user_id = ?'
-  ).get(roomId, req.user.id);
-  if (!membership) {
-    fs.unlinkSync(req.file.path);
-    return res.status(403).json({ error: 'Not a member of this room' });
-  }
-  if (req.user.role !== 'admin') {
-    const accessLevel = ['readonly', 'readandwrite', 'post_docs'].includes(membership.access_level)
-      ? membership.access_level
-      : 'readandwrite';
-    if (accessLevel === 'readonly') {
-      fs.unlinkSync(req.file.path);
-      return res.status(403).json({ error: 'This room is read-only for your account.' });
+  const send = async () => {
+    const policy = await assertCanSendFiles({ roomId, user: req.user });
+    if (!policy.ok) {
+      try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(policy.status).json({ error: policy.error });
     }
-  }
 
-  const fileUrl = `/api/files/${req.file.filename}`;
-  const isImage = req.file.mimetype.startsWith('image/');
+    const fileUrl = `/api/files/${req.file.filename}`;
+    const isImage = req.file.mimetype.startsWith('image/');
+    const preview = isImage ? `📷 ${req.file.originalname}` : `📎 ${req.file.originalname}`;
 
-  const result = db.prepare(
-    `INSERT INTO messages (room_id, sender_id, text, type, file_url, file_name)
-     VALUES (?, ?, ?, 'file', ?, ?)`
-  ).run(roomId, req.user.id,
-    isImage ? `📷 ${req.file.originalname}` : `📎 ${req.file.originalname}`,
-    fileUrl,
-    req.file.originalname
-  );
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const roomIdNum = Number(roomId);
+      const userId = Number(req.user.id);
 
-  const message = db.prepare(`
-    SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role,
-           COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index
-    FROM messages m
-    JOIN users u ON m.sender_id = u.id
-    LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
-    WHERE m.id = ?
-  `).get(result.lastInsertRowid);
+      const inserted = (await pool.query(
+        `
+        INSERT INTO messages (room_id, sender_id, text, type, file_url, file_name)
+        VALUES ($1, $2, $3, 'file', $4, $5)
+        RETURNING id
+        `,
+        [roomIdNum, userId, preview, fileUrl, req.file.originalname]
+      )).rows[0];
+      const msgId = Number(inserted.id);
 
-  // Broadcast file message to all room members via Socket.IO
-  const io = req.app.get('io');
-  io.to(`room:${roomId}`).emit('message', message);
+      const message = (await pool.query(
+        `
+        SELECT
+          m.id,
+          m.room_id,
+          m.sender_id,
+          m.text,
+          m.type,
+          m.file_url,
+          m.file_name,
+          m.reply_to,
+          CASE WHEN m.is_edited THEN 1 ELSE 0 END as is_edited,
+          m.recipient_id,
+          m.created_at,
+          u.username as sender_username,
+          u.username as sender_name,
+          u.role as sender_role,
+          COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
+        WHERE m.id = $1
+        `,
+        [msgId]
+      )).rows[0];
 
-  res.json({ message, file_url: fileUrl, file_name: req.file.originalname, mime: req.file.mimetype });
+      // Broadcast file message to all room members via Socket.IO
+      const io = req.app.get('io');
+      io.to(`room:${roomId}`).emit('message', message);
+
+      return res.json({ message, file_url: fileUrl, file_name: req.file.originalname, mime: req.file.mimetype });
+    }
+
+    const db = getDb();
+    const result = db.prepare(
+      `INSERT INTO messages (room_id, sender_id, text, type, file_url, file_name)
+       VALUES (?, ?, ?, 'file', ?, ?)`
+    ).run(roomId, req.user.id, preview, fileUrl, req.file.originalname);
+
+    const message = db.prepare(`
+      SELECT m.*, u.username as sender_username, u.username as sender_name, u.role as sender_role,
+             COALESCE(rmc.color_index, u.chat_color_index) as sender_color_index
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      LEFT JOIN room_members rmc ON rmc.room_id = m.room_id AND rmc.user_id = m.sender_id
+      WHERE m.id = ?
+    `).get(result.lastInsertRowid);
+
+    // Broadcast file message to all room members via Socket.IO
+    const io = req.app.get('io');
+    io.to(`room:${roomId}`).emit('message', message);
+
+    res.json({ message, file_url: fileUrl, file_name: req.file.originalname, mime: req.file.mimetype });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    try { fs.unlinkSync(req.file.path); } catch {}
+    res.status(500).json({ error: err.message || 'Upload failed' });
+  });
 });
 
 // GET /api/files/:filename — serve file with auth check

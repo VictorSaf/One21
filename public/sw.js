@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'one21-v6';
+const CACHE_VERSION = 'one21-v11';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
 // Only pre-cache static assets — HTML pages use network-first (see fetch handler)
@@ -14,7 +14,7 @@ const ASSETS = [
 ];
 
 // HTML navigation routes — always fetch from network, cache as fallback only
-const HTML_ROUTES = ['/one21/', '/one21/join', '/one21/chat', '/one21/hey', '/admin.html'];
+const HTML_ROUTES = ['/', '/join', '/chat', '/hey', '/admin.html'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -48,7 +48,13 @@ self.addEventListener('fetch', function (e) {
   // Never intercept API calls
   if (e.request.url.indexOf('/api/') !== -1) return;
 
+  // Cache API only supports GET. Do not intercept non-GET requests.
+  if (e.request.method !== 'GET') return;
+
   const url = new URL(e.request.url);
+
+  // Local dev: do not intercept/caches at all (avoids stale CSS/HTML during UI iteration)
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return;
 
   // HTML pages: network-first — always show fresh content, fall back to cache only if offline
   if (e.request.mode === 'navigate' || HTML_ROUTES.some(function (r) { return url.pathname === r; })) {

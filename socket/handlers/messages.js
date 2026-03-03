@@ -47,10 +47,15 @@ function register(io, socket, db) {
   socket.on('typing', (data) => {
     const { room_id } = data;
     if (!room_id) return;
+    let displayName;
+    try {
+      displayName = db.prepare('SELECT display_name FROM users WHERE id = ?').get(socket.user.id)?.display_name;
+    } catch {}
     socket.to(`room:${room_id}`).emit('typing', {
       room_id,
       user_id:      socket.user.id,
       username:     socket.user.username,
+      display_name: displayName || socket.user.username,
     });
   });
 

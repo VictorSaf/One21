@@ -183,8 +183,12 @@
     const publicRooms  = rooms.filter(r => r.type !== 'private' && r.type !== 'direct');
     const privateRooms = rooms.filter(r => r.type === 'private' || r.type === 'direct');
 
-    sidebarList.innerHTML = publicRooms.map(roomItemHtml).join('');
-    privateList.innerHTML = privateRooms.map(roomItemHtml).join('');
+    sidebarList.innerHTML = publicRooms.length
+      ? publicRooms.map(roomItemHtml).join('')
+      : '<div class="sidebar-empty">> no_live_nodes</div>';
+    privateList.innerHTML = privateRooms.length
+      ? privateRooms.map(roomItemHtml).join('')
+      : '<div class="sidebar-empty sidebar-empty--muted">> no_direct</div>';
 
     // Show "Direct" label only when private rooms exist
     directSectionLabel.classList.toggle('u-hidden', privateRooms.length === 0);
@@ -199,7 +203,8 @@
   }
 
   function roomItemHtml(room) {
-    const isActive  = room.id === currentRoomId;
+    const allowActiveHighlight = window.innerWidth > 640;
+    const isActive  = allowActiveHighlight && room.id === currentRoomId;
     const hasUnread = room.unread_count > 0 && !isActive;
     const label     = room.display_name || room.name;
     const preview   = room.last_message
@@ -208,6 +213,7 @@
 
     const isPrivate = room.type === 'private' || room.type === 'direct';
     const badgeMod  = isPrivate ? 'badge--warning' : 'badge--accent';
+    const unreadMod = hasUnread ? (isPrivate ? 'chat-item--unread-warning' : 'chat-item--unread-accent') : '';
     const unread    = hasUnread
       ? `<span class="badge ${badgeMod}">${room.unread_count > 99 ? '99+' : room.unread_count}</span>`
       : '';
@@ -218,12 +224,12 @@
       group:   { icon: '#',      mod: 'chat-item--group'   },
       cult:    { icon: '\u2B21', mod: 'chat-item--cult'    },
       private: { icon: '@',      mod: 'chat-item--private' },
-      direct:  { icon: '@',      mod: ''                   },
+      direct:  { icon: '@',      mod: 'chat-item--direct'  },
     };
     const { icon, mod } = typeConfig[room.type] || { icon: '#', mod: '' };
 
     return `
-      <div class="chat-item ${mod} ${isActive ? 'chat-item--active' : ''} ${hasUnread ? 'chat-item--has-unread' : ''}" data-room-id="${room.id}" data-room-type="${room.type}">
+      <div class="chat-item ${mod} ${isActive ? 'chat-item--active' : ''} ${hasUnread ? 'chat-item--has-unread' : ''} ${unreadMod}" data-room-id="${room.id}" data-room-type="${room.type}">
         <span class="chat-item__prefix">${icon}</span>
         <div class="chat-item__body">
           <div class="chat-item__header">
@@ -904,7 +910,9 @@
   // ═══════════════════════════════════════
   async function deleteMessage(msgId) {
     if (!(await showConfirm('Ștergi acest mesaj?', { okLabel: 'Șterge', cancelLabel: 'Anulare' }))) return;
-    socket.emit('message_delete', { message_id: msgId });
+    const data = await Auth.api(`/api/messages/${msgId}`, { method: 'DELETE' });
+    if (!data) return;
+    if (data.error) { showAlert(data.error); return; }
   }
 
   async function clearRoomMessages() {
@@ -1011,8 +1019,13 @@
       el.id = 'uploadStatus';
       el.className = 'upload-status';
       const compose = document.querySelector('.compose');
+      if (!compose) return;
       const composeRow = compose.querySelector('.compose__row');
-      compose.insertBefore(el, composeRow);
+      if (composeRow && composeRow.parentNode === compose) {
+        compose.insertBefore(el, composeRow);
+      } else {
+        compose.appendChild(el);
+      }
     }
     el.innerHTML = `<span>${esc(username)} uploading ${esc(filename)}... ${percent}%</span>` +
       `<div class="upload-status__bar"><div class="upload-status__fill" style="width:${Math.min(100, percent)}%"></div></div>`;
@@ -1086,11 +1099,23 @@
     if (!text || !currentRoomId) return;
 
     if (editingMsgId) {
-      socket.emit('message_edit', { message_id: editingMsgId, text });
-      cancelEdit();
+      Auth.api(`/api/messages/${editingMsgId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ text }),
+      }).then((data) => {
+        if (!data) return;
+        if (data.error) { showAlert(data.error); return; }
+        cancelEdit();
+      }).catch(() => showAlert('Eroare la editare.'));
     } else {
-      socket.emit('message', { room_id: currentRoomId, text, reply_to: replyingToId || undefined });
-      if (replyingToId) cancelReply();
+      Auth.api(`/api/rooms/${currentRoomId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ text, type: 'text', reply_to: replyingToId || undefined }),
+      }).then((data) => {
+        if (!data) return;
+        if (data.error) { showAlert(data.error); return; }
+        if (replyingToId) cancelReply();
+      }).catch(() => showAlert('Eroare la trimitere.'));
     }
 
     composeInput.value = '';
@@ -1296,6 +1321,7 @@
   // MOBILE LAYOUT
   // ═══════════════════════════════════════
   const sidebar = document.querySelector('.sidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
   let backBtn = null;
 
   function initMobileLayout() {
@@ -1310,8 +1336,16 @@
     panelHeader.insertBefore(backBtn, panelHeader.firstChild);
 
     backBtn.addEventListener('click', () => {
-      sidebar && sidebar.classList.add('sidebar--open');
+      if (!sidebar) return;
+      sidebar.classList.toggle('sidebar--open');
     });
+
+    // Tap outside to close (mobile drawer)
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener('click', () => {
+        sidebar && sidebar.classList.remove('sidebar--open');
+      });
+    }
 
     // On sidebar item click → close sidebar (mobile)
     [sidebarList, privateList].forEach(list => {

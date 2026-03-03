@@ -252,9 +252,14 @@
 
   /* ----- Steps: Who / Register (wrapper minimal, fără card) ----- */
   .join-step-inner {
-    max-width: 360px;
+    max-width: 420px;
     width: 100%;
     animation: join-fade-in 0.35s ease-out;
+    background: color-mix(in srgb, var(--bg-surface) 88%, var(--bg-elevated));
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--sp-7) var(--sp-7);
   }
 
   .join-who-form {
@@ -263,9 +268,11 @@
 
   .join-step__title {
     font-size: var(--font-lg);
-    font-weight: 600;
+    font-weight: var(--weight-bold);
     color: var(--text-primary);
     margin-bottom: var(--sp-2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .join-step__title--who {
@@ -277,6 +284,7 @@
     font-size: var(--font-sm);
     color: var(--text-secondary);
     margin-bottom: var(--sp-4);
+    letter-spacing: 0.02em;
   }
 
   .join-field {
@@ -286,8 +294,11 @@
   .join-field label {
     display: block;
     font-size: var(--font-xs);
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     margin-bottom: var(--sp-1);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: var(--weight-bold);
   }
 
   .join-field .input {

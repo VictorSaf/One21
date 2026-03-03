@@ -7,7 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ONE21 — Join</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#00e676">
+  <meta name="theme-color" content="#040404">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ONE21">
   <link rel="stylesheet" href="/css/design-system.css">
   <link rel="stylesheet" href="/api/theme/active.css">
   <link rel="stylesheet" href="/css/layers/pages/join.css">
@@ -113,7 +117,7 @@
   const tokenFromPath = (last && last !== 'one21' && last !== 'join') ? last : null;
 
   document.getElementById('btnEnterDirect').addEventListener('click', function () {
-    window.location.href = '/one21/hey';
+    window.location.href = '/hey';
   });
 
   const stepUpload = document.getElementById('stepUpload');
@@ -153,7 +157,7 @@
   }
 
   function goToJoinToken(token) {
-    window.location.href = '/one21/join/' + token;
+    window.location.href = '/join/' + token;
   }
 
   async function ensureJsQrLoaded() {
@@ -334,7 +338,7 @@
         return r.json();
       })
       .then(function () {
-        window.location.href = '/one21/hey';
+        window.location.href = '/hey';
       })
       .catch(function (err) {
         regError.textContent = err.message || 'Eroare la înregistrare.';

@@ -278,6 +278,9 @@ describe('Socket.IO Event Tests', () => {
       const { uploadFile } = require('./helpers');
       const fakeImageContent = Buffer.alloc(100, 0xFF);
 
+      // Listen BEFORE upload to avoid race (broadcast can happen immediately after HTTP response)
+      const msgPromise = waitForEvent(socketB, 'message', 5000);
+
       // Upload the file via HTTP
       const uploadRes = await uploadFile(
         `/api/rooms/${sharedRoom.id}/upload`,
@@ -290,33 +293,14 @@ describe('Socket.IO Event Tests', () => {
       assert.ok(uploadRes.body.file_url, 'Upload response should include file_url');
       assert.ok(uploadRes.body.file_name, 'Upload response should include file_name');
 
-      // Check if socketB receives the broadcast (with short timeout)
-      let broadcastReceived = false;
-      let broadcastMsg = null;
-      const handler = (msg) => {
-        if (msg.type === 'file' && msg.room_id === Number(sharedRoom.id)) {
-          broadcastReceived = true;
-          broadcastMsg = msg;
-        }
-      };
-      socketB.on('message', handler);
-      await new Promise(r => setTimeout(r, 2000));
-      socketB.off('message', handler);
-
-      // This assertion tests the CRITICAL fix.
-      // If it fails, the server needs to be restarted to load the updated routes/files.js.
-      assert.ok(broadcastReceived,
-        'File upload should broadcast message event to room via Socket.IO. ' +
-        'If this fails, restart the server to load the updated routes/files.js code.');
-
-      if (broadcastMsg) {
-        assert.equal(broadcastMsg.type, 'file');
-        assert.ok(broadcastMsg.file_url, 'Broadcast should include file_url');
-        assert.ok(broadcastMsg.file_name, 'Broadcast should include file_name');
-        assert.ok(broadcastMsg.sender_name, 'Broadcast should include sender_name');
-        assert.ok('sender_color_index' in broadcastMsg, 'Broadcast should include sender_color_index');
-        assert.ok(broadcastMsg.sender_username, 'Broadcast should include sender_username');
-      }
+      const broadcastMsg = await msgPromise;
+      assert.equal(broadcastMsg.type, 'file');
+      assert.equal(broadcastMsg.room_id, sharedRoom.id);
+      assert.ok(broadcastMsg.file_url, 'Broadcast should include file_url');
+      assert.ok(broadcastMsg.file_name, 'Broadcast should include file_name');
+      assert.ok(broadcastMsg.sender_name, 'Broadcast should include sender_name');
+      assert.ok('sender_color_index' in broadcastMsg, 'Broadcast should include sender_color_index');
+      assert.ok(broadcastMsg.sender_username, 'Broadcast should include sender_username');
     });
 
     it('HTTP upload response includes correct fields per contract', async () => {
