@@ -631,7 +631,7 @@
     bar.innerHTML = `
       <div class="reply-bar__accent"></div>
       <div class="reply-bar__body">
-        <span class="reply-bar__sender">\u21A9 ${esc(senderName)}</span>
+        <span class="reply-bar__sender">\u21A9 @${esc(senderName)}</span>
         ${previewContent}
       </div>
       <button class="reply-bar__cancel" title="Anuleaz\u0103">\u2715</button>`;
