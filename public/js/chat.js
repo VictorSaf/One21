@@ -382,12 +382,13 @@
 
     const contentHtml = buildContentHtml(msg);
     const senderName = msg.sender_username || (currentMembers.find(m => m.id === msg.sender_id)?.username) || (isMine ? user.username : '');
-    const useColor = isGroup && msg.sender_color_index != null;
+    const useColor = msg.sender_color_index != null;
     const colorIdx = useColor ? (msg.sender_color_index % 8) : 0;
     const colorClass = useColor ? ' msg--color-' + colorIdx : '';
     const showSender = isGroup || !isMine;
+    const displayedName = msg.sender_role === 'admin' ? senderName.toUpperCase() : senderName.toLowerCase();
     const senderHtml = showSender
-      ? `<span class="msg__sender">${esc(senderName)}</span>`
+      ? `<span class="msg__sender">${esc(displayedName)}</span>`
       : '';
 
     const isWhisper = !!msg.recipient_id;

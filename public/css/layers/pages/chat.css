@@ -56,6 +56,16 @@
   .msg--sent.msg--color-6 { background: var(--accent-anim-bg-08); border-right-color: var(--accent-dim); }
   .msg--sent.msg--color-7 { background: var(--danger-muted); border-right-color: var(--error); }
 
+  /* ── Sender username colored to match the user's assigned color ── */
+  .msg--color-0 .msg__sender { color: var(--accent); }
+  .msg--color-1 .msg__sender { color: var(--purple); }
+  .msg--color-2 .msg__sender { color: var(--online); }
+  .msg--color-3 .msg__sender { color: var(--warning); }
+  .msg--color-4 .msg__sender { color: var(--info); }
+  .msg--color-5 .msg__sender { color: var(--text-accent); }
+  .msg--color-6 .msg__sender { color: var(--accent-dim); }
+  .msg--color-7 .msg__sender { color: var(--error); }
+
 
   /* ── Reply compose bubble (above compose) ────────── */
   .reply-bar {

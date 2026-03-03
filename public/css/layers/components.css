@@ -857,7 +857,6 @@ textarea.input {
   display: block;
   font-size: var(--font-xs);
   font-weight: var(--weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--accent);
   margin-bottom: 4px;
