@@ -452,7 +452,6 @@
     if (isMine) {
       el.className = 'msg msg--sent' + colorClass + (isWhisper ? ' msg--whisper' : '');
       el.innerHTML = `
-        ${swipeIndicatorHtml}
         ${senderHtml}
         ${whisperLabelHtml}
         ${buildReplyQuoteHtml(msg)}
@@ -571,8 +570,9 @@
       }
     }
 
-    // ── Swipe-to-reply (mobile touch only)
+    // ── Swipe-to-reply (mobile touch only, received messages only)
     (function attachSwipeToReply() {
+      if (el.classList.contains('msg--sent')) return;
       let startX = 0, startY = 0, currentDeltaX = 0;
       let swiping = false, scrolling = false;
       const SWIPE_SHOW = 40;   // px: start showing indicator
