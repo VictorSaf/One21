@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'one21-v12';
+const CACHE_VERSION = 'one21-v13';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
 // Only pre-cache static assets — HTML pages use network-first (see fetch handler)
@@ -76,7 +76,7 @@ self.addEventListener('fetch', function (e) {
   // CSS files: network-first (prevents stale UI). Cache only as fallback.
   if (url.pathname.endsWith('.css')) {
     e.respondWith(
-      fetch(e.request).then(function (response) {
+      fetch(new Request(e.request, { cache: 'no-store' })).then(function (response) {
         const clone = response.clone();
         caches.open(CACHE_NAME).then(function (cache) { cache.put(e.request, clone); });
         return response;
