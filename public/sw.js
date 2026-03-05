@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'one21-v13';
+const CACHE_VERSION = 'one21-v14';
 const CACHE_NAME = 'one21-static-' + CACHE_VERSION;
 
 // Only pre-cache static assets — HTML pages use network-first (see fetch handler)
