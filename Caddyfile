@@ -6,9 +6,13 @@
 #   caddy run --config Caddyfile
 #   caddy reload --config Caddyfile
 
-one21.yourdomain.com {
+one21.oneaigency.com {
+    # Use internal TLS (self-signed) to avoid ACME/Let's Encrypt challenges.
+    # Cloudflare can still proxy to origin (set SSL mode to Full, not Strict).
+    tls internal
+
     # Reverse proxy to Node.js
-    reverse_proxy localhost:3737 {
+    reverse_proxy host.docker.internal:3737 {
         # WebSocket support (Socket.IO)
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -37,7 +41,7 @@ one21.yourdomain.com {
 
     # Logging
     log {
-        output file /var/log/caddy/one21.log
+        output stdout
         format json
     }
 }
