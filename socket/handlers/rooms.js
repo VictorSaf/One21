@@ -2,14 +2,34 @@
 'use strict';
 
 function register(io, socket, db) {
+  const ctx = db;
+
   socket.on('join_room', (roomId) => {
-    const membership = db.prepare(
-      'SELECT * FROM room_members WHERE room_id = ? AND user_id = ?'
-    ).get(roomId, socket.user.id);
-    if (membership) {
-      socket.join(`room:${roomId}`);
-      socket.emit('joined_room', { room_id: roomId });
-    }
+    const join = async () => {
+      if (ctx && ctx.driver === 'postgres') {
+        const pool = ctx.pool;
+        const membership = await pool.query(
+          'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
+          [Number(roomId), Number(socket.user.id)]
+        );
+        if (membership.rowCount > 0) {
+          socket.join(`room:${roomId}`);
+          socket.emit('joined_room', { room_id: roomId });
+        }
+        return;
+      }
+
+      const sqlite = ctx.db || ctx;
+      const membership = sqlite.prepare(
+        'SELECT * FROM room_members WHERE room_id = ? AND user_id = ?'
+      ).get(roomId, socket.user.id);
+      if (membership) {
+        socket.join(`room:${roomId}`);
+        socket.emit('joined_room', { room_id: roomId });
+      }
+    };
+
+    Promise.resolve(join()).catch(() => {});
   });
 
   socket.on('leave_room', (roomId) => {

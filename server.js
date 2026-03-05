@@ -137,6 +137,7 @@ app.get('/health', (req, res) => {
         status: 'ok',
         uptime: Math.floor(process.uptime()),
         env:    config.nodeEnv,
+        driver,
         version: packageJson.version,
         stats,
         disk: {

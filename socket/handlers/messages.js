@@ -4,6 +4,7 @@
 const { addDocument, addAgentMemory } = require('../../lib/vectorstore');
 const { notifyUser } = require('../../routes/push');
 const { getPermission } = require('../../middleware/permissions');
+const { getDbDriver } = require('../../db');
 
 function queueAgentRoomMemory(db, roomId, text, metadata) {
   const agentsInRoom = db.prepare(`
@@ -44,13 +45,21 @@ function findOrCreatePrivateRoom(db, userId1, userId2) {
 }
 
 function register(io, socket, db) {
+  const ctx = db;
+  const writeDisabled = getDbDriver() === 'postgres';
+
   socket.on('typing', (data) => {
     const { room_id } = data;
     if (!room_id) return;
     let displayName;
-    try {
-      displayName = db.prepare('SELECT display_name FROM users WHERE id = ?').get(socket.user.id)?.display_name;
-    } catch {}
+    if (ctx && ctx.driver === 'postgres') {
+      displayName = socket.user.display_name || socket.user.username;
+    } else {
+      const sqlite = ctx.db || ctx;
+      try {
+        displayName = sqlite.prepare('SELECT display_name FROM users WHERE id = ?').get(socket.user.id)?.display_name;
+      } catch {}
+    }
     socket.to(`room:${room_id}`).emit('typing', {
       room_id,
       user_id:      socket.user.id,
@@ -60,6 +69,10 @@ function register(io, socket, db) {
   });
 
   socket.on('message', (data) => {
+    if (writeDisabled) {
+      socket.emit('error', { message: 'Writes are HTTP-only in Postgres mode. Use the REST API endpoints.' });
+      return;
+    }
     const { room_id, text, type, reply_to } = data;
     if (!room_id || !text || typeof text !== 'string') return;
     if (text.trim().length === 0 || text.length > 4000) return;
@@ -276,6 +289,10 @@ function register(io, socket, db) {
   });
 
   socket.on('message_edit', (data) => {
+    if (writeDisabled) {
+      socket.emit('error', { message: 'Writes are HTTP-only in Postgres mode. Use the REST API endpoints.' });
+      return;
+    }
     const { message_id, text } = data;
     if (!message_id || !text || typeof text !== 'string' || text.trim().length === 0) return;
     const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(message_id);
@@ -290,6 +307,10 @@ function register(io, socket, db) {
   });
 
   socket.on('message_delete', (data) => {
+    if (writeDisabled) {
+      socket.emit('error', { message: 'Writes are HTTP-only in Postgres mode. Use the REST API endpoints.' });
+      return;
+    }
     const { message_id } = data;
     if (!message_id) return;
     const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(message_id);
@@ -306,6 +327,10 @@ function register(io, socket, db) {
   });
 
   socket.on('mark_read', (data) => {
+    if (writeDisabled) {
+      socket.emit('error', { message: 'Writes are HTTP-only in Postgres mode. Use the REST API endpoints.' });
+      return;
+    }
     const { message_id } = data;
     if (!message_id) return;
     try {
@@ -336,6 +361,10 @@ function register(io, socket, db) {
   });
 
   socket.on('react', (data) => {
+    if (writeDisabled) {
+      socket.emit('error', { message: 'Writes are HTTP-only in Postgres mode. Use the REST API endpoints.' });
+      return;
+    }
     const { message_id, emoji } = data;
     if (!message_id || !emoji || typeof emoji !== 'string') return;
     const ALLOWED = ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F62E}','\u{1F622}','\u{1F525}'];

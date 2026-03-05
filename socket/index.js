@@ -2,7 +2,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
-const { getDb } = require('../db/init');
+const { getDb, getDbDriver, getPgPool } = require('../db');
 const config = require('../config');
 const { isTokenRevoked } = require('../lib/jwt-revoke');
 
@@ -28,11 +28,14 @@ function initSocket(io) {
   });
 
   io.on('connection', (socket) => {
-    const db = getDb();
+    const driver = getDbDriver();
+    const ctx = driver === 'postgres'
+      ? { driver, pool: getPgPool() }
+      : { driver, db: getDb() };
 
-    presenceHandlers.register(io, socket, db);
-    roomHandlers.register(io, socket, db);
-    messageHandlers.register(io, socket, db);
+    presenceHandlers.register(io, socket, ctx);
+    roomHandlers.register(io, socket, ctx);
+    messageHandlers.register(io, socket, ctx);
   });
 }
 
