@@ -304,6 +304,48 @@ function migrate(db) {
     `);
   } catch {}
 
+  // ── Cult Library (Wave 0) tables ───────────────────────────────────────────
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cult_documents (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_id       INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+        uploaded_by   INTEGER NOT NULL REFERENCES users(id),
+        title         TEXT,
+        original_name TEXT,
+        storage_key   TEXT NOT NULL,
+        mime          TEXT,
+        size_bytes    INTEGER,
+        status        TEXT NOT NULL DEFAULT 'uploaded'
+                      CHECK(status IN ('uploaded','queued','processing','processed','failed')),
+        error         TEXT,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        queued_at     TEXT,
+        processed_at  TEXT
+      )
+    `);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cult_documents_room ON cult_documents(room_id, created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cult_documents_status ON cult_documents(status)');
+  } catch {}
+
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cult_document_jobs (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id      INTEGER NOT NULL REFERENCES cult_documents(id) ON DELETE CASCADE,
+        job_type    TEXT NOT NULL DEFAULT 'ingest' CHECK(job_type IN ('ingest')),
+        status      TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','done','failed')),
+        attempts    INTEGER NOT NULL DEFAULT 0,
+        locked_at   TEXT,
+        locked_by   TEXT,
+        last_error  TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cult_jobs_status ON cult_document_jobs(status, created_at)');
+  } catch {}
+
   // ── Migrate: expand rooms.type CHECK to include cult + private ──────────────
   try {
     // Test if new types are already supported (idempotent probe)
