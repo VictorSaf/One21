@@ -346,6 +346,56 @@ function migrate(db) {
     db.exec('CREATE INDEX IF NOT EXISTS idx_cult_jobs_status ON cult_document_jobs(status, created_at)');
   } catch {}
 
+  // ── Cult Library (Wave 1) chunks + FTS5 search ─────────────────────────────
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cult_document_chunks (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id       INTEGER NOT NULL REFERENCES cult_documents(id) ON DELETE CASCADE,
+        room_id      INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+        chunk_index  INTEGER NOT NULL,
+        content      TEXT NOT NULL,
+        created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(doc_id, chunk_index)
+      )
+    `);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cult_chunks_room ON cult_document_chunks(room_id, created_at)');
+  } catch {}
+
+  try {
+    // FTS5 index for chunks
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS cult_document_chunks_fts
+      USING fts5(content, doc_id UNINDEXED, room_id UNINDEXED, chunk_index UNINDEXED)
+    `);
+
+    // Triggers to keep FTS index in sync
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS cult_chunks_ai
+      AFTER INSERT ON cult_document_chunks
+      BEGIN
+        INSERT INTO cult_document_chunks_fts(rowid, content, doc_id, room_id, chunk_index)
+        VALUES (new.id, new.content, new.doc_id, new.room_id, new.chunk_index);
+      END;
+    `);
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS cult_chunks_ad
+      AFTER DELETE ON cult_document_chunks
+      BEGIN
+        DELETE FROM cult_document_chunks_fts WHERE rowid = old.id;
+      END;
+    `);
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS cult_chunks_au
+      AFTER UPDATE ON cult_document_chunks
+      BEGIN
+        DELETE FROM cult_document_chunks_fts WHERE rowid = old.id;
+        INSERT INTO cult_document_chunks_fts(rowid, content, doc_id, room_id, chunk_index)
+        VALUES (new.id, new.content, new.doc_id, new.room_id, new.chunk_index);
+      END;
+    `);
+  } catch {}
+
   // ── Migrate: expand rooms.type CHECK to include cult + private ──────────────
   try {
     // Test if new types are already supported (idempotent probe)
