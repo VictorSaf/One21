@@ -116,12 +116,18 @@ async function assertCanWhisper({ roomId, user }) {
   const membership = await getRoomMembership(driver, pool, Number(roomId), Number(user.id));
   if (!membership) return { ok: false, status: 403, error: 'Not a member of this room' };
 
+  const roomType = await getRoomType(driver, pool, Number(roomId));
+
   if (user.role !== 'admin') {
-    if (membership.access_level === 'readonly') {
-      return { ok: false, status: 403, error: 'This room is read-only for your account.' };
-    }
-    if (membership.access_level === 'post_docs') {
-      return { ok: false, status: 403, error: 'You can only post documents in this room.' };
+    // In channels (ex. General), users may be readonly but should still be able
+    // to send @username whispers (routed to a private DM room).
+    if (roomType !== 'channel') {
+      if (membership.access_level === 'readonly') {
+        return { ok: false, status: 403, error: 'This room is read-only for your account.' };
+      }
+      if (membership.access_level === 'post_docs') {
+        return { ok: false, status: 403, error: 'You can only post documents in this room.' };
+      }
     }
 
     const maxPerDay = await getUserPermission(driver, pool, Number(user.id), 'max_messages_per_day');

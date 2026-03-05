@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const QRCode = require('qrcode');
-const { getDb } = require('../db/init');
+const { getDb, getDbDriver, getPgPool } = require('../db');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { setRevocationEpoch } = require('../lib/jwt-revoke');
 const { getAllPermissions } = require('../middleware/permissions');
@@ -194,60 +194,134 @@ function generateJoinToken() {
 
 // POST /api/admin/invites
 router.post('/invites', (req, res) => {
-  const db = getDb();
+  const driver = getDbDriver();
   const code = crypto.randomUUID().slice(0, 8).toUpperCase();
   const expiresAt = req.body.expires_at || null;
   const note = req.body.note || null;
   const nume = req.body.nume && typeof req.body.nume === 'string' ? req.body.nume.trim() || null : null;
   const prenume = req.body.prenume && typeof req.body.prenume === 'string' ? req.body.prenume.trim() || null : null;
-  let token = null;
-  if (nume || prenume) {
-    const existingForUser = db.prepare(`
-      SELECT id, code, token, used_by
-      FROM invitations
-      WHERE lower(trim(COALESCE(nume, ''))) = lower(trim(?))
-        AND lower(trim(COALESCE(prenume, ''))) = lower(trim(?))
-      ORDER BY created_at DESC
-      LIMIT 1
-    `).get(nume || '', prenume || '');
-    if (existingForUser) {
-      return res.status(400).json({
-        error: 'Există deja un cod QR pentru acest user. Nu se poate genera altul.',
-        existing_invite: {
-          code: existingForUser.code,
-          token: existingForUser.token || undefined,
-          used: !!existingForUser.used_by,
-        },
+
+  const send = async () => {
+    let token = null;
+
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+
+      if (nume || prenume) {
+        const existingForUser = (await pool.query(
+          `
+          SELECT id, code, token, used_by
+          FROM invitations
+          WHERE lower(trim(COALESCE(nume, ''))) = lower(trim($1))
+            AND lower(trim(COALESCE(prenume, ''))) = lower(trim($2))
+          ORDER BY created_at DESC
+          LIMIT 1
+          `,
+          [nume || '', prenume || '']
+        )).rows[0];
+        if (existingForUser) {
+          return res.status(400).json({
+            error: 'Există deja un cod QR pentru acest user. Nu se poate genera altul.',
+            existing_invite: {
+              code: existingForUser.code,
+              token: existingForUser.token || undefined,
+              used: !!existingForUser.used_by,
+            },
+          });
+        }
+
+        for (let i = 0; i < 5; i++) {
+          const t = generateJoinToken();
+          const exists = await pool.query('SELECT 1 FROM invitations WHERE token = $1', [t]);
+          if (exists.rowCount === 0) { token = t; break; }
+        }
+        if (!token) token = generateJoinToken() + Date.now().toString(36).slice(-4);
+      }
+
+      const defaultPermissions = req.body.default_permissions
+        ? JSON.stringify(req.body.default_permissions)
+        : '{}';
+
+      await pool.query(
+        `
+        INSERT INTO invitations (code, created_by, expires_at, note, default_permissions, token, nume, prenume)
+        VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8)
+        `,
+        [code, Number(req.user.id), expiresAt ? new Date(expiresAt) : null, note, defaultPermissions, token, nume, prenume]
+      );
+
+      logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
+        admin_id: req.user.id,
+        code,
+        note,
+      });
+
+      return res.json({
+        code,
+        token: token || undefined,
+        join_link: token ? JOIN_BASE_URL : undefined,
+        nume: nume || undefined,
+        prenume: prenume || undefined,
+        expires_at: expiresAt,
+        note,
+        default_permissions: req.body.default_permissions || {},
       });
     }
 
-    for (let i = 0; i < 5; i++) {
-      const t = generateJoinToken();
-      const exists = db.prepare('SELECT 1 FROM invitations WHERE token = ?').get(t);
-      if (!exists) { token = t; break; }
+    const db = getDb();
+    if (nume || prenume) {
+      const existingForUser = db.prepare(`
+        SELECT id, code, token, used_by
+        FROM invitations
+        WHERE lower(trim(COALESCE(nume, ''))) = lower(trim(?))
+          AND lower(trim(COALESCE(prenume, ''))) = lower(trim(?))
+        ORDER BY created_at DESC
+        LIMIT 1
+      `).get(nume || '', prenume || '');
+      if (existingForUser) {
+        return res.status(400).json({
+          error: 'Există deja un cod QR pentru acest user. Nu se poate genera altul.',
+          existing_invite: {
+            code: existingForUser.code,
+            token: existingForUser.token || undefined,
+            used: !!existingForUser.used_by,
+          },
+        });
+      }
+
+      for (let i = 0; i < 5; i++) {
+        const t = generateJoinToken();
+        const exists = db.prepare('SELECT 1 FROM invitations WHERE token = ?').get(t);
+        if (!exists) { token = t; break; }
+      }
+      if (!token) token = generateJoinToken() + Date.now().toString(36).slice(-4);
     }
-    if (!token) token = generateJoinToken() + Date.now().toString(36).slice(-4);
-  }
-  const defaultPermissions = req.body.default_permissions
-    ? JSON.stringify(req.body.default_permissions)
-    : '{}';
-  db.prepare(
-    'INSERT INTO invitations (code, created_by, expires_at, note, default_permissions, token, nume, prenume) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(code, req.user.id, expiresAt, note, defaultPermissions, token, nume, prenume);
-  logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
-    admin_id: req.user.id,
-    code,
-    note,
-  });
-  res.json({
-    code,
-    token: token || undefined,
-    join_link: token ? JOIN_BASE_URL : undefined,
-    nume: nume || undefined,
-    prenume: prenume || undefined,
-    expires_at: expiresAt,
-    note,
-    default_permissions: req.body.default_permissions || {},
+
+    const defaultPermissions = req.body.default_permissions
+      ? JSON.stringify(req.body.default_permissions)
+      : '{}';
+    db.prepare(
+      'INSERT INTO invitations (code, created_by, expires_at, note, default_permissions, token, nume, prenume) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(code, req.user.id, expiresAt, note, defaultPermissions, token, nume, prenume);
+    logEvent('invite_created', `Admin ${req.user.username} created invite ${code}${note ? ': ' + note : ''}`, {
+      admin_id: req.user.id,
+      code,
+      note,
+    });
+    return res.json({
+      code,
+      token: token || undefined,
+      join_link: token ? JOIN_BASE_URL : undefined,
+      nume: nume || undefined,
+      prenume: prenume || undefined,
+      expires_at: expiresAt,
+      note,
+      default_permissions: req.body.default_permissions || {},
+    });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Failed to create invite' });
   });
 });
 

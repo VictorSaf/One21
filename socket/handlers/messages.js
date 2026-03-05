@@ -69,22 +69,10 @@ function register(io, socket, db) {
     ).get(room_id, socket.user.id);
     if (!membership) return;
 
-    const ACCESS_LEVELS = new Set(['readonly', 'readandwrite', 'post_docs']);
-    const accessLevel = ACCESS_LEVELS.has(membership.access_level) ? membership.access_level : 'readandwrite';
-    if (socket.user.role !== 'admin') {
-      if (accessLevel === 'readonly') {
-        socket.emit('error', { message: 'This room is read-only for your account.' });
-        return;
-      }
-      if (accessLevel === 'post_docs' && type !== 'file') {
-        socket.emit('error', { message: 'You can only post documents in this room.' });
-        return;
-      }
-    }
-
     let actualText = text.trim();
 
     // @username <text> from any room → route silently to private DM room
+    // This is allowed even if the current room is readonly (ex. General channel).
     const atMatch = actualText.match(/^@(\S+)\s+([\s\S]+)$/);
     if (atMatch) {
       const targetUser = db.prepare(
@@ -161,6 +149,19 @@ function register(io, socket, db) {
         }).catch(() => {});
       }
       return;
+    }
+
+    const ACCESS_LEVELS = new Set(['readonly', 'readandwrite', 'post_docs']);
+    const accessLevel = ACCESS_LEVELS.has(membership.access_level) ? membership.access_level : 'readandwrite';
+    if (socket.user.role !== 'admin') {
+      if (accessLevel === 'readonly') {
+        socket.emit('error', { message: 'This room is read-only for your account.' });
+        return;
+      }
+      if (accessLevel === 'post_docs' && type !== 'file') {
+        socket.emit('error', { message: 'You can only post documents in this room.' });
+        return;
+      }
     }
 
     // Channel: non-admin cannot post without @username (which now routes to DM)

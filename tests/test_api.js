@@ -304,4 +304,44 @@ describe('API Conformance Tests', () => {
       assert.equal(res.status, 400);
     });
   });
+
+  // -------------------------------------------------------
+  // Room membership management endpoints
+  // -------------------------------------------------------
+  describe('Room membership management', () => {
+    it('adds member, updates access level, then removes member', async () => {
+      // Create a fresh room owned by admin
+      const createRes = await authRequest('POST', '/api/rooms', admin.token, {
+        name: 'QA Members Room ' + Date.now(),
+        type: 'group',
+        member_ids: [],
+      });
+      assert.equal(createRes.status, 200);
+      const roomId = createRes.body.room.id;
+
+      // Add test user
+      const addRes = await authRequest('POST', `/api/rooms/${roomId}/members`, admin.token, {
+        user_id: Number(testUser.user.id),
+        access_level: 'readonly',
+      });
+      assert.equal(addRes.status, 200);
+      assert.equal(addRes.body.ok, true);
+
+      // Update access level
+      const setRes = await authRequest('PUT', `/api/rooms/${roomId}/members/${testUser.user.id}/access-level`, admin.token, {
+        access_level: 'readandwrite',
+      });
+      assert.equal(setRes.status, 200);
+      assert.equal(setRes.body.ok, true);
+      assert.equal(setRes.body.access_level, 'readandwrite');
+
+      // Remove member
+      const delRes = await authRequest('DELETE', `/api/rooms/${roomId}/members/${testUser.user.id}`, admin.token);
+      assert.equal(delRes.status, 200);
+      assert.equal(delRes.body.ok, true);
+
+      // Cleanup room
+      await authRequest('DELETE', `/api/rooms/${roomId}`, admin.token);
+    });
+  });
 });
