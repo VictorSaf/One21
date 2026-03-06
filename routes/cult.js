@@ -80,6 +80,129 @@ router.post('/rooms/:roomId/documents', upload.single('file'), (req, res) => {
   });
 });
 
+// GET /api/cult/documents/:docId — get document details
+router.get('/documents/:docId', (req, res) => {
+  const docId = req.params.docId;
+  const driver = getDbDriver();
+
+  const send = async () => {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const doc = (await pool.query('SELECT * FROM cult_documents WHERE id = $1', [Number(docId)])).rows[0];
+      if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+      const policy = await assertCanSendFiles({ roomId: String(doc.room_id), user: req.user });
+      if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+      return res.json({ document: { ...doc, id: String(doc.id), room_id: String(doc.room_id) } });
+    }
+
+    const db = getDb();
+    const doc = db.prepare('SELECT * FROM cult_documents WHERE id = ?').get(docId);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    const policy = await assertCanSendFiles({ roomId: String(doc.room_id), user: req.user });
+    if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+    return res.json({ document: doc });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Failed to get document' });
+  });
+});
+
+// GET /api/cult/documents/:docId/jobs — get latest ingest job for a document
+router.get('/documents/:docId/jobs', (req, res) => {
+  const docId = req.params.docId;
+  const driver = getDbDriver();
+
+  const send = async () => {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const doc = (await pool.query('SELECT * FROM cult_documents WHERE id = $1', [Number(docId)])).rows[0];
+      if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+      const policy = await assertCanSendFiles({ roomId: String(doc.room_id), user: req.user });
+      if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+      const job = (await pool.query(
+        `
+        SELECT *
+        FROM cult_document_jobs
+        WHERE doc_id = $1 AND job_type = 'ingest'
+        ORDER BY updated_at DESC
+        LIMIT 1
+        `,
+        [Number(docId)]
+      )).rows[0] || null;
+
+      return res.json({ job: job ? { ...job, id: String(job.id), doc_id: String(job.doc_id) } : null });
+    }
+
+    const db = getDb();
+    const doc = db.prepare('SELECT * FROM cult_documents WHERE id = ?').get(docId);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    const policy = await assertCanSendFiles({ roomId: String(doc.room_id), user: req.user });
+    if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+    const job = db.prepare(
+      "SELECT * FROM cult_document_jobs WHERE doc_id = ? AND job_type = 'ingest' ORDER BY updated_at DESC LIMIT 1"
+    ).get(docId) || null;
+
+    return res.json({ job });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Failed to get document jobs' });
+  });
+});
+
+// GET /api/cult/rooms/:roomId/jobs — list recent ingest jobs for a room
+router.get('/rooms/:roomId/jobs', (req, res) => {
+  const roomId = req.params.roomId;
+  const driver = getDbDriver();
+
+  const send = async () => {
+    const policy = await assertCanSendFiles({ roomId, user: req.user });
+    if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const rows = (await pool.query(
+        `
+        SELECT j.*
+        FROM cult_document_jobs j
+        JOIN cult_documents d ON d.id = j.doc_id
+        WHERE d.room_id = $1
+        ORDER BY j.updated_at DESC
+        LIMIT 50
+        `,
+        [Number(roomId)]
+      )).rows;
+      return res.json({ jobs: rows.map((j) => ({ ...j, id: String(j.id), doc_id: String(j.doc_id) })) });
+    }
+
+    const db = getDb();
+    const rows = db.prepare(
+      `
+      SELECT j.*
+      FROM cult_document_jobs j
+      JOIN cult_documents d ON d.id = j.doc_id
+      WHERE d.room_id = ?
+      ORDER BY j.updated_at DESC
+      LIMIT 50
+      `
+    ).all(roomId);
+    return res.json({ jobs: rows });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Failed to list jobs' });
+  });
+});
+
 // GET /api/cult/rooms/:roomId/documents — list documents in cult room
 router.get('/rooms/:roomId/documents', (req, res) => {
   const roomId = req.params.roomId;

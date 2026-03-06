@@ -3,7 +3,7 @@
 
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
-const { request, authRequest, login } = require('./helpers');
+const { request, authRequest, uploadFile, login } = require('./helpers');
 const { getAdmin, getOrCreateTestUser, findSharedRoom } = require('./setup');
 
 let admin, testUser, sharedRoom;
@@ -339,6 +339,71 @@ describe('API Conformance Tests', () => {
       const delRes = await authRequest('DELETE', `/api/rooms/${roomId}/members/${testUser.user.id}`, admin.token);
       assert.equal(delRes.status, 200);
       assert.equal(delRes.body.ok, true);
+
+      // Cleanup room
+      await authRequest('DELETE', `/api/rooms/${roomId}`, admin.token);
+    });
+  });
+
+  // -------------------------------------------------------
+  // Cult Library endpoints (upload + background ingest)
+  // -------------------------------------------------------
+  describe('Cult Library', () => {
+    it('uploads, enqueues ingest, waits for completion, then searches (and semantically searches on Postgres)', async () => {
+      const health = await request('GET', '/health');
+      assert.equal(health.status, 200);
+      const driver = health.body && health.body.driver ? String(health.body.driver) : 'sqlite';
+
+      // Create a fresh cult room owned by admin
+      const createRes = await authRequest('POST', '/api/rooms', admin.token, {
+        name: 'QA Cult Room ' + Date.now(),
+        type: 'cult',
+        member_ids: [],
+      });
+      assert.equal(createRes.status, 200);
+      const roomId = createRes.body.room.id;
+
+      const marker = 'QACULTDOC ' + Date.now() + ' hello cult library';
+      const uploadRes = await uploadFile(
+        `/api/cult/rooms/${roomId}/documents`,
+        admin.token,
+        'qa-cult.txt',
+        Buffer.from(marker, 'utf8'),
+        'text/plain'
+      );
+      assert.equal(uploadRes.status, 200);
+      assert.ok(uploadRes.body && uploadRes.body.document);
+      const docId = uploadRes.body.document.id;
+      assert.ok(docId);
+
+      const enqRes = await authRequest('POST', `/api/cult/documents/${docId}/enqueue`, admin.token);
+      assert.equal(enqRes.status, 200);
+
+      // Poll job until done/failed
+      const maxWaitMs = 15000;
+      const start = Date.now();
+      let job;
+      while (Date.now() - start < maxWaitMs) {
+        const jr = await authRequest('GET', `/api/cult/documents/${docId}/jobs`, admin.token);
+        assert.equal(jr.status, 200);
+        job = jr.body ? jr.body.job : null;
+        if (job && (job.status === 'done' || job.status === 'failed')) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      assert.ok(job, 'expected job to exist');
+      assert.equal(job.status, 'done', `expected job done, got ${job.status} (${job.last_error || ''})`);
+
+      const ftsRes = await authRequest('GET', `/api/cult/rooms/${roomId}/search?q=hello`, admin.token);
+      assert.equal(ftsRes.status, 200);
+      assert.ok(Array.isArray(ftsRes.body.results));
+      assert.ok(ftsRes.body.results.length >= 1);
+
+      if (driver === 'postgres') {
+        const semRes = await authRequest('GET', `/api/cult/rooms/${roomId}/semantic?q=hello`, admin.token);
+        assert.equal(semRes.status, 200);
+        assert.ok(Array.isArray(semRes.body.results));
+        assert.ok(semRes.body.results.length >= 1);
+      }
 
       // Cleanup room
       await authRequest('DELETE', `/api/rooms/${roomId}`, admin.token);
