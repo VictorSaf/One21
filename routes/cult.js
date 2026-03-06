@@ -52,6 +52,44 @@ function resolveDocPath(storageKey) {
   return path.join(CULT_UPLOADS_DIR, path.basename(storageKey));
 }
 
+let _embedder = null;
+async function getEmbedder() {
+  if (_embedder) return _embedder;
+  const mod = await import('@xenova/transformers');
+  const pipe = await mod.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+  _embedder = pipe;
+  return _embedder;
+}
+
+function meanPoolEmbedding(output) {
+  // Xenova pipeline returns a tensor-like object: { dims: [1, tokens, dims], data: Float32Array }
+  if (!output || !output.dims || !output.data) return null;
+  const dims = output.dims;
+  if (!Array.isArray(dims) || dims.length !== 3) return null;
+  const batch = Number(dims[0]);
+  const tokens = Number(dims[1]);
+  const width = Number(dims[2]);
+  if (batch !== 1 || tokens <= 0 || width <= 0) return null;
+
+  const data = output.data;
+  const sum = new Array(width).fill(0);
+  for (let t = 0; t < tokens; t++) {
+    const base = t * width;
+    for (let i = 0; i < width; i++) sum[i] += data[base + i];
+  }
+  const denom = Math.max(1, tokens);
+  return sum.map((v) => v / denom);
+}
+
+async function embedText(text) {
+  const pipe = await getEmbedder();
+  const out = await pipe(text, { pooling: 'none', normalize: true });
+  const pooled = meanPoolEmbedding(out);
+  if (!pooled) return null;
+  // pgvector text format: [1,2,3]
+  return `[${pooled.map((v) => Number(v).toFixed(6)).join(',')}]`;
+}
+
 // POST /api/cult/rooms/:roomId/documents — upload a cult library document
 router.post('/rooms/:roomId/documents', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -163,22 +201,46 @@ router.post('/documents/:docId/enqueue', (req, res) => {
       try {
         await client.query('BEGIN');
 
+        // Ensure a single job row per (doc_id, job_type)
+        let jobId;
+        const existingJob = (await client.query(
+          `
+          SELECT id
+          FROM cult_document_jobs
+          WHERE doc_id = $1 AND job_type = 'ingest'
+          ORDER BY id DESC
+          LIMIT 1
+          FOR UPDATE
+          `,
+          [Number(docId)]
+        )).rows[0];
+        if (existingJob) {
+          jobId = Number(existingJob.id);
+          await client.query(
+            "UPDATE cult_document_jobs SET status = 'queued', updated_at = now(), last_error = NULL WHERE id = $1",
+            [jobId]
+          );
+        } else {
+          const insertedJob = (await client.query(
+            `
+            INSERT INTO cult_document_jobs (doc_id, job_type, status)
+            VALUES ($1, 'ingest', 'queued')
+            RETURNING id
+            `,
+            [Number(docId)]
+          )).rows[0];
+          jobId = Number(insertedJob.id);
+        }
+
         await client.query(
           "UPDATE cult_documents SET status = 'queued', queued_at = now(), error = NULL WHERE id = $1",
-          [Number(docId)]
-        );
-        await client.query(
-          `
-          INSERT INTO cult_document_jobs (doc_id, job_type, status)
-          VALUES ($1, 'ingest', 'queued')
-          ON CONFLICT DO NOTHING
-          `,
           [Number(docId)]
         );
 
         // Minimal ingest for text/plain only
         if (doc.mime === 'text/plain' || (doc.storage_key || '').toLowerCase().endsWith('.txt')) {
           await client.query("UPDATE cult_documents SET status = 'processing' WHERE id = $1", [Number(docId)]);
+          await client.query("UPDATE cult_document_jobs SET status = 'running', updated_at = now() WHERE id = $1", [jobId]);
 
           const p = resolveDocPath(doc.storage_key);
           const raw = fs.readFileSync(p, 'utf8');
@@ -186,13 +248,16 @@ router.post('/documents/:docId/enqueue', (req, res) => {
 
           await client.query('DELETE FROM cult_document_chunks WHERE doc_id = $1', [Number(docId)]);
           for (let idx = 0; idx < chunks.length; idx++) {
+            const embedding = await embedText(chunks[idx]);
             await client.query(
               `
-              INSERT INTO cult_document_chunks (doc_id, room_id, chunk_index, content)
-              VALUES ($1,$2,$3,$4)
-              ON CONFLICT (doc_id, chunk_index) DO UPDATE SET content = EXCLUDED.content
+              INSERT INTO cult_document_chunks (doc_id, room_id, chunk_index, content, embedding)
+              VALUES ($1,$2,$3,$4,$5::vector)
+              ON CONFLICT (doc_id, chunk_index) DO UPDATE
+                SET content = EXCLUDED.content,
+                    embedding = EXCLUDED.embedding
               `,
-              [Number(docId), Number(doc.room_id), idx, chunks[idx]]
+              [Number(docId), Number(doc.room_id), idx, chunks[idx], embedding]
             );
           }
 
@@ -201,8 +266,8 @@ router.post('/documents/:docId/enqueue', (req, res) => {
             [Number(docId)]
           );
           await client.query(
-            "UPDATE cult_document_jobs SET status = 'done', updated_at = now() WHERE doc_id = $1 AND job_type = 'ingest'",
-            [Number(docId)]
+            "UPDATE cult_document_jobs SET status = 'done', updated_at = now() WHERE id = $1",
+            [jobId]
           );
         }
 
@@ -212,6 +277,12 @@ router.post('/documents/:docId/enqueue', (req, res) => {
         try {
           await pool.query(
             "UPDATE cult_documents SET status = 'failed', error = $2 WHERE id = $1",
+            [Number(docId), err.message]
+          );
+        } catch {}
+        try {
+          await pool.query(
+            "UPDATE cult_document_jobs SET status = 'failed', updated_at = now(), last_error = $2 WHERE doc_id = $1 AND job_type = 'ingest'",
             [Number(docId), err.message]
           );
         } catch {}
@@ -232,14 +303,29 @@ router.post('/documents/:docId/enqueue', (req, res) => {
     if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
 
     db.transaction(() => {
+      // Ensure a single job row per (doc_id, job_type)
+      const existing = db.prepare(
+        "SELECT id FROM cult_document_jobs WHERE doc_id = ? AND job_type = 'ingest' ORDER BY id DESC LIMIT 1"
+      ).get(docId);
+      let jobId;
+      if (existing) {
+        jobId = existing.id;
+        db.prepare("UPDATE cult_document_jobs SET status = 'queued', updated_at = datetime('now'), last_error = NULL WHERE id = ?")
+          .run(jobId);
+      } else {
+        const rj = db.prepare(
+          "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES (?, 'ingest', 'queued')"
+        ).run(docId);
+        jobId = rj.lastInsertRowid;
+      }
+
       db.prepare("UPDATE cult_documents SET status = 'queued', queued_at = datetime('now'), error = NULL WHERE id = ?")
         .run(docId);
-      db.prepare(
-        "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES (?, 'ingest', 'queued')"
-      ).run(docId);
 
       if (doc.mime === 'text/plain' || String(doc.storage_key || '').toLowerCase().endsWith('.txt')) {
         db.prepare("UPDATE cult_documents SET status = 'processing' WHERE id = ?").run(docId);
+        db.prepare("UPDATE cult_document_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?")
+          .run(jobId);
         const p = resolveDocPath(doc.storage_key);
         const raw = fs.readFileSync(p, 'utf8');
         const chunks = chunkText(raw);
@@ -253,8 +339,8 @@ router.post('/documents/:docId/enqueue', (req, res) => {
         }
         db.prepare("UPDATE cult_documents SET status = 'processed', processed_at = datetime('now'), error = NULL WHERE id = ?")
           .run(docId);
-        db.prepare("UPDATE cult_document_jobs SET status = 'done', updated_at = datetime('now') WHERE doc_id = ? AND job_type = 'ingest'")
-          .run(docId);
+        db.prepare("UPDATE cult_document_jobs SET status = 'done', updated_at = datetime('now') WHERE id = ?")
+          .run(jobId);
       }
     })();
 
@@ -314,6 +400,50 @@ router.get('/rooms/:roomId/search', (req, res) => {
 
   Promise.resolve(send()).catch((err) => {
     res.status(500).json({ error: err.message || 'Search failed' });
+  });
+});
+
+// GET /api/cult/rooms/:roomId/semantic?q=... — pgvector semantic search (Postgres only)
+router.get('/rooms/:roomId/semantic', (req, res) => {
+  const roomId = req.params.roomId;
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const driver = getDbDriver();
+
+  if (!q || q.length < 2) return res.status(400).json({ error: 'q must be at least 2 characters' });
+  if (driver !== 'postgres') return res.status(501).json({ error: 'Semantic search requires Postgres + pgvector' });
+
+  const send = async () => {
+    const policy = await assertCanSendFiles({ roomId, user: req.user });
+    if (!policy.ok) return res.status(policy.status).json({ error: policy.error });
+
+    const pool = getPgPool();
+    const queryEmbedding = await embedText(q);
+    if (!queryEmbedding) return res.status(500).json({ error: 'Failed to compute embedding' });
+
+    // ivfflat index needs probes for better recall
+    await pool.query('SET ivfflat.probes = 10');
+
+    const rows = (await pool.query(
+      `
+      SELECT
+        doc_id,
+        chunk_index,
+        left(content, 280) as snippet,
+        (embedding <=> $2::vector) as distance
+      FROM cult_document_chunks
+      WHERE room_id = $1
+        AND embedding IS NOT NULL
+      ORDER BY embedding <=> $2::vector ASC
+      LIMIT 20
+      `,
+      [Number(roomId), queryEmbedding]
+    )).rows;
+
+    return res.json({ results: rows.map((r) => ({ ...r, doc_id: String(r.doc_id) })) });
+  };
+
+  Promise.resolve(send()).catch((err) => {
+    res.status(500).json({ error: err.message || 'Semantic search failed' });
   });
 });
 
