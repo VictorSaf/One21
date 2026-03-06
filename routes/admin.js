@@ -202,6 +202,7 @@ router.post('/cult/documents/:docId/requeue', async (req, res) => {
               locked_at = NULL,
               locked_by = NULL,
               last_error = NULL,
+              next_run_at = now(),
               updated_at = now()
           WHERE id = $1
           RETURNING *
@@ -211,8 +212,8 @@ router.post('/cult/documents/:docId/requeue', async (req, res) => {
       } else {
         job = (await pool.query(
           `
-          INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, locked_at, locked_by, last_error, created_at, updated_at)
-          VALUES ($1, 'ingest', 'queued', 0, NULL, NULL, NULL, now(), now())
+          INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, next_run_at, locked_at, locked_by, last_error, created_at, updated_at)
+          VALUES ($1, 'ingest', 'queued', 0, now(), NULL, NULL, NULL, now(), now())
           RETURNING *
           `,
           [docId]
@@ -238,12 +239,12 @@ router.post('/cult/documents/:docId/requeue', async (req, res) => {
     let job;
     if (existing) {
       db.prepare(
-        "UPDATE cult_document_jobs SET status = 'queued', locked_at = NULL, locked_by = NULL, last_error = NULL, updated_at = datetime('now') WHERE id = ?"
+        "UPDATE cult_document_jobs SET status = 'queued', locked_at = NULL, locked_by = NULL, last_error = NULL, next_run_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
       ).run(existing.id);
       job = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(existing.id);
     } else {
       const ins = db.prepare(
-        "INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, locked_at, locked_by, last_error, created_at, updated_at) VALUES (?, 'ingest', 'queued', 0, NULL, NULL, NULL, datetime('now'), datetime('now'))"
+        "INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, next_run_at, locked_at, locked_by, last_error, created_at, updated_at) VALUES (?, 'ingest', 'queued', 0, datetime('now'), NULL, NULL, NULL, datetime('now'), datetime('now'))"
       ).run(docId);
       job = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(ins.lastInsertRowid);
     }

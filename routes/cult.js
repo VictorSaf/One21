@@ -277,12 +277,12 @@ router.post('/documents/:docId/enqueue', (req, res) => {
         )).rows[0];
         if (existingJob) {
           await client.query(
-            "UPDATE cult_document_jobs SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL WHERE id = $1",
+            "UPDATE cult_document_jobs SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL, next_run_at = now() WHERE id = $1",
             [Number(existingJob.id)]
           );
         } else {
           await client.query(
-            "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES ($1, 'ingest', 'queued') ON CONFLICT (doc_id, job_type) DO UPDATE SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL",
+            "INSERT INTO cult_document_jobs (doc_id, job_type, status, next_run_at) VALUES ($1, 'ingest', 'queued', now()) ON CONFLICT (doc_id, job_type) DO UPDATE SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL, next_run_at = now()",
             [Number(docId)]
           );
         }
@@ -324,11 +324,11 @@ router.post('/documents/:docId/enqueue', (req, res) => {
         "SELECT id FROM cult_document_jobs WHERE doc_id = ? AND job_type = 'ingest' ORDER BY id DESC LIMIT 1"
       ).get(docId);
       if (existing) {
-        db.prepare("UPDATE cult_document_jobs SET status = 'queued', updated_at = datetime('now'), last_error = NULL, locked_at = NULL, locked_by = NULL WHERE id = ?")
+        db.prepare("UPDATE cult_document_jobs SET status = 'queued', updated_at = datetime('now'), last_error = NULL, locked_at = NULL, locked_by = NULL, next_run_at = datetime('now') WHERE id = ?")
           .run(existing.id);
       } else {
         db.prepare(
-          "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES (?, 'ingest', 'queued')"
+          "INSERT INTO cult_document_jobs (doc_id, job_type, status, next_run_at) VALUES (?, 'ingest', 'queued', datetime('now'))"
         ).run(docId);
       }
 

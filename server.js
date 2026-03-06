@@ -13,6 +13,7 @@ const packageJson    = require('./package.json');
 const { getDb, getDbDriver, getPgPool } = require('./db');
 const { initSocket } = require('./socket');
 const { startCultWorker } = require('./lib/cult-worker');
+const { applyPgMigrations } = require('./db/pg/migrate');
 
 const authRoutes     = require('./routes/auth');
 const joinRoutes     = require('./routes/join');
@@ -27,20 +28,21 @@ const themeRoutes    = require('./routes/theme');
 const privateRouter  = require('./routes/private');
 const cultRoutes     = require('./routes/cult');
 
-// Init DB
-if (getDbDriver() === 'sqlite') {
-  getDb();
-} else {
-  getPgPool();
-}
-
-startCultWorker();
-
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, {
   cors: { origin: config.cors.origins, methods: ['GET', 'POST'] },
 });
+
+async function initDb() {
+  if (getDbDriver() === 'sqlite') {
+    getDb();
+    return;
+  }
+
+  const pool = getPgPool();
+  await applyPgMigrations(pool);
+}
 
 // --- Security ---
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -198,7 +200,16 @@ app.use((err, req, res, next) => {
 app.set('io', io);
 initSocket(io);
 
-// --- Start ---
-server.listen(config.port, '0.0.0.0', () => {
-  console.log(`One21 running on http://localhost:${config.port} [${config.nodeEnv}]`);
+async function start() {
+  await initDb();
+  startCultWorker();
+
+  server.listen(config.port, '0.0.0.0', () => {
+    console.log(`One21 running on http://localhost:${config.port} [${config.nodeEnv}]`);
+  });
+}
+
+start().catch((err) => {
+  console.error('[server] startup error:', err.message);
+  process.exit(1);
 });

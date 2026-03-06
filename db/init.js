@@ -241,6 +241,8 @@ function migrate(db) {
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_invitations_token ON invitations(token) WHERE token IS NOT NULL');
   } catch {}
 
+  safeAdd('cult_document_jobs', 'next_run_at', 'TEXT');
+
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
@@ -336,6 +338,7 @@ function migrate(db) {
         job_type    TEXT NOT NULL DEFAULT 'ingest' CHECK(job_type IN ('ingest')),
         status      TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','done','failed')),
         attempts    INTEGER NOT NULL DEFAULT 0,
+        next_run_at TEXT,
         locked_at   TEXT,
         locked_by   TEXT,
         last_error  TEXT,
