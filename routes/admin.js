@@ -168,6 +168,155 @@ router.get('/invites/qr', async (req, res) => {
   }
 });
 
+// GET /api/admin/cult/jobs?status=queued|running|done|failed&doc_id=123&limit=50
+router.get('/cult/jobs', async (req, res) => {
+  const driver = getDbDriver();
+  const status = req.query.status ? String(req.query.status).trim() : '';
+  const docId = req.query.doc_id ? Number(req.query.doc_id) : null;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+
+  const allowedStatuses = new Set(['queued', 'running', 'done', 'failed']);
+  if (status && !allowedStatuses.has(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+  if (docId !== null && (!Number.isInteger(docId) || docId <= 0)) {
+    return res.status(400).json({ error: 'Invalid doc_id' });
+  }
+
+  try {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const params = [];
+      let where = '1=1';
+      if (status) {
+        params.push(status);
+        where += ` AND j.status = $${params.length}`;
+      }
+      if (docId !== null) {
+        params.push(docId);
+        where += ` AND j.doc_id = $${params.length}`;
+      }
+      params.push(limit);
+
+      const rows = (await pool.query(
+        `
+        SELECT
+          j.*, 
+          d.room_id,
+          d.title,
+          d.original_name,
+          d.status AS document_status
+        FROM cult_document_jobs j
+        JOIN cult_documents d ON d.id = j.doc_id
+        WHERE ${where}
+        ORDER BY j.created_at DESC
+        LIMIT $${params.length}
+        `,
+        params
+      )).rows;
+
+      return res.json({
+        jobs: rows.map((r) => ({
+          ...r,
+          id: String(r.id),
+          doc_id: String(r.doc_id),
+          room_id: String(r.room_id),
+        })),
+      });
+    }
+
+    const db = getDb();
+    const clauses = [];
+    const params = [];
+    if (status) { clauses.push('j.status = ?'); params.push(status); }
+    if (docId !== null) { clauses.push('j.doc_id = ?'); params.push(docId); }
+    const where = clauses.length ? clauses.join(' AND ') : '1=1';
+
+    const jobs = db.prepare(
+      `
+      SELECT
+        j.*,
+        d.room_id,
+        d.title,
+        d.original_name,
+        d.status AS document_status
+      FROM cult_document_jobs j
+      JOIN cult_documents d ON d.id = j.doc_id
+      WHERE ${where}
+      ORDER BY j.created_at DESC
+      LIMIT ?
+      `
+    ).all(...params, limit);
+
+    return res.json({ jobs });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to list cult jobs', detail: err.message });
+  }
+});
+
+// POST /api/admin/cult/jobs/:jobId/retry — requeue a job; optionally reset attempts
+router.post('/cult/jobs/:jobId/retry', async (req, res) => {
+  const driver = getDbDriver();
+  const jobId = Number(req.params.jobId);
+  const resetAttempts = !!req.body.reset_attempts;
+  if (!Number.isInteger(jobId) || jobId <= 0) {
+    return res.status(400).json({ error: 'Invalid job id' });
+  }
+
+  try {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const existing = (await pool.query('SELECT * FROM cult_document_jobs WHERE id = $1', [jobId])).rows[0];
+      if (!existing) return res.status(404).json({ error: 'Job not found' });
+
+      const job = (await pool.query(
+        `
+        UPDATE cult_document_jobs
+        SET status = 'queued',
+            attempts = CASE WHEN $2::boolean THEN 0 ELSE attempts END,
+            locked_at = NULL,
+            locked_by = NULL,
+            last_error = NULL,
+            next_run_at = now(),
+            updated_at = now()
+        WHERE id = $1
+        RETURNING *
+        `,
+        [jobId, resetAttempts]
+      )).rows[0];
+
+      await pool.query(
+        "UPDATE cult_documents SET status = 'queued', queued_at = now(), error = NULL WHERE id = $1",
+        [Number(job.doc_id)]
+      );
+
+      return res.json({ ok: true, job: { ...job, id: String(job.id), doc_id: String(job.doc_id) } });
+    }
+
+    const db = getDb();
+    const existing = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(jobId);
+    if (!existing) return res.status(404).json({ error: 'Job not found' });
+
+    if (resetAttempts) {
+      db.prepare(
+        "UPDATE cult_document_jobs SET status = 'queued', attempts = 0, locked_at = NULL, locked_by = NULL, last_error = NULL, next_run_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+      ).run(jobId);
+    } else {
+      db.prepare(
+        "UPDATE cult_document_jobs SET status = 'queued', locked_at = NULL, locked_by = NULL, last_error = NULL, next_run_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+      ).run(jobId);
+    }
+
+    db.prepare("UPDATE cult_documents SET status = 'queued', queued_at = datetime('now'), error = NULL WHERE id = ?")
+      .run(existing.doc_id);
+
+    const job = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(jobId);
+    return res.json({ ok: true, job });
+  } catch (err) {
+    return res.status(500).json({ error: 'Retry failed', detail: err.message });
+  }
+});
+
 // POST /api/admin/cult/documents/:docId/requeue — force requeue ingest job (admin only)
 router.post('/cult/documents/:docId/requeue', async (req, res) => {
   const driver = getDbDriver();
