@@ -168,6 +168,93 @@ router.get('/invites/qr', async (req, res) => {
   }
 });
 
+// POST /api/admin/cult/documents/:docId/requeue — force requeue ingest job (admin only)
+router.post('/cult/documents/:docId/requeue', async (req, res) => {
+  const driver = getDbDriver();
+  const docId = Number(req.params.docId);
+  if (!Number.isInteger(docId) || docId <= 0) {
+    return res.status(400).json({ error: 'Invalid doc id' });
+  }
+
+  try {
+    if (driver === 'postgres') {
+      const pool = getPgPool();
+      const doc = (await pool.query('SELECT * FROM cult_documents WHERE id = $1', [docId])).rows[0];
+      if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+      const existing = (await pool.query(
+        `
+        SELECT *
+        FROM cult_document_jobs
+        WHERE doc_id = $1 AND job_type = 'ingest'
+        ORDER BY created_at DESC
+        LIMIT 1
+        `,
+        [docId]
+      )).rows[0];
+
+      let job;
+      if (existing) {
+        job = (await pool.query(
+          `
+          UPDATE cult_document_jobs
+          SET status = 'queued',
+              locked_at = NULL,
+              locked_by = NULL,
+              last_error = NULL,
+              updated_at = now()
+          WHERE id = $1
+          RETURNING *
+          `,
+          [Number(existing.id)]
+        )).rows[0];
+      } else {
+        job = (await pool.query(
+          `
+          INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, locked_at, locked_by, last_error, created_at, updated_at)
+          VALUES ($1, 'ingest', 'queued', 0, NULL, NULL, NULL, now(), now())
+          RETURNING *
+          `,
+          [docId]
+        )).rows[0];
+      }
+
+      await pool.query(
+        "UPDATE cult_documents SET status = 'queued', queued_at = now(), error = NULL WHERE id = $1",
+        [docId]
+      );
+
+      return res.json({ ok: true, document_id: docId, job });
+    }
+
+    const db = getDb();
+    const doc = db.prepare('SELECT * FROM cult_documents WHERE id = ?').get(docId);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    const existing = db.prepare(
+      "SELECT * FROM cult_document_jobs WHERE doc_id = ? AND job_type = 'ingest' ORDER BY created_at DESC LIMIT 1"
+    ).get(docId);
+
+    let job;
+    if (existing) {
+      db.prepare(
+        "UPDATE cult_document_jobs SET status = 'queued', locked_at = NULL, locked_by = NULL, last_error = NULL, updated_at = datetime('now') WHERE id = ?"
+      ).run(existing.id);
+      job = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(existing.id);
+    } else {
+      const ins = db.prepare(
+        "INSERT INTO cult_document_jobs (doc_id, job_type, status, attempts, locked_at, locked_by, last_error, created_at, updated_at) VALUES (?, 'ingest', 'queued', 0, NULL, NULL, NULL, datetime('now'), datetime('now'))"
+      ).run(docId);
+      job = db.prepare('SELECT * FROM cult_document_jobs WHERE id = ?').get(ins.lastInsertRowid);
+    }
+
+    db.prepare("UPDATE cult_documents SET status = 'queued', queued_at = datetime('now'), error = NULL WHERE id = ?").run(docId);
+    return res.json({ ok: true, document_id: docId, job });
+  } catch (err) {
+    return res.status(500).json({ error: 'Requeue failed', detail: err.message });
+  }
+});
+
 // GET /api/admin/invites
 router.get('/invites', (req, res) => {
   const db = getDb();
