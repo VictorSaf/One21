@@ -12,6 +12,7 @@ const config         = require('./config');
 const packageJson    = require('./package.json');
 const { getDb, getDbDriver, getPgPool } = require('./db');
 const { initSocket } = require('./socket');
+const { startCultWorker } = require('./lib/cult-worker');
 
 const authRoutes     = require('./routes/auth');
 const joinRoutes     = require('./routes/join');
@@ -32,6 +33,8 @@ if (getDbDriver() === 'sqlite') {
 } else {
   getPgPool();
 }
+
+startCultWorker();
 
 const app    = express();
 const server = http.createServer(app);

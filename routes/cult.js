@@ -7,6 +7,7 @@ const fs = require('fs');
 const { getDb, getDbDriver, getPgPool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 const { assertCanSendFiles } = require('../middleware/policy');
+const { embedText } = require('../lib/cult-ingest');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -29,66 +30,6 @@ const upload = multer({
   storage,
   limits: { fileSize: MAX_SIZE },
 });
-
-function chunkText(text) {
-  const cleaned = String(text || '').replace(/\r\n/g, '\n').trim();
-  if (!cleaned) return [];
-
-  const maxLen = 900;
-  const overlap = 120;
-  const chunks = [];
-  let i = 0;
-  while (i < cleaned.length) {
-    const end = Math.min(cleaned.length, i + maxLen);
-    const slice = cleaned.slice(i, end);
-    chunks.push(slice.trim());
-    if (end >= cleaned.length) break;
-    i = Math.max(0, end - overlap);
-  }
-  return chunks.filter(Boolean);
-}
-
-function resolveDocPath(storageKey) {
-  return path.join(CULT_UPLOADS_DIR, path.basename(storageKey));
-}
-
-let _embedder = null;
-async function getEmbedder() {
-  if (_embedder) return _embedder;
-  const mod = await import('@xenova/transformers');
-  const pipe = await mod.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  _embedder = pipe;
-  return _embedder;
-}
-
-function meanPoolEmbedding(output) {
-  // Xenova pipeline returns a tensor-like object: { dims: [1, tokens, dims], data: Float32Array }
-  if (!output || !output.dims || !output.data) return null;
-  const dims = output.dims;
-  if (!Array.isArray(dims) || dims.length !== 3) return null;
-  const batch = Number(dims[0]);
-  const tokens = Number(dims[1]);
-  const width = Number(dims[2]);
-  if (batch !== 1 || tokens <= 0 || width <= 0) return null;
-
-  const data = output.data;
-  const sum = new Array(width).fill(0);
-  for (let t = 0; t < tokens; t++) {
-    const base = t * width;
-    for (let i = 0; i < width; i++) sum[i] += data[base + i];
-  }
-  const denom = Math.max(1, tokens);
-  return sum.map((v) => v / denom);
-}
-
-async function embedText(text) {
-  const pipe = await getEmbedder();
-  const out = await pipe(text, { pooling: 'none', normalize: true });
-  const pooled = meanPoolEmbedding(out);
-  if (!pooled) return null;
-  // pgvector text format: [1,2,3]
-  return `[${pooled.map((v) => Number(v).toFixed(6)).join(',')}]`;
-}
 
 // POST /api/cult/rooms/:roomId/documents — upload a cult library document
 router.post('/rooms/:roomId/documents', upload.single('file'), (req, res) => {
@@ -201,73 +142,25 @@ router.post('/documents/:docId/enqueue', (req, res) => {
       try {
         await client.query('BEGIN');
 
-        // Ensure a single job row per (doc_id, job_type)
-        let jobId;
-        const existingJob = (await client.query(
-          `
-          SELECT id
-          FROM cult_document_jobs
-          WHERE doc_id = $1 AND job_type = 'ingest'
-          ORDER BY id DESC
-          LIMIT 1
-          FOR UPDATE
-          `,
-          [Number(docId)]
-        )).rows[0];
-        if (existingJob) {
-          jobId = Number(existingJob.id);
-          await client.query(
-            "UPDATE cult_document_jobs SET status = 'queued', updated_at = now(), last_error = NULL WHERE id = $1",
-            [jobId]
-          );
-        } else {
-          const insertedJob = (await client.query(
-            `
-            INSERT INTO cult_document_jobs (doc_id, job_type, status)
-            VALUES ($1, 'ingest', 'queued')
-            RETURNING id
-            `,
-            [Number(docId)]
-          )).rows[0];
-          jobId = Number(insertedJob.id);
-        }
-
         await client.query(
           "UPDATE cult_documents SET status = 'queued', queued_at = now(), error = NULL WHERE id = $1",
           [Number(docId)]
         );
 
-        // Minimal ingest for text/plain only
-        if (doc.mime === 'text/plain' || (doc.storage_key || '').toLowerCase().endsWith('.txt')) {
-          await client.query("UPDATE cult_documents SET status = 'processing' WHERE id = $1", [Number(docId)]);
-          await client.query("UPDATE cult_document_jobs SET status = 'running', updated_at = now() WHERE id = $1", [jobId]);
-
-          const p = resolveDocPath(doc.storage_key);
-          const raw = fs.readFileSync(p, 'utf8');
-          const chunks = chunkText(raw);
-
-          await client.query('DELETE FROM cult_document_chunks WHERE doc_id = $1', [Number(docId)]);
-          for (let idx = 0; idx < chunks.length; idx++) {
-            const embedding = await embedText(chunks[idx]);
-            await client.query(
-              `
-              INSERT INTO cult_document_chunks (doc_id, room_id, chunk_index, content, embedding)
-              VALUES ($1,$2,$3,$4,$5::vector)
-              ON CONFLICT (doc_id, chunk_index) DO UPDATE
-                SET content = EXCLUDED.content,
-                    embedding = EXCLUDED.embedding
-              `,
-              [Number(docId), Number(doc.room_id), idx, chunks[idx], embedding]
-            );
-          }
-
+        // Ensure a single job row per (doc_id, job_type)
+        const existingJob = (await client.query(
+          "SELECT id FROM cult_document_jobs WHERE doc_id = $1 AND job_type = 'ingest' ORDER BY id DESC LIMIT 1 FOR UPDATE",
+          [Number(docId)]
+        )).rows[0];
+        if (existingJob) {
           await client.query(
-            "UPDATE cult_documents SET status = 'processed', processed_at = now(), error = NULL WHERE id = $1",
-            [Number(docId)]
+            "UPDATE cult_document_jobs SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL WHERE id = $1",
+            [Number(existingJob.id)]
           );
+        } else {
           await client.query(
-            "UPDATE cult_document_jobs SET status = 'done', updated_at = now() WHERE id = $1",
-            [jobId]
+            "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES ($1, 'ingest', 'queued') ON CONFLICT (doc_id, job_type) DO UPDATE SET status = 'queued', updated_at = now(), last_error = NULL, locked_at = NULL, locked_by = NULL",
+            [Number(docId)]
           );
         }
 
@@ -307,41 +200,17 @@ router.post('/documents/:docId/enqueue', (req, res) => {
       const existing = db.prepare(
         "SELECT id FROM cult_document_jobs WHERE doc_id = ? AND job_type = 'ingest' ORDER BY id DESC LIMIT 1"
       ).get(docId);
-      let jobId;
       if (existing) {
-        jobId = existing.id;
-        db.prepare("UPDATE cult_document_jobs SET status = 'queued', updated_at = datetime('now'), last_error = NULL WHERE id = ?")
-          .run(jobId);
+        db.prepare("UPDATE cult_document_jobs SET status = 'queued', updated_at = datetime('now'), last_error = NULL, locked_at = NULL, locked_by = NULL WHERE id = ?")
+          .run(existing.id);
       } else {
-        const rj = db.prepare(
+        db.prepare(
           "INSERT INTO cult_document_jobs (doc_id, job_type, status) VALUES (?, 'ingest', 'queued')"
         ).run(docId);
-        jobId = rj.lastInsertRowid;
       }
 
       db.prepare("UPDATE cult_documents SET status = 'queued', queued_at = datetime('now'), error = NULL WHERE id = ?")
         .run(docId);
-
-      if (doc.mime === 'text/plain' || String(doc.storage_key || '').toLowerCase().endsWith('.txt')) {
-        db.prepare("UPDATE cult_documents SET status = 'processing' WHERE id = ?").run(docId);
-        db.prepare("UPDATE cult_document_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?")
-          .run(jobId);
-        const p = resolveDocPath(doc.storage_key);
-        const raw = fs.readFileSync(p, 'utf8');
-        const chunks = chunkText(raw);
-
-        db.prepare('DELETE FROM cult_document_chunks WHERE doc_id = ?').run(docId);
-        const ins = db.prepare(
-          'INSERT OR REPLACE INTO cult_document_chunks (doc_id, room_id, chunk_index, content) VALUES (?, ?, ?, ?)'
-        );
-        for (let idx = 0; idx < chunks.length; idx++) {
-          ins.run(docId, doc.room_id, idx, chunks[idx]);
-        }
-        db.prepare("UPDATE cult_documents SET status = 'processed', processed_at = datetime('now'), error = NULL WHERE id = ?")
-          .run(docId);
-        db.prepare("UPDATE cult_document_jobs SET status = 'done', updated_at = datetime('now') WHERE id = ?")
-          .run(jobId);
-      }
     })();
 
     const updated = db.prepare('SELECT * FROM cult_documents WHERE id = ?').get(docId);
